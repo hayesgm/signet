@@ -15,21 +15,8 @@ defmodule Signet.FilterTest do
 
     :timer.sleep(6000)
 
-    assert_received {:event,
-                     {"Transfer",
-                      %{
-                        "amount" => 20_000_000_000,
-                        "from" =>
-                          <<178, 183, 193, 121, 95, 25, 251, 194, 143, 218, 119, 169, 94, 89, 237,
-                            187, 139, 55, 9, 200>>,
-                        "to" =>
-                          <<119, 149, 18, 107, 58, 228, 104, 244, 76, 144, 18, 135, 222, 152, 89,
-                            65, 152, 206, 56, 234>>
-                      }}}
-
-    assert_received {
-      :log,
-      %{
+    log =
+      Signet.Filter.Log.deserialize(%{
         "address" => "0xb5a5f22694352c15b00323844ad545abb2b11028",
         "blockHash" => "0x99e8663c7b6d8bba3c7627a17d774238eae3e793dee30008debb2699666657de",
         "blockNumber" => "0x5d12ab",
@@ -43,7 +30,20 @@ defmodule Signet.FilterTest do
         ],
         "transactionHash" => "0xa74c2432c9cf7dbb875a385a2411fd8f13ca9ec12216864b1a1ead3c99de99cd",
         "transactionIndex" => "0x3"
-      }
-    }
+      })
+
+    assert_received {:event,
+                     {"Transfer",
+                      %{
+                        "amount" => 20_000_000_000,
+                        "from" =>
+                          <<178, 183, 193, 121, 95, 25, 251, 194, 143, 218, 119, 169, 94, 89, 237,
+                            187, 139, 55, 9, 200>>,
+                        "to" =>
+                          <<119, 149, 18, 107, 58, 228, 104, 244, 76, 144, 18, 135, 222, 152, 89,
+                            65, 152, 206, 56, 234>>
+                      }}, ^log}
+
+    assert_received {:log, ^log}
   end
 end

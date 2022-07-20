@@ -29,7 +29,7 @@ Signet can be installed by adding `signet` to your list of dependencies in `mix.
 ```elixir
 def deps do
   [
-    {:signet, "~> 0.1.0-rc2"}
+    {:signet, "~> 0.1.0-rc3"}
   ]
 end
 ```
@@ -227,7 +227,7 @@ defmodule MyGenServer do
     Signet.Filter.listen(MyTransferFilter)
   end
 
-  def handle_info({:event, event}, state) do
+  def handle_info({:event, event, log}, state) do
     IO.inspect(event, label: "New Event")
     {:noreply, state}
   end
@@ -242,7 +242,7 @@ end
 Currently, only ERC-20 transfer events as decoded, e.g. as:
 
 ```elixir
-{:event, {"Transfer", %{from: <<1::160>>, to: <<2::160>>, amount: 100}}}
+{:event, {"Transfer", %{"from" => <<1::160>>, "to" => <<2::160>>, "amount" => 100}}, %Signet.Filter.Log{}}
 ```
 
 Note: filters may expire if not refreshed every so often. The filter code does not attempt to reach back in time if a filter is expired- that is up to your code.

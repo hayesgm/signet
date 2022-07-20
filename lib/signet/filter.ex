@@ -7,6 +7,46 @@ defmodule Signet.Filter do
 
   @check_delay 3000
 
+  defmodule Log do
+    defstruct [
+      :address,
+      :block_hash,
+      :block_number,
+      :data,
+      :log_index,
+      :removed,
+      :topics,
+      :transaction_hash,
+      :transaction_index
+    ]
+
+    def deserialize(
+          %{
+            "address" => address,
+            "blockHash" => block_hash,
+            "blockNumber" => block_number,
+            "data" => data,
+            "logIndex" => log_index,
+            "removed" => removed,
+            "topics" => topics,
+            "transactionHash" => transaction_hash,
+            "transactionIndex" => transaction_index
+          }
+        ) do
+      %__MODULE__{
+        address: Signet.Util.decode_hex!(address),
+        block_hash: Signet.Util.decode_hex!(block_hash),
+        block_number: Signet.Util.decode_hex!(block_number) |> :binary.decode_unsigned(),
+        data: Signet.Util.decode_hex!(data),
+        log_index: Signet.Util.decode_hex!(log_index) |> :binary.decode_unsigned(),
+        removed: removed,
+        topics: Enum.map(topics, &Signet.Util.decode_hex!/1),
+        transaction_hash: Signet.Util.decode_hex!(transaction_hash),
+        transaction_index: Signet.Util.decode_hex!(transaction_index) |> :binary.decode_unsigned()
+      }
+    end
+  end
+
   def start_link([name, address, topics, events]) do
     decoders =
       for event_abi <- events, into: %{} do
@@ -65,11 +105,14 @@ defmodule Signet.Filter do
     Process.send_after(self(), :check_filter, @check_delay)
 
     case RPC.send_rpc("eth_getFilterChanges", [filter_id]) do
-      {:ok, logs} ->
-        events = Enum.flat_map(logs, fn log -> decode_log(log, decoders) end)
+      {:ok, raw_logs} ->
+        {logs, events} =
+          raw_logs
+          |> Enum.map(&Log.deserialize/1)
+          |> parse_events(decoders)
 
-        for listener <- listeners, event <- events do
-          send(listener, {:event, event})
+        for listener <- listeners, {event, log} <- events do
+          send(listener, {:event, event, log})
         end
 
         for listener <- listeners, log <- logs do
@@ -83,16 +126,23 @@ defmodule Signet.Filter do
     {:noreply, state}
   end
 
-  defp decode_log(log, decoders) do
-    [topic_0 | topic_rest_enc] = log["topics"]
+  defp parse_events(logs, decoders) do
+    events = do_parse_events(logs, decoders, [])
+    {logs, Enum.reverse(events)}
+  end
 
-    case decoders[Signet.Util.decode_hex!(topic_0)] do
+  defp do_parse_events([], _, events), do: events
+
+  defp do_parse_events([log | logs], decoders, events) do
+    [topic_0 | topic_rest] = log.topics
+
+    case decoders[topic_0] do
       nil ->
-        []
+        do_parse_events(logs, decoders, events)
 
       decoder_fn ->
-        topic_rest = Enum.map(topic_rest_enc, &Signet.Util.decode_hex!/1)
-        [decoder_fn.(topic_rest, Signet.Util.decode_hex!(log["data"]))]
+        event = decoder_fn.(topic_rest, log.data)
+        do_parse_events(logs, decoders, [{event, log} | events])
     end
   end
 end
