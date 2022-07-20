@@ -10,11 +10,22 @@ defmodule Signet.MixProject do
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       name: "Signet",
+      description: "Lightweight Ethereum RPC client for Elixir",
       source_url: "https://github.com/hayesgm/signet",
       docs: [
         main: "readme",
         extras: ["README.md"]
-      ]
+      ],
+      package: package()
+    ]
+  end
+
+  defp package() do
+    [
+      files: ["lib", "mix.exs", "README*", "LICENSE*"],
+      maintainers: ["Geoffrey Hayes"],
+      licenses: ["MIT"],
+      links: %{"GitHub" => "https://github.com/hayesgm/signet"}
     ]
   end
 
