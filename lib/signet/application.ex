@@ -17,7 +17,11 @@ defmodule Signet.Application do
 
   @impl true
   def start(_type, _args) do
-    signers = Application.get_env(:signet, :signers, %{})
+    signers =
+      Map.merge(
+        %{Signet.Signer.Default => Application.get_env(:signet, :signer)},
+        Application.get_env(:signet, :signers, %{})
+      )
 
     children =
       [

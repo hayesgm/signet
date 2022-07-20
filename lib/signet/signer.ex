@@ -74,7 +74,7 @@ defmodule Signet.Signer do
 
   ## Examples
 
-      iex> signer_proc = SignetHelper.start_signer()
+      iex> signer_proc = Signet.Test.Signer.start_signer()
       iex> {:ok, sig} = Signet.Signer.sign("test", signer_proc)
       iex> Signet.Recover.recover_eth("test", sig) |> Base.encode16()
       "63CC7C25E0CDB121ABB0FE477A6B9901889F99A7"
@@ -88,7 +88,7 @@ defmodule Signet.Signer do
 
   ## Examples
 
-      iex> signer_proc = SignetHelper.start_signer()
+      iex> signer_proc = Signet.Test.Signer.start_signer()
       iex> Signet.Signer.address(signer_proc) |> Base.encode16()
       "63CC7C25E0CDB121ABB0FE477A6B9901889F99A7"
   """
@@ -101,7 +101,7 @@ defmodule Signet.Signer do
 
   ## Examples
 
-      iex> signer_proc = SignetHelper.start_signer()
+      iex> signer_proc = Signet.Test.Signer.start_signer()
       iex> Signet.Signer.chain_id(signer_proc)
       5
   """

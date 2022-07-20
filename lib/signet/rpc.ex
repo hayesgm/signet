@@ -147,7 +147,7 @@ defmodule Signet.RPC do
 
   ## Examples
 
-      iex> signer_proc = SignetHelper.start_signer()
+      iex> signer_proc = Signet.Test.Signer.start_signer()
       iex> {:ok, signed_trx} = Signet.Transaction.build_signed_trx(<<1::160>>, 5, {"baz(uint,address)", [50, :binary.decode_unsigned(<<1::160>>)]}, {50, :gwei}, 100_000, 0, chain_id: :goerli, signer: signer_proc)
       iex> {:ok, trx_id} = Signet.RPC.send_trx(signed_trx)
       iex> <<nonce::integer-size(8), gas_price::integer-size(64), gas_limit::integer-size(24), to::binary>> = trx_id
@@ -257,29 +257,29 @@ defmodule Signet.RPC do
 
   ## Examples
 
-      iex> signer_proc = SignetHelper.start_signer()
+      iex> signer_proc = Signet.Test.Signer.start_signer()
       iex> {:ok, trx_id} = Signet.RPC.execute_trx(<<1::160>>, {"baz(uint,address)", [50, :binary.decode_unsigned(<<1::160>>)]}, gas_price: {50, :gwei}, value: 0, signer: signer_proc)
       iex> <<nonce::integer-size(8), gas_price::integer-size(64), gas_limit::integer-size(24), to::binary>> = trx_id
       iex> {nonce, gas_price, gas_limit, to}
       {4, 50000000000, 20, <<1::160>>}
 
-      iex> signer_proc = SignetHelper.start_signer()
+      iex> signer_proc = Signet.Test.Signer.start_signer()
       iex> {:ok, trx_id} = Signet.RPC.execute_trx(<<1::160>>, {"baz(uint,address)", [50, <<1::160>> |> :binary.decode_unsigned]}, gas_price: {50, :gwei}, gas_limit: 100_000, value: 0, signer: signer_proc)
       iex> <<nonce::integer-size(8), gas_price::integer-size(64), gas_limit::integer-size(24), to::binary>> = trx_id
       iex> {nonce, gas_price, gas_limit, to}
       {4, 50000000000, 100000, <<1::160>>}
 
-      iex> signer_proc = SignetHelper.start_signer()
+      iex> signer_proc = Signet.Test.Signer.start_signer()
       iex> {:ok, trx_id} = Signet.RPC.execute_trx(<<1::160>>, {"baz(uint,address)", [50, <<1::160>> |> :binary.decode_unsigned]}, gas_price: {50, :gwei}, gas_limit: 100_000, value: 0, nonce: 10, signer: signer_proc)
       iex> <<nonce::integer-size(8), gas_price::integer-size(64), gas_limit::integer-size(24), to::binary>> = trx_id
       iex> {nonce, gas_price, gas_limit, to}
       {10, 50000000000, 100000, <<1::160>>}
 
-      iex> signer_proc = SignetHelper.start_signer()
+      iex> signer_proc = Signet.Test.Signer.start_signer()
       iex> Signet.RPC.execute_trx(<<10::160>>, {"baz(uint,address)", [50, <<1::160>> |> :binary.decode_unsigned]}, gas_price: {50, :gwei}, gas_limit: 100_000, value: 0, nonce: 10, signer: signer_proc)
       {:error, "error 3: execution reverted (0x3d738b2e)"}
 
-      iex> signer_proc = SignetHelper.start_signer()
+      iex> signer_proc = Signet.Test.Signer.start_signer()
       iex> {:ok, trx_id} = Signet.RPC.execute_trx(<<10::160>>, {"baz(uint,address)", [50, <<1::160>> |> :binary.decode_unsigned]}, gas_price: {50, :gwei}, gas_limit: 100_000, value: 0, nonce: 10, verify: false, signer: signer_proc)
       iex> <<nonce::integer-size(8), gas_price::integer-size(64), gas_limit::integer-size(24), to::binary>> = trx_id
       iex> {nonce, gas_price, gas_limit, to}
@@ -292,7 +292,6 @@ defmodule Signet.RPC do
     value = Keyword.get(opts, :value, 0)
     nonce = Keyword.get(opts, :nonce)
     verify = Keyword.get(opts, :verify, true)
-    url = Keyword.get(opts, :ethereum_node, ethereum_node())
     signer = Keyword.get(opts, :signer, Signet.Signer.Default)
 
     signer_address = Signet.Signer.address(signer)

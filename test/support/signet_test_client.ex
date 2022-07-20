@@ -1,4 +1,4 @@
-defmodule SignetPoisonMock do
+defmodule Signet.Test.Client do
   defp parse_request(body) do
     %{
       "jsonrpc" => "2.0",
@@ -59,7 +59,8 @@ defmodule SignetPoisonMock do
     } = trx
 
     Signet.Util.encode_hex(
-      <<nonce::integer-size(8), gas_price::integer-size(64), gas_limit::integer-size(24), to::binary>>
+      <<nonce::integer-size(8), gas_price::integer-size(64), gas_limit::integer-size(24),
+        to::binary>>
     )
   end
 

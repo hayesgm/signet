@@ -246,7 +246,7 @@ defmodule Signet.Transaction do
 
   ## Examples
 
-      iex> signer_proc = SignetHelper.start_signer()
+      iex> signer_proc = Signet.Test.Signer.start_signer()
       iex> {:ok, signed_trx} = Signet.Transaction.build_signed_trx(<<1::160>>, 5, {"baz(uint,address)", [50, :binary.decode_unsigned(<<1::160>>)]}, {50, :gwei}, 100_000, 0, signer: signer_proc, chain_id: :goerli)
       iex> {:ok, signer} = Signet.Transaction.V1.recover_signer(signed_trx, 5)
       iex> Base.encode16(signer)

@@ -1,4 +1,4 @@
-defmodule SignetHelper do
+defmodule Signet.Test.Signer do
   def start_signer(name \\ nil) do
     name =
       case name do

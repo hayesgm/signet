@@ -61,9 +61,7 @@ Then use `MySigner` when asked for a signer when using Signet.
 You can also specify a default signer, which will be used by default so you do not need to specify the signer in your calls:
 
 ```elixir
-config :signet, :signers, %{
-  :"Signet.Signer.Default": {:priv_key, System.get_env("MY_PRIVATE_KEY")}
-}
+config :signet, :signer, {:priv_key, System.get_env("MY_PRIVATE_KEY")}
 ```
 
 #### Google KMS
