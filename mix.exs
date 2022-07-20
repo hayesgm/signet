@@ -31,7 +31,7 @@ defmodule Signet.MixProject do
       {:google_api_cloud_kms, "~> 0.38.1"},
       {:ex_sha3, "~> 0.1"},
       {:curvy, "~> 0.3.0"},
-      {:goth, "~> 1.3-rc", override: true},
+      {:goth, "~> 1.3-rc"},
       {:ex_rlp, "~> 0.5.4"},
       {:abi, "~> 0.1.18"}
     ]

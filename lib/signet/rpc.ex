@@ -3,7 +3,7 @@ defmodule Signet.RPC do
   Excessively simple RPC client for Ethereum.
   """
 
-  @http_client Application.get_env(:signet, :client)
+  def http_client(), do: Application.get_env(:signet, :client)
   @default_gas_price {1, :gwei}
   @default_gas_buffer 1.50
 
@@ -99,7 +99,7 @@ defmodule Signet.RPC do
     errors = Keyword.get(opts, :errors, nil)
     body = get_body(method, params)
 
-    case @http_client.post(url, Jason.encode!(body), headers(headers)) do
+    case http_client().post(url, Jason.encode!(body), headers(headers)) do
       {:ok, %HTTPoison.Response{status_code: code, body: resp_body}} when code in 200..299 ->
         with {:ok, result} <- decode_response(resp_body, body["id"], errors) do
           case decode do
@@ -115,6 +115,9 @@ defmodule Signet.RPC do
               end
           end
         end
+
+      {:error, %HTTPoison.Error{reason: reason}} ->
+        {:error, "error: #{inspect(reason)}"}
     end
   end
 
@@ -127,7 +130,9 @@ defmodule Signet.RPC do
       {:ok, 4}
   """
   def get_nonce(url, account, block_number \\ "latest") do
-    send_rpc(url, "eth_getTransactionCount", [Signet.Util.encode_hex(account), block_number], decode: :hex_unsigned)
+    send_rpc(url, "eth_getTransactionCount", [Signet.Util.encode_hex(account), block_number],
+      decode: :hex_unsigned
+    )
   end
 
   @doc """
@@ -143,7 +148,12 @@ defmodule Signet.RPC do
       {5, 50000000000, 100000, <<1::160>>}
   """
   def send_trx(trx = %Signet.Transaction.V1{}, url) do
-    send_rpc(url, "eth_sendRawTransaction", [Signet.Util.encode_hex(Signet.Transaction.V1.encode(trx))], decode: :hex)
+    send_rpc(
+      url,
+      "eth_sendRawTransaction",
+      [Signet.Util.encode_hex(Signet.Transaction.V1.encode(trx))],
+      decode: :hex
+    )
   end
 
   @doc ~S"""
@@ -279,6 +289,7 @@ defmodule Signet.RPC do
 
     signer_address = Signet.Signer.address(signer)
     chain_id = Signet.Signer.chain_id(signer)
+    opts = Keyword.put_new(opts, :from, signer_address)
 
     estimate_and_verify = fn trx ->
       with {:ok, _} <- if(verify, do: call_trx(trx, url, opts), else: {:ok, nil}),
@@ -296,7 +307,8 @@ defmodule Signet.RPC do
       end
     end
 
-    with {:ok, nonce} <- if(!is_nil(nonce), do: {:ok, nonce}, else: get_nonce(url, signer_address)),
+    with {:ok, nonce} <-
+           if(!is_nil(nonce), do: {:ok, nonce}, else: get_nonce(url, signer_address)),
          {:ok, trx} <-
            Signet.Transaction.build_signed_trx(
              signer,
