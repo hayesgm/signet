@@ -5,22 +5,18 @@ defmodule Signet.Filter do
 
   alias Signet.RPC
 
-  def start_link([name, address, topics]) do
-    decoders = %{
-      Signet.Util.decode_hex!(
-        "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
-      ) => fn [from_hex, to_hex], amount ->
-        <<0::96, from::binary()>> = Signet.Util.decode_hex!(from_hex)
-        <<0::96, to::binary()>> = Signet.Util.decode_hex!(to_hex)
+  @check_delay 3000
 
-        {"Transfer",
-         %{
-           from: from,
-           to: to,
-           amount: :binary.decode_unsigned(Signet.Util.decode_hex!(amount))
-         }}
+  def start_link([name, address, topics, events]) do
+    decoders =
+      for event_abi <- events, into: %{} do
+        function_selector = ABI.FunctionSelector.decode(event_abi)
+
+        {ABI.Event.event_topic(function_selector),
+         fn event_topics, event_data ->
+           ABI.Event.decode_event(event_data, event_topics, function_selector)
+         end}
       end
-    }
 
     GenServer.start_link(
       __MODULE__,
@@ -44,7 +40,7 @@ defmodule Signet.Filter do
         }
       ])
 
-    Process.send_after(self(), :check_filter, 5000)
+    Process.send_after(self(), :check_filter, @check_delay)
 
     {:ok, Map.put(state, :filter_id, filter_id)}
   end
@@ -66,7 +62,7 @@ defmodule Signet.Filter do
           name: name
         }
       ) do
-    Process.send_after(self(), :check_filter, 3000)
+    Process.send_after(self(), :check_filter, @check_delay)
 
     case RPC.send_rpc("eth_getFilterChanges", [filter_id]) do
       {:ok, logs} ->
@@ -88,14 +84,15 @@ defmodule Signet.Filter do
   end
 
   defp decode_log(log, decoders) do
-    [topic_0 | topic_rest] = log["topics"]
+    [topic_0 | topic_rest_enc] = log["topics"]
 
     case decoders[Signet.Util.decode_hex!(topic_0)] do
       nil ->
         []
 
       decoder_fn ->
-        [decoder_fn.(topic_rest, log["data"])]
+        topic_rest = Enum.map(topic_rest_enc, &Signet.Util.decode_hex!/1)
+        [decoder_fn.(topic_rest, Signet.Util.decode_hex!(log["data"]))]
     end
   end
 end
