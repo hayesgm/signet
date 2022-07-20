@@ -8,7 +8,13 @@ defmodule Signet.MixProject do
       elixir: "~> 1.13",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      name: "Signet",
+      source_url: "https://github.com/hayesgm/signet",
+      docs: [
+        main: "readme",
+        extras: ["README.md"]
+      ]
     ]
   end
 
@@ -27,12 +33,13 @@ defmodule Signet.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
+      {:ex_doc, "~> 0.27", only: :dev, runtime: false},
       {:jason, "~> 1.2"},
       {:httpoison, "~> 1.8"},
-      {:google_api_cloud_kms, "~> 0.38.1"},
+      {:google_api_cloud_kms, "~> 0.38.1", optional: true},
       {:ex_sha3, "~> 0.1"},
       {:curvy, "~> 0.3.0"},
-      {:goth, "~> 1.3-rc"},
+      {:goth, "~> 1.3-rc", optional: true},
       {:ex_rlp, "~> 0.5.4"},
       {:abi, "~> 0.1.18"}
     ]
