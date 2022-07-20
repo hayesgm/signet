@@ -115,13 +115,16 @@ defmodule Signet.Test.Client do
     "0xcc"
   end
 
-
   def eth_estimateGas(_trx, _block) do
     "0x0d"
   end
 
   def eth_newFilter(%{}) do
     "0xf11735"
+  end
+
+  def eth_newFilter(%{}) do
+    "0xdead"
   end
 
   def eth_getFilterChanges("0xf11735") do

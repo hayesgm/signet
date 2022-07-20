@@ -1,4 +1,9 @@
 defmodule Signet.Filter do
+  @moduledoc """
+  A system to create an Ethereum log filter and have
+  parsed events passed back to registered processes.
+  """
+
   use GenServer
 
   require Logger
@@ -20,19 +25,17 @@ defmodule Signet.Filter do
       :transaction_index
     ]
 
-    def deserialize(
-          %{
-            "address" => address,
-            "blockHash" => block_hash,
-            "blockNumber" => block_number,
-            "data" => data,
-            "logIndex" => log_index,
-            "removed" => removed,
-            "topics" => topics,
-            "transactionHash" => transaction_hash,
-            "transactionIndex" => transaction_index
-          }
-        ) do
+    def deserialize(%{
+          "address" => address,
+          "blockHash" => block_hash,
+          "blockNumber" => block_number,
+          "data" => data,
+          "logIndex" => log_index,
+          "removed" => removed,
+          "topics" => topics,
+          "transactionHash" => transaction_hash,
+          "transactionIndex" => transaction_index
+        }) do
       %__MODULE__{
         address: Signet.Util.decode_hex!(address),
         block_hash: Signet.Util.decode_hex!(block_hash),
@@ -47,7 +50,13 @@ defmodule Signet.Filter do
     end
   end
 
-  def start_link([name, address, topics, events]) do
+  def start_link(opts \\ []) do
+    name = Keyword.get(opts, :name, __MODULE__)
+    address = Keyword.fetch!(opts, :address)
+    topics = Keyword.get(opts, :topics, [])
+    events = Keyword.get(opts, :events, [])
+    check_delay = Keyword.get(opts, :check_delay, @check_delay)
+
     decoders =
       for event_abi <- events, into: %{} do
         function_selector = ABI.FunctionSelector.decode(event_abi)
@@ -65,13 +74,14 @@ defmodule Signet.Filter do
         topics: topics,
         name: name,
         listeners: [],
-        decoders: decoders
+        decoders: decoders,
+        check_delay: check_delay
       },
       name: name
     )
   end
 
-  def init(state = %{address: address, topics: topics}) do
+  defp set_filter(state = %{address: address, topics: topics}) do
     {:ok, filter_id} =
       RPC.send_rpc("eth_newFilter", [
         %{
@@ -80,9 +90,15 @@ defmodule Signet.Filter do
         }
       ])
 
-    Process.send_after(self(), :check_filter, @check_delay)
+    Map.put(state, :filter_id, filter_id)
+  end
 
-    {:ok, Map.put(state, :filter_id, filter_id)}
+  def init(state=%{check_delay: check_delay}) do
+    state = set_filter(state)
+
+    Process.send_after(self(), :check_filter, check_delay)
+
+    {:ok, state}
   end
 
   def listen(filter) do
@@ -99,29 +115,42 @@ defmodule Signet.Filter do
           filter_id: filter_id,
           listeners: listeners,
           decoders: decoders,
-          name: name
+          name: name,
+          check_delay: check_delay
         }
       ) do
-    Process.send_after(self(), :check_filter, @check_delay)
+    Process.send_after(self(), :check_filter, check_delay)
 
-    case RPC.send_rpc("eth_getFilterChanges", [filter_id]) do
-      {:ok, raw_logs} ->
-        {logs, events} =
-          raw_logs
-          |> Enum.map(&Log.deserialize/1)
-          |> parse_events(decoders)
+    state =
+      case RPC.send_rpc("eth_getFilterChanges", [filter_id]) do
+        {:ok, raw_logs} ->
+          {logs, events} =
+            raw_logs
+            |> Enum.map(&Log.deserialize/1)
+            |> parse_events(decoders)
 
-        for listener <- listeners, {event, log} <- events do
-          send(listener, {:event, event, log})
-        end
+          for listener <- listeners, {event, log} <- events do
+            send(listener, {:event, event, log})
+          end
 
-        for listener <- listeners, log <- logs do
-          send(listener, {:log, log})
-        end
+          for listener <- listeners, log <- logs do
+            send(listener, {:log, log})
+          end
 
-      {:error, error} ->
-        Logger.error("[Filter #{name}] Error getting filter changes: #{error}")
-    end
+          state
+
+        {:error, "error -32000: filter not found"} ->
+          Logger.error(
+            "[Filter #{name}] Filter expired, restarting... Note: some logs may have been lost."
+          )
+
+          set_filter(state)
+
+        {:error, error} ->
+          Logger.error("[Filter #{name}] Error getting filter changes: #{error}")
+
+          state
+      end
 
     {:noreply, state}
   end

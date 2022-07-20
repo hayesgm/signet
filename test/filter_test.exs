@@ -5,15 +5,15 @@ defmodule Signet.FilterTest do
   test "add a filter and get events" do
     {:ok, _filter_pid} =
       Signet.Filter.start_link([
-        MyFilter,
-        <<1::160>>,
-        [],
-        ["Transfer(address indexed from, address indexed to, uint amount)"]
+        name: MyFilter,
+        address: <<1::160>>,
+        events: ["Transfer(address indexed from, address indexed to, uint amount)"],
+        check_delay: 300
       ])
 
     Signet.Filter.listen(MyFilter)
 
-    :timer.sleep(6000)
+    :timer.sleep(600)
 
     log =
       Signet.Filter.Log.deserialize(%{
@@ -46,4 +46,6 @@ defmodule Signet.FilterTest do
 
     assert_received {:log, ^log}
   end
+
+  # TODO: Test expired filter
 end
