@@ -5,7 +5,7 @@ defmodule Signet.Filter do
 
   alias Signet.RPC
 
-  def start_link([name, endpoint, address, topics]) do
+  def start_link([name, address, topics]) do
     decoders = %{
       Signet.Util.decode_hex!(
         "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
@@ -25,7 +25,6 @@ defmodule Signet.Filter do
     GenServer.start_link(
       __MODULE__,
       %{
-        endpoint: endpoint,
         address: address,
         topics: topics,
         name: name,
@@ -36,9 +35,9 @@ defmodule Signet.Filter do
     )
   end
 
-  def init(state = %{endpoint: endpoint, address: address, topics: topics}) do
+  def init(state = %{address: address, topics: topics}) do
     {:ok, filter_id} =
-      RPC.send_rpc(endpoint, "eth_newFilter", [
+      RPC.send_rpc("eth_newFilter", [
         %{
           "address" => Signet.Util.encode_hex(address),
           "topics" => Enum.map(topics, &Signet.Util.encode_hex/1)
@@ -61,7 +60,6 @@ defmodule Signet.Filter do
   def handle_info(
         :check_filter,
         state = %{
-          endpoint: endpoint,
           filter_id: filter_id,
           listeners: listeners,
           decoders: decoders,
@@ -70,7 +68,7 @@ defmodule Signet.Filter do
       ) do
     Process.send_after(self(), :check_filter, 3000)
 
-    case RPC.send_rpc(endpoint, "eth_getFilterChanges", [filter_id]) do
+    case RPC.send_rpc("eth_getFilterChanges", [filter_id]) do
       {:ok, logs} ->
         events = Enum.flat_map(logs, fn log -> decode_log(log, decoders) end)
 

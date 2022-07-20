@@ -1,4 +1,9 @@
 defmodule Signet.Test.Signer do
+  @moduledoc """
+  A module to help with testing by setting up a simple signer with a
+  unique name, to prevent name overlap in tests.
+  """
+
   def start_signer(name \\ nil) do
     name =
       case name do

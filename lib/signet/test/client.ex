@@ -1,4 +1,9 @@
 defmodule Signet.Test.Client do
+  @moduledoc """
+  A module for helping tests by providing responses without
+  needing to connect to a real Etheruem node.
+  """
+
   defp parse_request(body) do
     %{
       "jsonrpc" => "2.0",
@@ -89,6 +94,11 @@ defmodule Signet.Test.Client do
     "0x0c"
   end
 
+  # Call els
+  def eth_call(_trx = %{"to" => _}, _block) do
+    "0xcc"
+  end
+
   # Call to Adaptor- don't care about response
   def eth_call(trx = %{"to" => "0x00000000000000000000000000000000000000CC"}, _block) do
     case trx["data"] do
@@ -107,5 +117,13 @@ defmodule Signet.Test.Client do
 
   def eth_estimateGas(_trx, _block) do
     "0x0d"
+  end
+
+  def eth_newFilter(%{}) do
+    "0xf11735"
+  end
+
+  def eth_getFilterChanges(_) do
+    {:ok, []}
   end
 end

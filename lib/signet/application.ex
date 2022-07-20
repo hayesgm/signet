@@ -19,7 +19,10 @@ defmodule Signet.Application do
   def start(_type, _args) do
     signers =
       Map.merge(
-        %{Signet.Signer.Default => Application.get_env(:signet, :signer)},
+        if(is_nil(els = Application.get_env(:signet, :signer)),
+          do: %{},
+          else: %{Signet.Signer.Default => els}
+        ),
         Application.get_env(:signet, :signers, %{})
       )
 
