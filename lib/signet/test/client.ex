@@ -94,11 +94,6 @@ defmodule Signet.Test.Client do
     "0x0c"
   end
 
-  # Call els
-  def eth_call(_trx = %{"to" => _}, _block) do
-    "0xcc"
-  end
-
   # Call to Adaptor- don't care about response
   def eth_call(trx = %{"to" => "0x00000000000000000000000000000000000000CC"}, _block) do
     case trx["data"] do
@@ -115,6 +110,12 @@ defmodule Signet.Test.Client do
     end
   end
 
+  # Call els
+  def eth_call(_trx = %{"to" => _}, _block) do
+    "0xcc"
+  end
+
+
   def eth_estimateGas(_trx, _block) do
     "0x0d"
   end
@@ -123,7 +124,23 @@ defmodule Signet.Test.Client do
     "0xf11735"
   end
 
-  def eth_getFilterChanges(_) do
-    {:ok, []}
+  def eth_getFilterChanges("0xf11735") do
+    [
+      %{
+        address: "0xb5a5f22694352c15b00323844ad545abb2b11028",
+        blockHash: "0x99e8663c7b6d8bba3c7627a17d774238eae3e793dee30008debb2699666657de",
+        blockNumber: "0x5d12ab",
+        data: "0x00000000000000000000000000000000000000000000000000000004a817c800",
+        logIndex: "0x0",
+        removed: false,
+        topics: [
+          "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
+          "0x000000000000000000000000b2b7c1795f19fbc28fda77a95e59edbb8b3709c8",
+          "0x0000000000000000000000007795126b3ae468f44c901287de98594198ce38ea"
+        ],
+        transactionHash: "0xa74c2432c9cf7dbb875a385a2411fd8f13ca9ec12216864b1a1ead3c99de99cd",
+        transactionIndex: "0x3"
+      }
+    ]
   end
 end
