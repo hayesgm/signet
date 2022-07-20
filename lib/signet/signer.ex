@@ -15,7 +15,7 @@ defmodule Signet.Signer do
   signer address, but we need to know what that address should be to accomplish
   this task.
 
-  Additionally, `chain_id` is used to return EIP-155 compliant signatures.
+  Additionally, chain_id is used to return EIP-155 compliant signatures.
   """
   use GenServer
   require Logger
@@ -24,8 +24,9 @@ defmodule Signet.Signer do
   @doc """
   Starts a new Signet.Signer process.
   """
-  def start_link(mfa: mfa, chain_id: chain_id, name: name) do
+  def start_link(mfa: mfa, name: name) do
     Logger.info("Starting Signet.Signer #{name}...")
+    chain_id = Signet.Application.chain_id()
 
     GenServer.start_link(
       __MODULE__,
@@ -74,11 +75,11 @@ defmodule Signet.Signer do
   ## Examples
 
       iex> signer_proc = SignetHelper.start_signer()
-      iex> {:ok, sig} = Signet.Signer.sign(signer_proc, "test")
+      iex> {:ok, sig} = Signet.Signer.sign("test", signer_proc)
       iex> Signet.Recover.recover_eth("test", sig) |> Base.encode16()
       "63CC7C25E0CDB121ABB0FE477A6B9901889F99A7"
   """
-  def sign(name, message) do
+  def sign(message, name \\ Signet.Signer.Default) do
     GenServer.call(name, {:sign, message})
   end
 
@@ -91,7 +92,7 @@ defmodule Signet.Signer do
       iex> Signet.Signer.address(signer_proc) |> Base.encode16()
       "63CC7C25E0CDB121ABB0FE477A6B9901889F99A7"
   """
-  def address(name) do
+  def address(name \\ Signet.Signer.Default) do
     GenServer.call(name, :get_address)
   end
 
@@ -104,7 +105,7 @@ defmodule Signet.Signer do
       iex> Signet.Signer.chain_id(signer_proc)
       5
   """
-  def chain_id(name) do
+  def chain_id(name \\ Signet.Signer.Default) do
     GenServer.call(name, :get_chain_id)
   end
 
@@ -112,7 +113,11 @@ defmodule Signet.Signer do
   Handles signing a message.
   """
   @impl true
-  def handle_call({:sign, message}, _from, state = %{address: address, mfa: mfa, chain_id: chain_id}) do
+  def handle_call(
+        {:sign, message},
+        _from,
+        state = %{address: address, mfa: mfa, chain_id: chain_id}
+      ) do
     {:reply, sign_direct(message, address, mfa, chain_id), state}
   end
 
@@ -124,7 +129,13 @@ defmodule Signet.Signer do
     {:reply, chain_id, state}
   end
 
-  @spec sign_direct(String.t(), binary(), mfa(), integer()) :: {:ok, binary()} | {:error, String.t()}
+  @doc """
+  Directly sign a message, not using a signer process.
+
+  This is mostly used internally, but can be used safely externally as well.
+  """
+  @spec sign_direct(String.t(), binary(), mfa(), integer()) ::
+          {:ok, binary()} | {:error, String.t()}
   def sign_direct(message, address, {mod, fun, args}, chain_id) do
     with {:ok,
           signature = %Curvy.Signature{

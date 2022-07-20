@@ -33,6 +33,23 @@ defmodule Signet.Util do
   end
 
   @doc ~S"""
+  Decodes hex, allowing it to either by "0x..." or <<1::160>>.
+
+  Note: a hex-printed string, in this case, must start with 0x,
+        otherwise it will be interpreted as its ASCII values.
+
+  ## Examples
+
+      iex> Signet.Util.decode_hex_input!("0x55")
+      <<0x55>>
+
+      iex> Signet.Util.decode_hex_input!(<<0x55>>)
+      <<0x55>>
+  """
+  def decode_hex_input!(hex = "0x" <> _), do: decode_hex!(hex)
+  def decode_hex_input!(hex) when is_binary(hex), do: hex
+
+  @doc ~S"""
   Encodes a hex string, adding a `0x` prefix.
 
   Note: if `short` is set, then any leading zeros will be stripped.

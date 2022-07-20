@@ -38,7 +38,7 @@ defmodule Signet.Transaction do
           s: 0
         }
     """
-    def new(nonce, gas_price, gas_limit, to, value, data, chain_id) do
+    def new(nonce, gas_price, gas_limit, to, value, data, chain_id \\ nil) do
       %__MODULE__{
         nonce: nonce,
         gas_price: if(!is_nil(gas_price), do: Signet.Util.to_wei(gas_price), else: nil),
@@ -46,7 +46,11 @@ defmodule Signet.Transaction do
         to: to,
         value: Signet.Util.to_wei(value),
         data: data,
-        v: Signet.Util.parse_chain_id(chain_id),
+        v:
+          if(is_nil(chain_id),
+            do: Signet.Application.chain_id(),
+            else: Signet.Util.parse_chain_id(chain_id)
+          ),
         r: 0,
         s: 0
       }
@@ -158,7 +162,8 @@ defmodule Signet.Transaction do
         ...> |> Signet.Transaction.V1.get_signature()
         {:error, "transaction missing signature"}
     """
-    def get_signature(%__MODULE__{v: _v, r: 0, s: 0}), do: {:error, "transaction missing signature"}
+    def get_signature(%__MODULE__{v: _v, r: 0, s: 0}),
+      do: {:error, "transaction missing signature"}
 
     def get_signature(%__MODULE__{v: v, r: r, s: s}) do
       {:ok, <<r::binary-size(32), s::binary-size(32), v::8>>}
@@ -221,7 +226,7 @@ defmodule Signet.Transaction do
         s: 0
       }
   """
-  def build_trx(address, nonce, call_data, gas_price, gas_limit, value, chain_id) do
+  def build_trx(address, nonce, call_data, gas_price, gas_limit, value, chain_id \\ nil) do
     data =
       case call_data do
         {abi, params} ->
@@ -242,18 +247,30 @@ defmodule Signet.Transaction do
   ## Examples
 
       iex> signer_proc = SignetHelper.start_signer()
-      iex> {:ok, signed_trx} = Signet.Transaction.build_signed_trx(signer_proc, <<1::160>>, 5, {"baz(uint,address)", [50, :binary.decode_unsigned(<<1::160>>)]}, {50, :gwei}, 100_000, 0, 5)
+      iex> {:ok, signed_trx} = Signet.Transaction.build_signed_trx(<<1::160>>, 5, {"baz(uint,address)", [50, :binary.decode_unsigned(<<1::160>>)]}, {50, :gwei}, 100_000, 0, signer: signer_proc, chain_id: :goerli)
       iex> {:ok, signer} = Signet.Transaction.V1.recover_signer(signed_trx, 5)
       iex> Base.encode16(signer)
       "63CC7C25E0CDB121ABB0FE477A6B9901889F99A7"
   """
-  def build_signed_trx(signer, address, nonce, call_data, gas_price, gas_limit, value, chain_id, callback \\ nil) do
+  def build_signed_trx(
+        address,
+        nonce,
+        call_data,
+        gas_price,
+        gas_limit,
+        value,
+        opts \\ []
+      ) do
+    signer = Keyword.get(opts, :signer, Signet.Signer.Default)
+    chain_id = Keyword.get(opts, :chain_id, nil)
+    callback = Keyword.get(opts, :callback, nil)
+
     transaction = build_trx(address, nonce, call_data, gas_price, gas_limit, value, chain_id)
     callback = if(is_nil(callback), do: fn trx -> {:ok, trx} end, else: callback)
 
     with {:ok, transaction} <- callback.(transaction),
          transaction_encoded <- V1.encode(transaction),
-         {:ok, signature} <- Signet.Signer.sign(signer, transaction_encoded) do
+         {:ok, signature} <- Signet.Signer.sign(transaction_encoded, signer) do
       {:ok, V1.add_signature(transaction, signature)}
     end
   end

@@ -13,7 +13,6 @@ defmodule SignetHelper do
 
     Signet.Signer.start_link(
       mfa: {Signet.Signer.Curvy, :sign, [Base.decode16!(priv_key, case: :mixed)]},
-      chain_id: 5,
       name: name
     )
 

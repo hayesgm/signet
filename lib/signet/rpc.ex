@@ -3,7 +3,9 @@ defmodule Signet.RPC do
   Excessively simple RPC client for Ethereum.
   """
 
-  def http_client(), do: Application.get_env(:signet, :client)
+  defp ethereum_node(), do: Signet.Application.ethereum_node()
+  defp http_client(), do: Signet.Application.http_client()
+
   @default_gas_price {1, :gwei}
   @default_gas_buffer 1.50
 
@@ -87,16 +89,17 @@ defmodule Signet.RPC do
 
   ## Examples
 
-      iex> Signet.RPC.send_rpc("http://example.com", "net_version", [])
+      iex> Signet.RPC.send_rpc("net_version", [])
       {:ok, "3"}
 
-      iex> Signet.RPC.send_rpc("http://example.com", "get_balance", ["0x407d73d8a49eeb85d32cf465507dd71d507100c1", "latest"])
+      iex> Signet.RPC.send_rpc("get_balance", ["0x407d73d8a49eeb85d32cf465507dd71d507100c1", "latest"], ethereum_node: "http://example.com")
       {:ok, "0x0234c8a3397aab58"}
   """
-  def send_rpc(url, method, params, opts \\ []) do
+  def send_rpc(method, params, opts \\ []) do
     headers = Keyword.get(opts, :headers, [])
     decode = Keyword.get(opts, :decode, nil)
     errors = Keyword.get(opts, :errors, nil)
+    url = Keyword.get(opts, :ethereum_node, ethereum_node())
     body = get_body(method, params)
 
     case http_client().post(url, Jason.encode!(body), headers(headers)) do
@@ -126,12 +129,16 @@ defmodule Signet.RPC do
 
   ## Examples
 
-      iex> Signet.RPC.get_nonce("http://example.com", Signet.Util.decode_hex!("0x407d73d8a49eeb85d32cf465507dd71d507100c1"))
+      iex> Signet.RPC.get_nonce(Signet.Util.decode_hex!("0x407d73d8a49eeb85d32cf465507dd71d507100c1"))
       {:ok, 4}
   """
-  def get_nonce(url, account, block_number \\ "latest") do
-    send_rpc(url, "eth_getTransactionCount", [Signet.Util.encode_hex(account), block_number],
-      decode: :hex_unsigned
+  def get_nonce(account, opts \\ []) do
+    block_number = Keyword.get(opts, :block_number, "latest")
+
+    send_rpc(
+      "eth_getTransactionCount",
+      [Signet.Util.encode_hex(account), block_number],
+      Keyword.merge(opts, decode: :hex_unsigned)
     )
   end
 
@@ -141,18 +148,17 @@ defmodule Signet.RPC do
   ## Examples
 
       iex> signer_proc = SignetHelper.start_signer()
-      iex> {:ok, signed_trx} = Signet.Transaction.build_signed_trx(signer_proc, <<1::160>>, 5, {"baz(uint,address)", [50, :binary.decode_unsigned(<<1::160>>)]}, {50, :gwei}, 100_000, 0, 5)
-      iex> {:ok, trx_id} = Signet.RPC.send_trx(signed_trx, "http://example.com")
+      iex> {:ok, signed_trx} = Signet.Transaction.build_signed_trx(<<1::160>>, 5, {"baz(uint,address)", [50, :binary.decode_unsigned(<<1::160>>)]}, {50, :gwei}, 100_000, 0, chain_id: :goerli, signer: signer_proc)
+      iex> {:ok, trx_id} = Signet.RPC.send_trx(signed_trx)
       iex> <<nonce::integer-size(8), gas_price::integer-size(64), gas_limit::integer-size(24), to::binary>> = trx_id
       iex> {nonce, gas_price, gas_limit, to}
       {5, 50000000000, 100000, <<1::160>>}
   """
-  def send_trx(trx = %Signet.Transaction.V1{}, url) do
+  def send_trx(trx = %Signet.Transaction.V1{}, opts \\ []) do
     send_rpc(
-      url,
       "eth_sendRawTransaction",
       [Signet.Util.encode_hex(Signet.Transaction.V1.encode(trx))],
-      decode: :hex
+      Keyword.merge(opts, decode: :hex)
     )
   end
 
@@ -161,31 +167,30 @@ defmodule Signet.RPC do
 
   ## Examples
 
-      iex> Signet.Transaction.V1.new(1, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>, :kovan)
-      iex> |> Signet.RPC.call_trx("http://example.com")
+      iex> Signet.Transaction.V1.new(1, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>)
+      iex> |> Signet.RPC.call_trx()
       {:ok, <<0x0c>>}
 
-      iex> Signet.Transaction.V1.new(1, {100, :gwei}, 100_000, <<10::160>>, {2, :wei}, <<1, 2, 3>>, :kovan)
-      iex> |> Signet.RPC.call_trx("http://example.com")
+      iex> Signet.Transaction.V1.new(1, {100, :gwei}, 100_000, <<10::160>>, {2, :wei}, <<1, 2, 3>>)
+      iex> |> Signet.RPC.call_trx()
       {:error, "error 3: execution reverted (0x3d738b2e)"}
 
       iex> errors = ["Unauthorized()", "BadNonce()", "NotEnoughSigners()", "NotActiveWithdrawalAddress()", "NotActiveOperator()", "DuplicateSigners()"]
-      iex> Signet.Transaction.V1.new(1, {100, :gwei}, 100_000, <<10::160>>, {2, :wei}, <<1, 2, 3>>, :kovan)
-      iex> |> Signet.RPC.call_trx("http://example.com", errors: errors)
+      iex> Signet.Transaction.V1.new(1, {100, :gwei}, 100_000, <<10::160>>, {2, :wei}, <<1, 2, 3>>)
+      iex> |> Signet.RPC.call_trx(errors: errors)
       {:error, "error 3: execution reverted (NotActiveOperator()[])"}
 
       iex> errors = ["Cool(uint256,string)"]
-      iex> Signet.Transaction.V1.new(1, {100, :gwei}, 100_000, <<11::160>>, {2, :wei}, <<1, 2, 3>>, :kovan)
-      iex> |> Signet.RPC.call_trx("http://example.com", errors: errors)
+      iex> Signet.Transaction.V1.new(1, {100, :gwei}, 100_000, <<11::160>>, {2, :wei}, <<1, 2, 3>>)
+      iex> |> Signet.RPC.call_trx(errors: errors)
       {:error, "error 3: execution reverted (Cool(uint256,string)[1, \"cat\"])"}
   """
-  def call_trx(trx = %Signet.Transaction.V1{}, url, opts \\ []) do
+  def call_trx(trx = %Signet.Transaction.V1{}, opts \\ []) do
     from = Keyword.get(opts, :from)
     block_number = Keyword.get(opts, :block_number, "latest")
     errors = Keyword.get(opts, :errors, [])
 
     send_rpc(
-      url,
       "eth_call",
       [
         %{
@@ -198,8 +203,10 @@ defmodule Signet.RPC do
         },
         block_number
       ],
-      decode: :hex,
-      errors: errors
+      Keyword.merge(opts,
+        decode: :hex,
+        errors: errors
+      )
     )
   end
 
@@ -208,16 +215,15 @@ defmodule Signet.RPC do
 
   ## Examples
 
-      iex> Signet.Transaction.V1.new(1, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>, :kovan)
-      iex> |> Signet.RPC.estimate_gas("http://example.com")
+      iex> Signet.Transaction.V1.new(1, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>)
+      iex> |> Signet.RPC.estimate_gas()
       {:ok, 0x0d}
   """
-  def estimate_gas(trx = %Signet.Transaction.V1{}, url, opts \\ []) do
+  def estimate_gas(trx = %Signet.Transaction.V1{}, opts \\ []) do
     from = Keyword.get(opts, :from)
     block_number = Keyword.get(opts, :block_number, "latest")
 
     send_rpc(
-      url,
       "eth_estimateGas",
       [
         %{
@@ -229,7 +235,7 @@ defmodule Signet.RPC do
         },
         block_number
       ],
-      decode: :hex_unsigned
+      Keyword.merge(opts, decode: :hex_unsigned)
     )
   end
 
@@ -252,51 +258,53 @@ defmodule Signet.RPC do
   ## Examples
 
       iex> signer_proc = SignetHelper.start_signer()
-      iex> {:ok, trx_id} = Signet.RPC.execute_trx(signer_proc, "http://example.com", <<1::160>>, {"baz(uint,address)", [50, :binary.decode_unsigned(<<1::160>>)]}, gas_price: {50, :gwei}, value: 0)
+      iex> {:ok, trx_id} = Signet.RPC.execute_trx(<<1::160>>, {"baz(uint,address)", [50, :binary.decode_unsigned(<<1::160>>)]}, gas_price: {50, :gwei}, value: 0, signer: signer_proc)
       iex> <<nonce::integer-size(8), gas_price::integer-size(64), gas_limit::integer-size(24), to::binary>> = trx_id
       iex> {nonce, gas_price, gas_limit, to}
       {4, 50000000000, 20, <<1::160>>}
 
       iex> signer_proc = SignetHelper.start_signer()
-      iex> {:ok, trx_id} = Signet.RPC.execute_trx(signer_proc, "http://example.com", <<1::160>>, {"baz(uint,address)", [50, <<1::160>> |> :binary.decode_unsigned]}, gas_price: {50, :gwei}, gas_limit: 100_000, value: 0)
+      iex> {:ok, trx_id} = Signet.RPC.execute_trx(<<1::160>>, {"baz(uint,address)", [50, <<1::160>> |> :binary.decode_unsigned]}, gas_price: {50, :gwei}, gas_limit: 100_000, value: 0, signer: signer_proc)
       iex> <<nonce::integer-size(8), gas_price::integer-size(64), gas_limit::integer-size(24), to::binary>> = trx_id
       iex> {nonce, gas_price, gas_limit, to}
       {4, 50000000000, 100000, <<1::160>>}
 
       iex> signer_proc = SignetHelper.start_signer()
-      iex> {:ok, trx_id} = Signet.RPC.execute_trx(signer_proc, "http://example.com", <<1::160>>, {"baz(uint,address)", [50, <<1::160>> |> :binary.decode_unsigned]}, gas_price: {50, :gwei}, gas_limit: 100_000, value: 0, nonce: 10)
+      iex> {:ok, trx_id} = Signet.RPC.execute_trx(<<1::160>>, {"baz(uint,address)", [50, <<1::160>> |> :binary.decode_unsigned]}, gas_price: {50, :gwei}, gas_limit: 100_000, value: 0, nonce: 10, signer: signer_proc)
       iex> <<nonce::integer-size(8), gas_price::integer-size(64), gas_limit::integer-size(24), to::binary>> = trx_id
       iex> {nonce, gas_price, gas_limit, to}
       {10, 50000000000, 100000, <<1::160>>}
 
       iex> signer_proc = SignetHelper.start_signer()
-      iex> Signet.RPC.execute_trx(signer_proc, "http://example.com", <<10::160>>, {"baz(uint,address)", [50, <<1::160>> |> :binary.decode_unsigned]}, gas_price: {50, :gwei}, gas_limit: 100_000, value: 0, nonce: 10)
+      iex> Signet.RPC.execute_trx(<<10::160>>, {"baz(uint,address)", [50, <<1::160>> |> :binary.decode_unsigned]}, gas_price: {50, :gwei}, gas_limit: 100_000, value: 0, nonce: 10, signer: signer_proc)
       {:error, "error 3: execution reverted (0x3d738b2e)"}
 
       iex> signer_proc = SignetHelper.start_signer()
-      iex> {:ok, trx_id} = Signet.RPC.execute_trx(signer_proc, "http://example.com", <<10::160>>, {"baz(uint,address)", [50, <<1::160>> |> :binary.decode_unsigned]}, gas_price: {50, :gwei}, gas_limit: 100_000, value: 0, nonce: 10, verify: false)
+      iex> {:ok, trx_id} = Signet.RPC.execute_trx(<<10::160>>, {"baz(uint,address)", [50, <<1::160>> |> :binary.decode_unsigned]}, gas_price: {50, :gwei}, gas_limit: 100_000, value: 0, nonce: 10, verify: false, signer: signer_proc)
       iex> <<nonce::integer-size(8), gas_price::integer-size(64), gas_limit::integer-size(24), to::binary>> = trx_id
       iex> {nonce, gas_price, gas_limit, to}
       {10, 50000000000, 100000, <<10::160>>}
   """
-  def execute_trx(signer, url, contract, call_data, opts \\ []) do
+  def execute_trx(contract, call_data, opts \\ []) do
     gas_price = Keyword.get(opts, :gas_price, @default_gas_price)
     gas_limit = Keyword.get(opts, :gas_limit)
     gas_buffer = Keyword.get(opts, :gas_buffer, @default_gas_buffer)
     value = Keyword.get(opts, :value, 0)
     nonce = Keyword.get(opts, :nonce)
     verify = Keyword.get(opts, :verify, true)
+    url = Keyword.get(opts, :ethereum_node, ethereum_node())
+    signer = Keyword.get(opts, :signer, Signet.Signer.Default)
 
     signer_address = Signet.Signer.address(signer)
     chain_id = Signet.Signer.chain_id(signer)
     opts = Keyword.put_new(opts, :from, signer_address)
 
     estimate_and_verify = fn trx ->
-      with {:ok, _} <- if(verify, do: call_trx(trx, url, opts), else: {:ok, nil}),
+      with {:ok, _} <- if(verify, do: call_trx(trx, opts), else: {:ok, nil}),
            {:ok, gas_limit} <-
              (case gas_limit do
                 nil ->
-                  with {:ok, limit} <- estimate_gas(trx, url, opts) do
+                  with {:ok, limit} <- estimate_gas(trx, opts) do
                     {:ok, ceil(limit * gas_buffer)}
                   end
 
@@ -308,20 +316,20 @@ defmodule Signet.RPC do
     end
 
     with {:ok, nonce} <-
-           if(!is_nil(nonce), do: {:ok, nonce}, else: get_nonce(url, signer_address)),
+           if(!is_nil(nonce), do: {:ok, nonce}, else: get_nonce(signer_address, opts)),
          {:ok, trx} <-
            Signet.Transaction.build_signed_trx(
-             signer,
              contract,
              nonce,
              call_data,
              gas_price,
              gas_limit,
              value,
-             chain_id,
-             estimate_and_verify
+             signer: signer,
+             chain_id: chain_id,
+             callback: estimate_and_verify
            ),
-         {:ok, tx_id} <- send_trx(trx, url) do
+         {:ok, tx_id} <- send_trx(trx, opts) do
       {:ok, tx_id}
     end
   end

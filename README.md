@@ -16,8 +16,8 @@ The above code will use a signer you set-up (see below) to send a build, sign an
 
 Signet has a number of other features, including:
 
-  * Signing and verifying Ethereum signatures
-  * Signing and verifying EIP-712 typed data
+  * Signing and verifying Ethereum signatures (including [EIP-191](https://eips.ethereum.org/EIPS/eip-191))
+  * Signing and verifying [EIP-712 typed data](https://eips.ethereum.org/EIPS/eip-712)
   * Signing via [Curvy](https://github.com/libitx/curvy) or [Google KMS](https://cloud.google.com/kms/docs/apis).
     * Note: Curvy signatures should be avoided in production.
   * Filters through active processes
@@ -58,17 +58,27 @@ config :signet, :signers, %{
 
 Then use `MySigner` when asked for a signer when using Signet.
 
+You can also specify a default signer, which will be used by default so you do not need to specify the signer in your calls:
+
+```elixir
+config :signet, :signers, %{
+  :"Signet.Signer.Default": {:priv_key, System.get_env("MY_PRIVATE_KEY")}
+}
+```
+
 #### Google KMS
 
 You can set-up Google KMS by configuring:
 
 ```elixir
 config :signet, :signers, %{
-  MySigner: {:cloud_kms, "projects/{project}/locations/{location}/keyRings/{keyring}/cryptoKeys/{keyid}", "1"}
+  MySigner: {:cloud_kms, GCPCredentials, "projects/{project}/locations/{location}/keyRings/{keyring}/cryptoKeys/{keyid}", "1"}
 }
 ```
 
 This will use your given key from the URL, version "1", for signing.
+
+`GCPCredentials` should be a `Goth` process set-up with proper credentials to access Google Cloud KMS.
 
 #### Custom Signers
 
