@@ -182,4 +182,59 @@ defmodule Signet.Util do
   """
   def parse_chain_id(chain_id) when is_atom(chain_id), do: Map.fetch!(@chains, chain_id)
   def parse_chain_id(chain_id) when is_integer(chain_id), do: chain_id
+
+  @doc ~S"""
+  Checksums an Ethereum address per [EIP-55](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-55.md),
+  the result is a string-encoded version of the address.
+
+  ## Examples
+
+      iex> Signet.Util.checksum_address("0x5aaeb6053f3e94c9b9a09f33669435e7ef1beaed")
+      "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed"
+
+      iex> Signet.Util.checksum_address("0xFB6916095CA1DF60BB79CE92CE3EA74C37C5D359")
+      "0xfB6916095ca1df60bB79Ce92cE3Ea74c37c5d359"
+
+      iex> Signet.Util.checksum_address("0xdbf03b407c01e7cd3cbea99509d93f8dddc8c6fb")
+      "0xdbF03B407c01E7cD3CBea99509d93f8DDDC8C6FB"
+
+      iex> Signet.Util.checksum_address("0xd1220a0cf47c7b9be7a2e6ba89f429762e7b9adb")
+      "0xD1220A0cf47c7B9Be7A2E6BA89F429762e7b9aDb"
+  """
+  def checksum_address(address = "0x" <> _), do: checksum_address(decode_hex!(address))
+
+  def checksum_address(address) when is_binary(address) and byte_size(address) == 20 do
+    # Weirdly instead of keccaking the address, we keccak the string representation...
+    "0x" <> address_enc = encode_hex(address)
+    hash = Signet.Hash.keccak(String.downcase(address_enc))
+
+    # Use a charlist to semi-quickly get the correct hex digit
+    lower = '0123456789abcdef'
+    upper = '0123456789ABCDEF'
+
+    res =
+      for {nibble, hash_val} <- Enum.zip(nibbles(address), nibbles(hash)), into: [] do
+        casing = if hash_val >= 8, do: upper, else: lower
+        Enum.at(casing, nibble)
+      end
+
+    "0x" <> to_string(res)
+  end
+
+  @doc ~S"""
+  Returns the nibbles of a binary as a list.
+
+  ## Examples
+
+      iex> Signet.Util.nibbles(<<0xF5,0xE6,0xD0>>)
+      [0xF, 0x5, 0xE, 0x6, 0xD, 0x0]
+  """
+  def nibbles(v) do
+    Enum.reverse(do_nibbles(v, []))
+  end
+
+  defp do_nibbles(<<>>, acc), do: acc
+
+  defp do_nibbles(<<high::4, low::4, rest::binary()>>, acc),
+    do: do_nibbles(rest, [low, high | acc])
 end
