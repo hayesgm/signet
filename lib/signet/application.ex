@@ -22,18 +22,20 @@ defmodule Signet.Application do
     Supervisor.start_link(children, opts)
   end
 
-  # Note: this is to prevent us thinking the default signer is named
-  #       `:priv_key`, etc if passed `config :signet, :signer, {:priv_key, "abc"}`,
-  #       which has the same shape between a named signer and a definition.
-  def get_signer_spec({name, signer_type})
-      when is_atom(name) and name not in [:priv_key, :cloud_kms] do
+  def get_signer_spec({name, signer_type}) do
+    name = case name do
+      :default ->
+        Signet.Signer.Default
+
+      els ->
+        els
+    end
+
     Supervisor.child_spec(
       {Signet.Signer, mfa: signer_mfa(signer_type), name: name},
       id: name
     )
   end
-
-  def get_signer_spec(signer_type), do: get_signer_spec({Signet.Signer.Default, signer_type})
 
   defp signer_mfa({:priv_key, priv_key}) do
     {Signet.Signer.Curvy, :sign, [Signet.Util.decode_hex_input!(priv_key)]}
