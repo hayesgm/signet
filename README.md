@@ -51,9 +51,8 @@ You can specify a signer key by configuring:
 ** runtime.exs **
 
 ```elixir
-config :signet, :signers, %{
-  MySigner: {:priv_key, System.get_env("MY_PRIVATE_KEY")}
-}
+config :signet, :signer,
+  [{MySigner, {:priv_key, System.get_env("MY_PRIVATE_KEY")}}]
 ```
 
 Then use `MySigner` when asked for a signer when using Signet.
@@ -61,7 +60,7 @@ Then use `MySigner` when asked for a signer when using Signet.
 You can also specify a default signer, which will be used by default so you do not need to specify the signer in your calls:
 
 ```elixir
-config :signet, :signer, {:priv_key, System.get_env("MY_PRIVATE_KEY")}
+config :signet, :signer, default: {:priv_key, System.get_env("MY_PRIVATE_KEY")}
 ```
 
 #### Google KMS
@@ -69,9 +68,8 @@ config :signet, :signer, {:priv_key, System.get_env("MY_PRIVATE_KEY")}
 You can set-up Google KMS by configuring:
 
 ```elixir
-config :signet, :signers, %{
-  MySigner: {:cloud_kms, GCPCredentials, "projects/{project}/locations/{location}/keyRings/{keyring}/cryptoKeys/{keyid}", "1"}
-}
+config :signet, :signer, [
+  {MySigner, {:cloud_kms, GCPCredentials, "projects/{project}/locations/{location}/keyRings/{keyring}/cryptoKeys/{keyid}", "1"}}]
 ```
 
 This will use your given key from the URL, version "1", for signing.
