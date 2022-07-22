@@ -29,7 +29,7 @@ Signet can be installed by adding `signet` to your list of dependencies in `mix.
 ```elixir
 def deps do
   [
-    {:signet, "~> 0.1.0"}
+    {:signet, "~> 0.1.1"}
   ]
 end
 ```
@@ -244,6 +244,19 @@ Currently, only ERC-20 transfer events as decoded, e.g. as:
 ```
 
 Note: filters may expire if not refreshed every so often. The filter code does not attempt to reach back in time if a filter is expired- that is up to your code.
+
+## Keys
+
+You can create Ethereum keys using Signet. These libraries are built on top of erlang's [crypto](https://www.erlang.org/doc/man/crypto.html) library, so they should be production safe, but you should be careful none-the-less when generating private keys in your app.
+
+```elixir
+> {address, priv_key} = Signet.Keys.generate_keypair()
+> Signet.Util.encode_hex(address)
+"0x3586B0916AC3C042A2B7E4A73841977941A69C4F"
+
+> Signet.Util.encode_hex(priv_key)
+"0x2EADD3966648553096523C38BB464E7DFDDD30293D02909FA2200FF571A90E85"
+```
 
 ## Contributing
 
