@@ -146,7 +146,7 @@ defmodule Signet.Signer do
           }} <- apply(mod, fun, [message] ++ args),
          {:ok, recid} <- Signet.Recover.find_recid(message, signature, address) do
       # EIP-155
-      v = chain_id * 2 + 35 + recid
+      v = if chain_id == 0, do: 27 + recid, else: chain_id * 2 + 35 + recid
 
       {:ok, encode_bytes(r, 32) <> encode_bytes(s, 32) <> encode_bytes(v, 1)}
     end
