@@ -171,8 +171,8 @@ defmodule Signet.RPC do
       iex> |> Signet.RPC.call_trx()
       {:ok, <<0x0c>>}
 
-      iex> Signet.Transaction.V1.new(1, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>, decode: :hex_unsigned)
-      iex> |> Signet.RPC.call_trx()
+      iex> Signet.Transaction.V1.new(1, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>)
+      iex> |> Signet.RPC.call_trx(decode: :hex_unsigned)
       {:ok, 0x0c}
 
       iex> Signet.Transaction.V1.new(1, {100, :gwei}, 100_000, <<10::160>>, {2, :wei}, <<1, 2, 3>>)
