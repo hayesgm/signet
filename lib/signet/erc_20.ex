@@ -28,7 +28,6 @@ defmodule Signet.Erc20 do
 
   @spec call_trx(Signet.contract(), binary(), [call_opts()]) :: term()
   def call_trx(token, call_data, call_opts) do
-    IO.inspect(call_opts, label: "call_opts")
     Signet.Transaction.build_trx(Signet.get_contract_address(token), 0, call_data, 0, nil, 0)
     |> Signet.RPC.call_trx(Keyword.put_new(call_opts, :errors, errors()))
   end
