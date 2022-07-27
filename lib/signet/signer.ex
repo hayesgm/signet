@@ -36,37 +36,11 @@ defmodule Signet.Signer do
   end
 
   @doc """
-  Initializes a new Signet.Signer. We make sure to assign `set_address`, but we
-  send a message to perform that action, largely so that other processes have
-  a chance to start before this does. This is important for Goth keys to access
-  Cloud KMS.
+  Initializes a new Signet.Signer.
   """
   @impl true
   def init(state) do
-    Process.send_after(self(), :set_address, 0)
-
     {:ok, state}
-  end
-
-  @doc """
-  Tracks the address for determining the recovery bit. We do not permit
-  signatures until this address is known.
-  """
-  @impl true
-  def handle_info(:set_address, state = %{name: name, mfa: {mod, _fn, args}}) do
-    {:ok, address} = apply(mod, :get_address, args)
-    Logger.info("Signet.Signer #{name} signing with address #{encode_hex(address)}")
-
-    {:noreply, Map.put(state, :address, address)}
-  end
-
-  @doc """
-  Tracks the address for determining the recovery bit. We do not permit
-  signatures until this address is known.
-  """
-  @impl true
-  def handle_cast(:set_address, state) do
-    handle_info(:set_address, state)
   end
 
   @doc """
@@ -110,7 +84,8 @@ defmodule Signet.Signer do
   end
 
   @doc """
-  Handles signing a message.
+  Handles signing a message. Finds and memoizes address on first call. Address
+  is required for finding recovery bit.
   """
   @impl true
   def handle_call(
@@ -121,8 +96,29 @@ defmodule Signet.Signer do
     {:reply, sign_direct(message, address, mfa, chain_id), state}
   end
 
+  # Note absence of address in state, find it and set it and then sign. Address will be cached on next signing.
+  def handle_call(
+        {:sign, message},
+        _from,
+        state = %{name: name, mfa: {mod, _fn, args} = mfa, chain_id: chain_id}
+      ) do
+    {:ok, address} = apply(mod, :get_address, args)
+    Logger.info("Signet.Signer #{name} signing with address #{encode_hex(address)}")
+
+    {:reply, sign_direct(message, address, mfa, chain_id), Map.put(state, :address, address)}
+  end
+
+  @doc """
+  Reads address from state, or finds and memoize address on first call.
+  """
   def handle_call(:get_address, _from, state = %{address: address}) do
     {:reply, address, state}
+  end
+
+  def handle_call(:get_address, _from, state = %{name: name, mfa: {mod, _fn, args}}) do
+    {:ok, address} = apply(mod, :get_address, args)
+    Logger.info("Signet.Signer #{name} signing with address #{encode_hex(address)}")
+    {:reply, address, Map.put(state, :address, address)}
   end
 
   def handle_call(:get_chain_id, _from, state = %{chain_id: chain_id}) do
