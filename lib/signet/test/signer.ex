@@ -21,8 +21,6 @@ defmodule Signet.Test.Signer do
       name: name
     )
 
-    GenServer.cast(name, :set_address)
-
     name
   end
 end
