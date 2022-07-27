@@ -15,7 +15,7 @@ defmodule Signet.Test.Client do
     {method, params, id}
   end
 
-  def post(_url, body, _headers) do
+  def post(_url, body, _headers, _opts) do
     {method, params, id} = parse_request(Jason.decode!(body))
 
     case apply(__MODULE__, String.to_atom(method), params) do

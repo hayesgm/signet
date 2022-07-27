@@ -99,10 +99,11 @@ defmodule Signet.RPC do
     headers = Keyword.get(opts, :headers, [])
     decode = Keyword.get(opts, :decode, nil)
     errors = Keyword.get(opts, :errors, nil)
+    timeout = Keyword.get(opts, :timeout, 30_000)
     url = Keyword.get(opts, :ethereum_node, ethereum_node())
     body = get_body(method, params)
 
-    case http_client().post(url, Jason.encode!(body), headers(headers)) do
+    case http_client().post(url, Jason.encode!(body), headers(headers), recv_timeout: timeout) do
       {:ok, %HTTPoison.Response{status_code: code, body: resp_body}} when code in 200..299 ->
         with {:ok, result} <- decode_response(resp_body, body["id"], errors) do
           case decode do
