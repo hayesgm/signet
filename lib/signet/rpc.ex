@@ -29,7 +29,9 @@ defmodule Signet.RPC do
 
   # See https://blog.soliditylang.org/2021/04/21/custom-errors/
   defp decode_error(<<error_hash::binary-size(4), error_data::binary()>>, errors) do
-    case Enum.find(errors, fn error ->
+    all_errors = ["Panic(uint256)" | errors]
+
+    case Enum.find(all_errors, fn error ->
            <<prefix::binary-size(4), _::binary()>> = Signet.Hash.keccak(error)
            prefix == error_hash
          end) do
@@ -38,7 +40,33 @@ defmodule Signet.RPC do
 
       error_abi ->
         params = ABI.decode(error_abi, error_data)
-        {:ok, error_abi, params}
+
+        # From https://blog.soliditylang.org/2020/10/28/solidity-0.8.x-preview/
+        case {error_abi, params} do
+          {"Panic(uint256)", [0x01]} ->
+            {:ok, "assertion failure", nil}
+
+          {"Panic(uint256)", [0x11]} ->
+            {:ok, "arithmetic error: overflow or underflow", nil}
+
+          {"Panic(uint256)", [0x12]} ->
+            {:ok, "failed to convert value to enum", nil}
+
+          {"Panic(uint256)", [0x21]} ->
+            {:ok, "popped from empty array", nil}
+
+          {"Panic(uint256)", [0x32]} ->
+            {:ok, "out-of-bounds array access", nil}
+
+          {"Panic(uint256)", [0x41]} ->
+            {:ok, "out of memory", nil}
+
+          {"Panic(uint256)", [0x51]} ->
+            {:ok, "called a zero-initialized variable of internal function type", nil}
+
+          _ ->
+            {:ok, error_abi, params}
+        end
     end
   end
 
@@ -59,7 +87,11 @@ defmodule Signet.RPC do
         with {:ok, data} <- Signet.Util.decode_hex(data_hex),
              {:ok, error_abi, error_params} <- decode_error(data, errors) do
           # TODO: Try to clean up how this is shown, just a little.
-          {:error, "error #{code}: #{message} (#{error_abi}#{inspect(error_params)})"}
+          if is_nil(error_params) do
+            {:error, "error #{code}: #{message} (#{error_abi})"}
+          else
+            {:error, "error #{code}: #{message} (#{error_abi}#{inspect(error_params)})"}
+          end
         else
           _ ->
             {:error, "error #{code}: #{message} (#{data_hex})"}

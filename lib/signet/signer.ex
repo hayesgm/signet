@@ -108,9 +108,7 @@ defmodule Signet.Signer do
     {:reply, sign_direct(message, address, mfa, chain_id), Map.put(state, :address, address)}
   end
 
-  @doc """
-  Reads address from state, or finds and memoize address on first call.
-  """
+  # Reads address from state, or finds and memoize address on first call.
   def handle_call(:get_address, _from, state = %{address: address}) do
     {:reply, address, state}
   end
