@@ -123,10 +123,6 @@ defmodule Signet.Test.Client do
     "0xf11735"
   end
 
-  def eth_newFilter(%{}) do
-    "0xdead"
-  end
-
   def eth_getFilterChanges("0xf11735") do
     [
       %{
