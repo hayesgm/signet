@@ -1,5 +1,7 @@
 # Changelog
 
+* 0.1.7
+  - Move support libs to conditional compilation
 * 0.1.6 - Make CloudKMS truly optional
 * 0.1.5 - Add build-in Solidity error decoding, fix warnings, bump to 0.1.5
 * 0.1.4 - Memoize versus preload address for signers
