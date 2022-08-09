@@ -29,7 +29,7 @@ Signet can be installed by adding `signet` to your list of dependencies in `mix.
 ```elixir
 def deps do
   [
-    {:signet, "~> 0.1.6"}
+    {:signet, "~> 0.1.7"}
   ]
 end
 ```
@@ -191,7 +191,7 @@ You can also pass in known Solidity errors, to have them decoded for you, e.g.:
 Finally, `execute_trx` is similar to sending transactions with Web3, which will pull a nonce and estimate gas, before submitting the transaction to the Ethereum node:
 
 ```elixir
-{:ok, trx_id} = Signet.RPC.execute_trx(<<1::160>>, {"baz(uint,address)", [50, <<1::160>> |> :binary.decode_unsigned]}, gas_price: {50, :gwei}, gas_limit: 100_000, value: 0, nonce: 10)
+{:ok, trx_id} = Signet.RPC.execute_trx(<<1::160>>, {"baz(uint,address)", [50, <<1::160>> |> :binary.decode_unsigned]}, priority_fee: {2, :gwei}, gas_limit: 100_000, value: 0, nonce: 10)
 ```
 
 Note: due to our ABI encoder, addresses should be passed in as `unsigned`s, not binaries.

@@ -2,11 +2,15 @@ defmodule Signet.RPC do
   @moduledoc """
   Excessively simple RPC client for Ethereum.
   """
+  import Signet.Util, only: [to_wei: 1]
 
   defp ethereum_node(), do: Signet.Application.ethereum_node()
   defp http_client(), do: Signet.Application.http_client()
 
-  @default_gas_price {1, :gwei}
+  @default_gas_price nil
+  @default_base_fee nil
+  @default_base_fee_buffer 1.20
+  @default_priority_fee {0, :gwei}
   @default_gas_buffer 1.50
 
   defp headers(extra_headers) do
@@ -276,12 +280,31 @@ defmodule Signet.RPC do
   end
 
   @doc """
+  RPC call to call to get the current gas price.
+
+  ## Examples
+
+      iex> Signet.RPC.gas_price()
+      {:ok, 1000000000}
+  """
+  def gas_price(opts \\ []) do
+    send_rpc(
+      "eth_gasPrice",
+      [],
+      Keyword.merge(opts, decode: :hex_unsigned)
+    )
+  end
+
+  @doc """
   Helper function to work with other Signet modules to get a nonce, sign a transction, and transmit it to the network.
 
   If you need higher-level functionality, like manual nonce tracking, you may want to use the more granular function calls.
 
   Options:
-    * `gas_price` - Set the gas price for the transaction (default `{1, :gwei}`)
+    * `gas_price` - Set the base gas for the transaction, overrides all other gas prices listed below (default `nil`)
+    * `base_fee` - Set the base price for the transaction, if nil, will use base gas price from `eth_gasPrice` call (default `nil`)
+    * `base_fee_buffer` - Buffer for the gas price when estimating gas (default: 1.2 = 120%)
+    * `priority_fee` - Additional gas to send as a priority fee. (default: `{0, :gwei}`)
     * `gas_limit` - Set the gas limit for the transaction (default: calls `eth_estimateGas`)
     * `gas_buffer` - Buffer if estimating gas limit (default: 1.5 = 150%)
     * `value` - Value to provide with transaction in wei (default: 0)
@@ -290,6 +313,9 @@ defmodule Signet.RPC do
 
     Note: if we don't `verify`, then `estimateGas` will likely fail if the transaction were to fail.
           To prevent this, `gas_limit` should always be supplied when `verify` is set to false.
+
+    Note: Currently Signet uses pre-EIP-1559 signatures and thus gas prices are not broken out by
+          base fee and priority fee.
 
   ## Examples
 
@@ -315,24 +341,76 @@ defmodule Signet.RPC do
       iex> Signet.RPC.execute_trx(<<10::160>>, {"baz(uint,address)", [50, <<1::160>> |> :binary.decode_unsigned]}, gas_price: {50, :gwei}, gas_limit: 100_000, value: 0, nonce: 10, signer: signer_proc)
       {:error, "error 3: execution reverted (0x3d738b2e)"}
 
+      iex> # Set gas price directly
       iex> signer_proc = Signet.Test.Signer.start_signer()
       iex> {:ok, trx_id} = Signet.RPC.execute_trx(<<10::160>>, {"baz(uint,address)", [50, <<1::160>> |> :binary.decode_unsigned]}, gas_price: {50, :gwei}, gas_limit: 100_000, value: 0, nonce: 10, verify: false, signer: signer_proc)
       iex> <<nonce::integer-size(8), gas_price::integer-size(64), gas_limit::integer-size(24), to::binary>> = trx_id
       iex> {nonce, gas_price, gas_limit, to}
       {10, 50000000000, 100000, <<10::160>>}
+
+      iex> # Default gas price
+      iex> signer_proc = Signet.Test.Signer.start_signer()
+      iex> {:ok, trx_id} = Signet.RPC.execute_trx(<<10::160>>, {"baz(uint,address)", [50, <<1::160>> |> :binary.decode_unsigned]}, gas_limit: 100_000, value: 0, nonce: 10, verify: false, signer: signer_proc)
+      iex> <<nonce::integer-size(8), gas_price::integer-size(64), gas_limit::integer-size(24), to::binary>> = trx_id
+      iex> {nonce, gas_price, gas_limit, to}
+      {10, 1200000000, 100000, <<10::160>>}
+
+      iex> # Set priority fee
+      iex> signer_proc = Signet.Test.Signer.start_signer()
+      iex> {:ok, trx_id} = Signet.RPC.execute_trx(<<10::160>>, {"baz(uint,address)", [50, <<1::160>> |> :binary.decode_unsigned]}, priority_fee: {3, :gwei}, gas_limit: 100_000, value: 0, nonce: 10, verify: false, signer: signer_proc)
+      iex> <<nonce::integer-size(8), gas_price::integer-size(64), gas_limit::integer-size(24), to::binary>> = trx_id
+      iex> {nonce, gas_price, gas_limit, to}
+      {10, 4200000000, 100000, <<10::160>>}
+
+      iex> # Set base fee and priority fee
+      iex> signer_proc = Signet.Test.Signer.start_signer()
+      iex> {:ok, trx_id} = Signet.RPC.execute_trx(<<10::160>>, {"baz(uint,address)", [50, <<1::160>> |> :binary.decode_unsigned]}, base_fee: {1, :gwei}, priority_fee: {3, :gwei}, gas_limit: 100_000, value: 0, nonce: 10, verify: false, signer: signer_proc)
+      iex> <<nonce::integer-size(8), gas_price::integer-size(64), gas_limit::integer-size(24), to::binary>> = trx_id
+      iex> {nonce, gas_price, gas_limit, to}
+      {10, 4000000000, 100000, <<10::160>>}
   """
   def execute_trx(contract, call_data, opts \\ []) do
-    gas_price = Keyword.get(opts, :gas_price, @default_gas_price)
-    gas_limit = Keyword.get(opts, :gas_limit)
-    gas_buffer = Keyword.get(opts, :gas_buffer, @default_gas_buffer)
-    value = Keyword.get(opts, :value, 0)
-    nonce = Keyword.get(opts, :nonce)
-    verify = Keyword.get(opts, :verify, true)
-    signer = Keyword.get(opts, :signer, Signet.Signer.Default)
+    {gas_price_user, opts} = Keyword.pop(opts, :gas_price, @default_gas_price)
+    {base_fee_user, opts} = Keyword.pop(opts, :base_fee, @default_base_fee)
+    {base_fee_buffer, opts} = Keyword.pop(opts, :base_fee_buffer, @default_base_fee_buffer)
+    {priority_fee, opts} = Keyword.pop(opts, :priority_fee, @default_priority_fee)
+    {gas_limit, opts} = Keyword.pop(opts, :gas_limit)
+    {gas_buffer, opts} = Keyword.pop(opts, :gas_buffer, @default_gas_buffer)
+    {value, opts} = Keyword.pop(opts, :value, 0)
+    {nonce, opts} = Keyword.pop(opts, :nonce)
+    {verify, opts} = Keyword.pop(opts, :verify, true)
+    {signer, opts} = Keyword.pop(opts, :signer, Signet.Signer.Default)
 
     signer_address = Signet.Signer.address(signer)
     chain_id = Signet.Signer.chain_id(signer)
     opts = Keyword.put_new(opts, :from, signer_address)
+
+    gas_price_result =
+      case gas_price_user do
+        nil ->
+          # Base Price + Priority Fee
+          base_fee_result =
+            case base_fee_user do
+              nil ->
+                # Estimate base price
+                with {:ok, base_fee_est} <- gas_price(opts) do
+                  {:ok, ceil(base_fee_est * base_fee_buffer)}
+                end
+
+              val ->
+                # User-specified base price
+                {:ok, to_wei(val)}
+            end
+
+          # Add in Priority fee
+          with {:ok, base_fee} <- base_fee_result do
+            {:ok, base_fee + to_wei(priority_fee)}
+          end
+
+        els ->
+          # User-specified total gas price
+          {:ok, to_wei(els)}
+      end
 
     estimate_and_verify = fn trx ->
       with {:ok, _} <- if(verify, do: call_trx(trx, opts), else: {:ok, nil}),
@@ -350,7 +428,8 @@ defmodule Signet.RPC do
       end
     end
 
-    with {:ok, nonce} <-
+    with {:ok, gas_price} <- gas_price_result,
+         {:ok, nonce} <-
            if(!is_nil(nonce), do: {:ok, nonce}, else: get_nonce(signer_address, opts)),
          {:ok, trx} <-
            Signet.Transaction.build_signed_trx(

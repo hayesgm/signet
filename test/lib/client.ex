@@ -45,6 +45,10 @@ defmodule Signet.Test.Client do
     "0x4"
   end
 
+  def eth_gasPrice() do
+    "0x3b9aca00" # 1 gwei
+  end
+
   def eth_sendRawTransaction(trx_enc) do
     {:ok, trx} =
       trx_enc
