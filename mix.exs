@@ -22,7 +22,7 @@ defmodule Signet.MixProject do
 
   defp package() do
     [
-      files: ["lib", "mix.exs", "README*", "LICENSE*"],
+      files: ["lib", "mix.exs", "README*", "LICENSE*", "test/support"],
       maintainers: ["Geoffrey Hayes"],
       licenses: ["MIT"],
       links: %{"GitHub" => "https://github.com/hayesgm/signet"}
