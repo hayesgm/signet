@@ -1,0 +1,38 @@
+name: Signet Tests
+
+on:
+  - pull_request
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    name: Signet Test
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+      - name: Cache Build
+        uses: actions/cache@v3
+        with:
+          path: _build
+          key: ${{ runner.os }}-build
+
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: "25.0"
+          elixir-version: "1.13.4"
+
+      - name: Elixir Dependencies
+        run: mix deps.get
+
+      - name: Run Tests
+        run: mix test --formatter JUnitFormatter --formatter ExUnit.CLIFormatter
+
+      - name: Test Report
+        uses: dorny/test-reporter@v1
+        if: success() || failure()
+        with:
+          name: Test Results
+          path: _build/test/lib/signet/test-junit-report.xml
+          reporter: java-junit
