@@ -1,5 +1,5 @@
 # Signet
-[![Build Status](https://github.com/hayesgm/signet/workflows/Signet+Tests/badge.svg)](https://github.com/hayesgm/signet/actions?query=workflow%3A%22Signet+Tests%22) [![Hex Version](https://img.shields.io/hexpm/v/signet.svg)](https://hex.pm/packages/signet/) [![Documentation](https://img.shields.io/badge/docs-hexpm-blue.svg)](https://hexdocs.pm/signet/) [![Downloads](https://img.shields.io/hexpm/dt/signet.svg)](https://hex.pm/packages/signet) [![Last Updated](https://img.shields.io/github/last-commit/hayesgm/signet.svg)](https://github.com/hayesgm/signet/commits/main)
+[![Build Status](https://github.com/hayesgm/signet/workflows/Signet%20Tests/badge.svg)](https://github.com/hayesgm/signet/actions?query=workflow%3A%22Signet+Tests%22) [![Hex Version](https://img.shields.io/hexpm/v/signet.svg)](https://hex.pm/packages/signet/) [![Documentation](https://img.shields.io/badge/docs-hexpm-blue.svg)](https://hexdocs.pm/signet/) [![Downloads](https://img.shields.io/hexpm/dt/signet.svg)](https://hex.pm/packages/signet) [![Last Updated](https://img.shields.io/github/last-commit/hayesgm/signet.svg)](https://github.com/hayesgm/signet/commits/main)
 
 
 <img src="https://github.com/hayesgm/signet/raw/main/logo.png" width="100">
