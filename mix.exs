@@ -52,7 +52,8 @@ defmodule Signet.MixProject do
       {:curvy, "~> 0.3.0"},
       {:goth, "~> 1.3.0", optional: true},
       {:ex_rlp, "~> 0.5.4"},
-      {:abi, "~> 0.1.20"}
+      {:abi, "~> 0.1.20"},
+      {:junit_formatter, "~> 3.1", only: [:test]}
     ]
   end
 end
