@@ -266,3 +266,5 @@ You can create Ethereum keys using Signet. These libraries are built on top of e
 Create a PR to contribute to Signet. All contributors agree to accept the license specified in this repository for all contributions to this project. See [LICENSE.md](/LICENSE.md).
 
 Feel free to create Feature Requests in the issues.
+
+Note: The author generated the Signet logo with DALL•E, OpenAI's text-to-image generation model. The image was further modified by the author.
