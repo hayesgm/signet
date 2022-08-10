@@ -1,5 +1,8 @@
 # Changelog
 
+* 0.1.9
+  - Add EIP-155 signature helpers
+  - Logo and readme improvements
 * 0.1.8
   - Support non-EIP-155 signature recovery
 * 0.1.7

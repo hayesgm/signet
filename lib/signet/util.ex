@@ -237,4 +237,114 @@ defmodule Signet.Util do
 
   defp do_nibbles(<<high::4, low::4, rest::binary()>>, acc),
     do: do_nibbles(rest, [low, high | acc])
+
+  defmodule RecoveryBit do
+    @moduledoc """
+    There are a number of ways to look at recovery bits. Either:
+
+    * `:base`: In the range `{0,1}`, which are the outputs of a signer library
+    * `:ethereum`: In the range `{27,28}`, as defined in the yellow paper
+    * `:eip155`: In the range `{35+chain_id*2,35+chain_id*2+1}`, as defined in EIP-155
+
+    This module provides tools between switching through these choices.
+    """
+
+    @rec_types [:base, :ethereum, :eip155]
+    @type rec_type() :: :base | :ethereum | :eip155
+
+    @doc """
+    Normalizes a binary-encoded signature to the given requested type,
+    i.e. `:base`, `:ethereum`, or `:eip155`.
+
+    ## Examples
+
+        iex> Signet.Util.RecoveryBit.normalize(28, :eip155)
+        46
+
+        iex> Signet.Util.RecoveryBit.normalize(1, :ethereum)
+        28
+
+        iex> Signet.Util.RecoveryBit.normalize(45, :base)
+        0
+    """
+    @spec normalize(non_neg_integer(), rec_type()) :: non_neg_integer() | :no_return
+    def normalize(recovery_bit, rec_type \\ :eip155) when rec_type in @rec_types do
+      base = recover_base(recovery_bit)
+
+      case rec_type do
+        :base ->
+          base
+
+        :ethereum ->
+          base + 27
+
+        :eip155 ->
+          35 + Signet.Application.chain_id() * 2 + base
+      end
+    end
+
+    @doc """
+    Normalizes a binary-encoded signature to the given requested type,
+    i.e. `:base`, `:ethereum`, or `:eip155`.
+
+    ## Examples
+
+        iex> Signet.Util.RecoveryBit.normalize_signature(<<1::256, 2::256, 28>>, :eip155)
+        <<1::256, 2::256, 46>>
+
+        iex> Signet.Util.RecoveryBit.normalize_signature(<<1::256, 2::256, 1>>, :ethereum)
+        <<1::256, 2::256, 28>>
+
+        iex> Signet.Util.RecoveryBit.normalize_signature(<<1::256, 2::256, 45>>, :base)
+        <<1::256, 2::256, 0>>
+    """
+    @spec normalize_signature(Signet.signature(), rec_type()) :: Signet.signature() | :no_return
+    def normalize_signature(<<rs::binary-size(64), v>>, rec_type \\ :eip155) when rec_type in @rec_types do
+      v_normalized = normalize(v, rec_type)
+
+      <<rs::binary-size(64), v_normalized::8>>
+    end
+
+    @doc """
+    Normalizes a recovery bit to be either 0 or 1.
+
+    ## Examples
+
+        iex> Signet.Util.RecoveryBit.recover_base(0)
+        0
+
+        iex> Signet.Util.RecoveryBit.recover_base(1)
+        1
+
+        iex> Signet.Util.RecoveryBit.recover_base(27)
+        0
+
+        iex> Signet.Util.RecoveryBit.recover_base(28)
+        1
+
+        iex> Signet.Util.RecoveryBit.recover_base(45)
+        0
+
+        iex> Signet.Util.RecoveryBit.recover_base(46)
+        1
+
+        iex> Signet.Util.RecoveryBit.recover_base(47)
+        ** (RuntimeError) Invalid EIP-155 Signature: recovery_bit=47, chain_id=5
+
+        iex> Signet.Util.RecoveryBit.recover_base(2)
+        ** (FunctionClauseError) no function clause matching in Signet.Util.RecoveryBit.recover_base/1
+    """
+    @spec recover_base(non_neg_integer()) :: 0 | 1 | no_return()
+    def recover_base(v) when v in [0, 1], do: v
+    def recover_base(v) when v in [27, 28], do: v - 27
+    def recover_base(v) when v >= 35 do
+      case v - Signet.Application.chain_id() * 2 - 35 do
+        base when base in [0, 1] ->
+          base
+
+        _ ->
+          raise "Invalid EIP-155 Signature: recovery_bit=#{v}, chain_id=#{Signet.Application.chain_id()}"
+      end
+    end
+  end
 end
