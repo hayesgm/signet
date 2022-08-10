@@ -23,13 +23,14 @@ defmodule Signet.Application do
   end
 
   def get_signer_spec({name, signer_type}) do
-    name = case name do
-      :default ->
-        Signet.Signer.Default
+    name =
+      case name do
+        :default ->
+          Signet.Signer.Default
 
-      els ->
-        els
-    end
+        els ->
+          els
+      end
 
     Supervisor.child_spec(
       {Signet.Signer, mfa: signer_mfa(signer_type), name: name},

@@ -4,12 +4,12 @@ defmodule Signet.FilterTest do
 
   test "add a filter and get events" do
     {:ok, _filter_pid} =
-      Signet.Filter.start_link([
+      Signet.Filter.start_link(
         name: MyFilter,
         address: <<1::160>>,
         events: ["Transfer(address indexed from, address indexed to, uint amount)"],
         check_delay: 300
-      ])
+      )
 
     Signet.Filter.listen(MyFilter)
 

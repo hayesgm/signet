@@ -153,7 +153,9 @@ defmodule Signet.Typed do
     def deserialize_value!(value, :address), do: Signet.Util.decode_hex!(value)
     def deserialize_value!(value, :string), do: value
     def deserialize_value!(value, {:uint, _}), do: value
-    def deserialize_value!(value, {:bytes, sz}), do: Signet.Util.pad(Signet.Util.decode_hex!(value), sz)
+
+    def deserialize_value!(value, {:bytes, sz}),
+      do: Signet.Util.pad(Signet.Util.decode_hex!(value), sz)
 
     @doc ~S"""
     Serializes a value of a given type to pass to JSON or JavaScript.
@@ -297,7 +299,12 @@ defmodule Signet.Typed do
           "verifyingContract" => "0xCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
         }
     """
-    def serialize(%__MODULE__{name: name, version: version, chain_id: chain_id, verifying_contract: verifying_contract}) do
+    def serialize(%__MODULE__{
+          name: name,
+          version: version,
+          chain_id: chain_id,
+          verifying_contract: verifying_contract
+        }) do
       %{
         "name" => name,
         "version" => version,
@@ -355,11 +362,14 @@ defmodule Signet.Typed do
   end
 
   # Takes the `value` parameter (a map), and deserializes it to be stored in memory
-  @spec deserialize_value_map(%{String.t() => term()}, Type.type_list(), type_map()) :: %{String.t() => term()}
+  @spec deserialize_value_map(%{String.t() => term()}, Type.type_list(), type_map()) :: %{
+          String.t() => term()
+        }
   defp deserialize_value_map(value, fields, types) do
     for {field, type} <- fields, into: %{} do
       if is_binary(type) do
-        {field, deserialize_value_map(fetch_value(value, field), Map.fetch!(types, type).fields, types)}
+        {field,
+         deserialize_value_map(fetch_value(value, field), Map.fetch!(types, type).fields, types)}
       else
         {field, Type.deserialize_value!(fetch_value(value, field), type)}
       end
@@ -367,11 +377,14 @@ defmodule Signet.Typed do
   end
 
   # Takes the `value` parameter (a map), and serializes it to be stored on disk
-  @spec serialize_value_map(%{String.t() => term()}, Type.type_list(), type_map()) :: %{String.t() => term()}
+  @spec serialize_value_map(%{String.t() => term()}, Type.type_list(), type_map()) :: %{
+          String.t() => term()
+        }
   defp serialize_value_map(value, fields, types) do
     for {field, type} <- fields, into: %{} do
       if is_binary(type) do
-        {field, serialize_value_map(fetch_value(value, field), Map.fetch!(types, type).fields, types)}
+        {field,
+         serialize_value_map(fetch_value(value, field), Map.fetch!(types, type).fields, types)}
       else
         {field, Type.serialize_value(fetch_value(value, field), type)}
       end
@@ -379,7 +392,9 @@ defmodule Signet.Typed do
   end
 
   # Takes the `value` parameter (a map), and encodes the values per the EIP-712 encode data spec
-  @spec encode_value_map(%{String.t() => term()}, Type.type_list(), type_map()) :: %{String.t() => term()}
+  @spec encode_value_map(%{String.t() => term()}, Type.type_list(), type_map()) :: %{
+          String.t() => term()
+        }
   defp encode_value_map(value, fields, types) do
     for {field, type} <- fields, into: <<>> do
       if is_binary(type) do
@@ -616,7 +631,8 @@ defmodule Signet.Typed do
         next_enc_fields = ["#{Type.serialize_type(type)} #{name}" | enc_fields]
 
         next_new_types =
-          if is_binary(type) and !Enum.member?(new_types, type) and !Enum.member?(seen, type) and type != name do
+          if is_binary(type) and !Enum.member?(new_types, type) and !Enum.member?(seen, type) and
+               type != name do
             [type | new_types]
           else
             new_types

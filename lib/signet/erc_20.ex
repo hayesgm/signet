@@ -93,7 +93,9 @@ defmodule Signet.Erc20 do
         iex> Signet.Erc20.Call.transfer(<<0xCC>>, <<0xDD>>, 100_000)
         {:ok, <<>>}
     """
-    @spec transfer(Signet.contract(), Signet.address(), non_neg_integer(), [Signet.Erc20.call_opts()]) :: binary()
+    @spec transfer(Signet.contract(), Signet.address(), non_neg_integer(), [
+            Signet.Erc20.call_opts()
+          ]) :: binary()
     def transfer(token, destination, amount_wei, call_opts \\ []) do
       call_opts = Keyword.put(call_opts, :decode, :hex)
       Signet.Erc20.call_trx(token, CallData.transfer(destination, amount_wei), call_opts)
