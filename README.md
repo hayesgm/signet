@@ -1,5 +1,8 @@
-# Signet 🪧
+# Signet
 
+<img src="https://github.com/hayesgm/signet/raw/main/logo.png" width="100">
+
+----
 Signet is a lightweight Ethereum RPC client for Elixir. The goal is to make it easy to interact with Ethereum in Elixir. As an example:
 
 ```elixir
