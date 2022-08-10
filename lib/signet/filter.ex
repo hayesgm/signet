@@ -93,7 +93,7 @@ defmodule Signet.Filter do
     Map.put(state, :filter_id, filter_id)
   end
 
-  def init(state=%{check_delay: check_delay}) do
+  def init(state = %{check_delay: check_delay}) do
     state = set_filter(state)
 
     Process.send_after(self(), :check_filter, check_delay)
