@@ -1,5 +1,7 @@
 # Changelog
 
+* 0.1.8
+  - Support non-EIP-155 signature recovery
 * 0.1.7
   - Move support libs to conditional compilation
   - Add estimate gas price support

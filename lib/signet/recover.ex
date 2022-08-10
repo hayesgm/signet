@@ -15,9 +15,13 @@ defmodule Signet.Recover do
       crv: :secp256k1,
       r: r,
       s: s,
-      recid: rem(v + 1, 2)
+      recid:
+        if v in [0, 1] do
+          v
+        else
+          rem(v + 1, 2)
+        end
     }
-
 
   @doc """
   Prefixes a message with "Etheruem Signed Message" prefix, as per
@@ -28,7 +32,8 @@ defmodule Signet.Recover do
     iex> Signet.Recover.prefix_eth("hello")
     "\x19Ethereum Signed Message:\\n5hello"
   """
-  def prefix_eth(msg), do: "\x19Ethereum Signed Message:\n" <> to_string(String.length(msg)) <> msg
+  def prefix_eth(msg),
+    do: "\x19Ethereum Signed Message:\n" <> to_string(String.length(msg)) <> msg
 
   @doc """
   Recovers a signer's public key from a signed message. The message will be
@@ -37,10 +42,28 @@ defmodule Signet.Recover do
 
   ## Examples
 
+    iex> # Decoded Signature
     iex> priv_key = Base.decode16!("800509fa3e80882ad0be77c27505bdc91380f800d51ed80897d22f9fcc75f4bf", case: :mixed)
     iex> {:ok, sig} = Signet.Signer.Curvy.sign("test", priv_key)
     iex> {:ok, recid} = Signet.Recover.find_recid("test", sig, Base.decode16!("63CC7C25E0CDB121ABB0FE477A6B9901889F99A7"))
     iex> Signet.Recover.recover_public_key("test", %{sig|recid: recid}) |> Base.encode16()
+    "0480076BFB96955526052B2676DFCA87E0B7869CE85E00C5DBCE29E76B8429D6DBF0F33B1A0095B2A9A4D9EA2A9746B122995A5B5874EE3161138C9D19F072B2D9"
+
+    iex> # Binary Signature
+    iex> priv_key = Base.decode16!("800509fa3e80882ad0be77c27505bdc91380f800d51ed80897d22f9fcc75f4bf", case: :mixed)
+    iex> {:ok, sig} = Signet.Signer.Curvy.sign("test", priv_key)
+    iex> {:ok, recid} = Signet.Recover.find_recid("test", sig, Base.decode16!("63CC7C25E0CDB121ABB0FE477A6B9901889F99A7"))
+    iex> signature = <<sig.r::256, sig.s::256, recid>>
+    iex> Signet.Recover.recover_public_key("test", signature) |> Base.encode16()
+    "0480076BFB96955526052B2676DFCA87E0B7869CE85E00C5DBCE29E76B8429D6DBF0F33B1A0095B2A9A4D9EA2A9746B122995A5B5874EE3161138C9D19F072B2D9"
+
+    iex> # EIP-155 Signature
+    iex> priv_key = Base.decode16!("800509fa3e80882ad0be77c27505bdc91380f800d51ed80897d22f9fcc75f4bf", case: :mixed)
+    iex> {:ok, sig} = Signet.Signer.Curvy.sign("test", priv_key)
+    iex> {:ok, recid} = Signet.Recover.find_recid("test", sig, Base.decode16!("63CC7C25E0CDB121ABB0FE477A6B9901889F99A7"))
+    iex> recovery_bit = 35 + 5 * 2 + recid
+    iex> signature = <<sig.r::256, sig.s::256, recovery_bit::8>>
+    iex> Signet.Recover.recover_public_key("test", signature) |> Base.encode16()
     "0480076BFB96955526052B2676DFCA87E0B7869CE85E00C5DBCE29E76B8429D6DBF0F33B1A0095B2A9A4D9EA2A9746B122995A5B5874EE3161138C9D19F072B2D9"
   """
   def recover_public_key(message, signature) do
