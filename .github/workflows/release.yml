@@ -10,11 +10,40 @@ on:
 
 jobs:
   create-release:
+    name: Create & Publish Release
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: taiki-e/create-gh-release-action@v1
+
+      - name: Cache Build
+        uses: actions/cache@v3
+        with:
+          path: _build
+          key: ${{ runner.os }}-build
+
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: "25.0"
+          elixir-version: "1.13.4"
+
+      - name: Elixir Dependencies
+        run: mix deps.get
+
+      - name: Mix Compile
+        run: mix compile
+
+      - name: Run Tests
+        run: mix test
+
+      - name: Create Release
+        uses: taiki-e/create-gh-release-action@v1
         with:
           changelog: CHANGELOG.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish to Hex
+        uses: synchronal/hex-publish-action@v1
+        with:
+          name: circlex_api
+          key: ${{ secrets.HEX_PM_KEY }}
