@@ -142,7 +142,7 @@ defmodule Signet.Signer do
       # EIP-155
       v = if chain_id == 0, do: 27 + recid, else: chain_id * 2 + 35 + recid
 
-      {:ok, encode_bytes(r, 32) <> encode_bytes(s, 32) <> encode_bytes(v, 1)}
+      {:ok, encode_bytes(r, 32) <> encode_bytes(s, 32) <> :binary.encode_unsigned(v)}
     end
   end
 end
