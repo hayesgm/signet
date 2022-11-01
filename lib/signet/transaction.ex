@@ -270,7 +270,7 @@ defmodule Signet.Transaction do
 
     with {:ok, transaction} <- callback.(transaction),
          transaction_encoded <- V1.encode(transaction),
-         {:ok, signature} <- Signet.Signer.sign(transaction_encoded, signer) do
+         {:ok, signature} <- Signet.Signer.sign(transaction_encoded, signer, chain_id: chain_id) do
       {:ok, V1.add_signature(transaction, signature)}
     end
   end

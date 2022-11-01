@@ -53,8 +53,9 @@ defmodule Signet.Signer do
       iex> Signet.Recover.recover_eth("test", sig) |> Base.encode16()
       "63CC7C25E0CDB121ABB0FE477A6B9901889F99A7"
   """
-  def sign(message, name \\ Signet.Signer.Default) do
-    GenServer.call(name, {:sign, message})
+  def sign(message, name \\ Signet.Signer.Default, opts \\ []) do
+    chain_id = Keyword.get(opts, :chain_id, GenServer.call(name, :get_chain_id))
+    GenServer.call(name, {:sign, {message, chain_id}})
   end
 
   @doc """
@@ -89,18 +90,18 @@ defmodule Signet.Signer do
   """
   @impl true
   def handle_call(
-        {:sign, message},
+        {:sign, {message, chain_id}},
         _from,
-        state = %{address: address, mfa: mfa, chain_id: chain_id}
+        state = %{address: address, mfa: mfa}
       ) do
     {:reply, sign_direct(message, address, mfa, chain_id), state}
   end
 
   # Note absence of address in state, find it and set it and then sign. Address will be cached on next signing.
   def handle_call(
-        {:sign, message},
+    {:sign, {message, chain_id}},
         _from,
-        state = %{name: name, mfa: {mod, _fn, args} = mfa, chain_id: chain_id}
+        state = %{name: name, mfa: {mod, _fn, args} = mfa}
       ) do
     {:ok, address} = apply(mod, :get_address, args)
     Logger.info("Signet.Signer #{name} signing with address #{encode_hex(address)}")
