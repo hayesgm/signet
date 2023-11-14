@@ -46,7 +46,7 @@ defmodule Signet.MixProject do
     [
       {:ex_doc, "~> 0.27", only: :dev, runtime: false},
       {:jason, "~> 1.2"},
-      {:httpoison, "~> 1.8"},
+      {:httpoison, "~> 2.0"},
       {:google_api_cloud_kms, "~> 0.38.1", optional: true},
       {:ex_sha3, "~> 0.1"},
       {:curvy, "~> 0.3.0"},
