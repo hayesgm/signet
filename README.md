@@ -154,7 +154,7 @@ Signet includes an RPC library to talk to Ethereum nodes, such as Infura. First,
 
 ** config.exs **
 ```elixir
-config :signet, :rpc,
+config :signet,
   ethereum_node: "https://goerli.infura.io"
   chain_id: :goerli
 ```
