@@ -45,6 +45,38 @@ defmodule Signet.Test.Client do
     "0x4"
   end
 
+  def eth_getTransactionReceipt("0x0000000000000000000000000000000000000000000000000000000000000001"), do: %{}
+  def eth_getTransactionReceipt(_trx_id) do
+    %{
+      "blockHash" => "0xa957d47df264a31badc3ae823e10ac1d444b098d9b73d204c40426e57f47e8c3",
+      "blockNumber" => "0xeff35f",
+      "contractAddress" => nil,
+      "cumulativeGasUsed" => "0xa12515",
+      "effectiveGasPrice" => "0x5a9c688d4",
+      "from" => "0x6221a9c005f6e47eb398fd867784cacfdcfff4e7",
+      "gasUsed" => "0xb4c8",
+      "logs" => [%{
+        "logIndex" => "0x1",
+        "blockNumber" => "0x1b4",
+        "blockHash" => "0xaa8216c5785ac562ff41e2dcfdf5785ac562ff41e2dcfdf829c5a142f1fccd7d",
+        "transactionHash" =>  "0xaadf829c5a142f1fccd7d8216c5785ac562ff41e2dcfdf5785ac562ff41e2dcf",
+        "transactionIndex" => "0x0",
+        "address" => "0x16c5785ac562ff41e2dcfdf829c5a142f1fccd7d",
+        "data" => "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "topics" => [
+          "0x59ebeb90bc63057b6515673c3ecf9438e5058bca0f92585014eced636878c9a5"
+        ]
+      }],
+      "logsBloom" => "0x0000000000000000000000000000000000000000000000000000000000000001",
+      "status" => "0x1",
+      "to" => "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+      "transactionHash" =>
+        "0x85d995eba9763907fdf35cd2034144dd9d53ce32cbec21349d4b12823c6860c5",
+      "transactionIndex" => "0x66",
+      "type" => "0x2"
+    }
+  end
+
   def eth_gasPrice() do
     # 1 gwei
     "0x3b9aca00"
