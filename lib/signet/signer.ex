@@ -131,7 +131,7 @@ defmodule Signet.Signer do
   """
   @spec sign_direct(String.t(), binary(), mfa(), integer()) ::
           {:ok, binary()} | {:error, String.t()}
-  def sign_direct(message, address, {mod, fun, args}, chain_id) do
+  def sign_direct(message, address, {mod, fun, args}, chain_id_or_name) do
     with {:ok,
           signature = %Curvy.Signature{
             crv: :secp256k1,
@@ -141,6 +141,7 @@ defmodule Signet.Signer do
           }} <- apply(mod, fun, [message] ++ args),
          {:ok, recid} <- Signet.Recover.find_recid(message, signature, address) do
       # EIP-155
+      chain_id = Signet.Util.parse_chain_id(chain_id_or_name)
       v = if chain_id == 0, do: 27 + recid, else: chain_id * 2 + 35 + recid
 
       {:ok, encode_bytes(r, 32) <> encode_bytes(s, 32) <> :binary.encode_unsigned(v)}
