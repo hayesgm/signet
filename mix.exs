@@ -44,16 +44,16 @@ defmodule Signet.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:ex_doc, "~> 0.27", only: :dev, runtime: false},
-      {:jason, "~> 1.2"},
-      {:httpoison, "~> 2.0"},
+      {:ex_doc, "~> 0.31.1", only: :dev, runtime: false},
+      {:jason, "~> 1.4.1"},
+      {:httpoison, "~> 2.2"},
       {:google_api_cloud_kms, "~> 0.38.1", optional: true},
-      {:ex_sha3, "~> 0.1"},
-      {:curvy, "~> 0.3.0"},
-      {:goth, "~> 1.3.0", optional: true},
-      {:ex_rlp, "~> 0.5.4"},
+      {:ex_sha3, "~> 0.1.4"},
+      {:curvy, "~> 0.3.1"},
+      {:goth, "~> 1.4.3", optional: true},
+      {:ex_rlp, "~> 0.6.0"},
       {:abi, "~> 0.1.20"},
-      {:junit_formatter, "~> 3.1", only: [:test]}
+      {:junit_formatter, "~> 3.3.1", only: [:test]}
     ]
   end
 end
