@@ -143,7 +143,7 @@ defmodule Signet.Transaction do
     """
     def add_signature(
           transaction = %__MODULE__{},
-          <<r::binary-size(32), s::binary-size(32), v::binary()>>
+          <<r::binary-size(32), s::binary-size(32), v::binary>>
         ) do
       %{transaction | v: v, r: r, s: s}
     end

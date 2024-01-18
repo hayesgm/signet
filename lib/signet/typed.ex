@@ -758,6 +758,6 @@ defmodule Signet.Typed do
     domain_separator = domain_seperator(typed)
     hash_struct_message = hash_struct(name, value, types)
 
-    <<0x19, 0x01, domain_separator::binary(), hash_struct_message::binary()>>
+    <<0x19, 0x01, domain_separator::binary, hash_struct_message::binary>>
   end
 end
