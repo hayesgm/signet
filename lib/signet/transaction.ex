@@ -159,6 +159,11 @@ defmodule Signet.Transaction do
         {:ok, <<1::256, 2::256, 3::8>>}
 
         iex> Signet.Transaction.V1.new(1, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>, :kovan)
+        ...> |> Signet.Transaction.V1.add_signature(<<1::256, 2::256, 0x05f5e0ff::32>>)
+        ...> |> Signet.Transaction.V1.get_signature()
+        {:ok, <<1::256, 2::256, 0x05f5e0ff::32>>}
+
+        iex> Signet.Transaction.V1.new(1, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>, :kovan)
         ...> |> Signet.Transaction.V1.get_signature()
         {:error, "transaction missing signature"}
     """

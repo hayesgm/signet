@@ -52,6 +52,11 @@ defmodule Signet.Signer do
       iex> {:ok, sig} = Signet.Signer.sign("test", signer_proc)
       iex> Signet.Recover.recover_eth("test", sig) |> Base.encode16()
       "63CC7C25E0CDB121ABB0FE477A6B9901889F99A7"
+
+      iex> signer_proc = Signet.Test.Signer.start_signer()
+      iex> {:ok, <<r::256, s::256, v::binary>>} = Signet.Signer.sign("test", signer_proc, chain_id: 0x05f5e0ff)
+      iex> :binary.decode_unsigned(v)
+      0x05f5e0ff * 2 + 35 + 1
   """
   def sign(message, name \\ Signet.Signer.Default, opts \\ []) do
     chain_id = Keyword.get(opts, :chain_id, GenServer.call(name, :get_chain_id))
