@@ -32,11 +32,11 @@ defmodule Signet.RPC do
   end
 
   # See https://blog.soliditylang.org/2021/04/21/custom-errors/
-  defp decode_error(<<error_hash::binary-size(4), error_data::binary()>>, errors) do
+  defp decode_error(<<error_hash::binary-size(4), error_data::binary>>, errors) do
     all_errors = ["Panic(uint256)" | errors]
 
     case Enum.find(all_errors, fn error ->
-           <<prefix::binary-size(4), _::binary()>> = Signet.Hash.keccak(error)
+           <<prefix::binary-size(4), _::binary>> = Signet.Hash.keccak(error)
            prefix == error_hash
          end) do
       nil ->

@@ -52,6 +52,11 @@ defmodule Signet.Signer do
       iex> {:ok, sig} = Signet.Signer.sign("test", signer_proc)
       iex> Signet.Recover.recover_eth("test", sig) |> Base.encode16()
       "63CC7C25E0CDB121ABB0FE477A6B9901889F99A7"
+
+      iex> signer_proc = Signet.Test.Signer.start_signer()
+      iex> {:ok, <<r::256, s::256, v::binary>>} = Signet.Signer.sign("test", signer_proc, chain_id: 0x05f5e0ff)
+      iex> :binary.decode_unsigned(v)
+      0x05f5e0ff * 2 + 35 + 1
   """
   def sign(message, name \\ Signet.Signer.Default, opts \\ []) do
     chain_id = Keyword.get(opts, :chain_id, GenServer.call(name, :get_chain_id))
@@ -131,7 +136,7 @@ defmodule Signet.Signer do
   """
   @spec sign_direct(String.t(), binary(), mfa(), integer()) ::
           {:ok, binary()} | {:error, String.t()}
-  def sign_direct(message, address, {mod, fun, args}, chain_id) do
+  def sign_direct(message, address, {mod, fun, args}, chain_id_or_name) do
     with {:ok,
           signature = %Curvy.Signature{
             crv: :secp256k1,
@@ -141,6 +146,7 @@ defmodule Signet.Signer do
           }} <- apply(mod, fun, [message] ++ args),
          {:ok, recid} <- Signet.Recover.find_recid(message, signature, address) do
       # EIP-155
+      chain_id = Signet.Util.parse_chain_id(chain_id_or_name)
       v = if chain_id == 0, do: 27 + recid, else: chain_id * 2 + 35 + recid
 
       {:ok, encode_bytes(r, 32) <> encode_bytes(s, 32) <> :binary.encode_unsigned(v)}

@@ -16,6 +16,7 @@ defmodule Signet.Util do
     iex> Signet.Util.decode_hex("0xGG")
     :error
   """
+  @spec decode_hex(String.t()) :: {:ok, binary()} | :error
   def decode_hex("0x" <> hex) do
     hex_padded =
       if rem(byte_size(hex), 2) == 1 do
@@ -27,10 +28,97 @@ defmodule Signet.Util do
     Base.decode16(hex_padded, case: :mixed)
   end
 
+  @doc ~S"""
+  Decodes a hex string, specifically requiring that the string begins
+  with `0x` and allows mixed-case typing.
+
+  Similar to `decode_hex/1`, but raises on error
+
+  ## Examples
+
+    iex> Signet.Util.decode_hex!("0x1122")
+    <<0x11, 0x22>>
+
+    iex> Signet.Util.decode_hex!("0x1")
+    <<0x1>>
+
+    iex> Signet.Util.decode_hex!("0xGG")
+    ** (RuntimeError) invalid hex
+  """
+  @spec decode_hex!(String.t()) :: binary() | no_return()
   def decode_hex!(hex) do
-    {:ok, result} = decode_hex(hex)
-    result
+    case decode_hex(hex) do
+      {:ok, result} ->
+        result
+
+      _ ->
+        raise "invalid hex"
+    end
   end
+
+  @doc ~S"""
+  Decodes hex but requires the result be a given set of bytes, or
+  otherwise raises.
+
+  ## Examples
+
+    iex> Signet.Util.decode_sized_hex!("0x1122", 2)
+    <<0x11, 0x22>>
+
+    iex> Signet.Util.decode_sized_hex!("0x1122", 3)
+    ** (RuntimeError) mismatch byte size. expected 3, got: 2
+
+    iex> Signet.Util.decode_sized_hex!("0xGG", 3)
+    ** (RuntimeError) invalid hex
+  """
+  @spec decode_sized_hex!(String.t(), integer()) :: binary() | no_return()
+  def decode_sized_hex!(hex, size) do
+    result = decode_hex!(hex)
+    if byte_size(result) == size do
+      result
+    else
+      raise "mismatch byte size. expected #{size}, got: #{byte_size(result)}"
+    end
+  end
+
+  @doc ~S"""
+  Decodes hex if the size is exactly one 32-byte word, otherwise raises.
+
+  ## Examples
+
+    iex> Signet.Util.decode_word!("0x00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff")
+    <<0x00,0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,0x99,0xaa,0xbb,0xcc,0xdd,0xee,0xff,0x00,0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,0x99,0xaa,0xbb,0xcc,0xdd,0xee,0xff>>
+
+    iex> Signet.Util.decode_word!("0x1122")
+    ** (RuntimeError) mismatch byte size. expected 32, got: 2
+  """
+  @spec decode_word!(String.t()) :: <<_::256>> | no_return()
+  def decode_word!(hex), do: decode_sized_hex!(hex, 32)
+
+  @doc ~S"""
+  Decodes hex if the size is exactly one 20-byte address, otherwise raises.
+
+  ## Examples
+
+    iex> Signet.Util.decode_address!("0x00112233445566778899aabbccddeeff00112233")
+    <<0x00,0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,0x99,0xaa,0xbb,0xcc,0xdd,0xee,0xff,0x00,0x11,0x22,0x33>>
+
+    iex> Signet.Util.decode_address!("0x1122")
+    ** (RuntimeError) mismatch byte size. expected 20, got: 2
+  """
+  @spec decode_address!(String.t()) :: <<_::160>> | no_return()
+  def decode_address!(hex), do: decode_sized_hex!(hex, 20)
+
+  @doc ~S"""
+  Decodes hex to an integer.
+
+  ## Examples
+
+    iex> Signet.Util.decode_hex_number!("0x11223344")
+    0x11223344
+  """
+  @spec decode_hex_number!(String.t()) :: integer() | no_return()
+  def decode_hex_number!(hex), do: decode_hex!(hex) |> :binary.decode_unsigned()
 
   @doc ~S"""
   Decodes hex, allowing it to either by "0x..." or <<1::160>>.
@@ -235,7 +323,7 @@ defmodule Signet.Util do
 
   defp do_nibbles(<<>>, acc), do: acc
 
-  defp do_nibbles(<<high::4, low::4, rest::binary()>>, acc),
+  defp do_nibbles(<<high::4, low::4, rest::binary>>, acc),
     do: do_nibbles(rest, [low, high | acc])
 
   defmodule RecoveryBit do

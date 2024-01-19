@@ -143,9 +143,9 @@ defmodule Signet.Transaction do
     """
     def add_signature(
           transaction = %__MODULE__{},
-          <<r::binary-size(32), s::binary-size(32), v::binary()>>
+          <<r::binary-size(32), s::binary-size(32), v::binary>>
         ) do
-      %{transaction | v: v, r: r, s: s}
+      %{transaction | v: :binary.decode_unsigned(v), r: r, s: s}
     end
 
     @doc ~S"""
@@ -159,6 +159,11 @@ defmodule Signet.Transaction do
         {:ok, <<1::256, 2::256, 3::8>>}
 
         iex> Signet.Transaction.V1.new(1, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>, :kovan)
+        ...> |> Signet.Transaction.V1.add_signature(<<1::256, 2::256, 0x05f5e0ff::32>>)
+        ...> |> Signet.Transaction.V1.get_signature()
+        {:ok, <<1::256, 2::256, 0x05f5e0ff::32>>}
+
+        iex> Signet.Transaction.V1.new(1, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>, :kovan)
         ...> |> Signet.Transaction.V1.get_signature()
         {:error, "transaction missing signature"}
     """
@@ -166,7 +171,8 @@ defmodule Signet.Transaction do
       do: {:error, "transaction missing signature"}
 
     def get_signature(%__MODULE__{v: v, r: r, s: s}) do
-      {:ok, <<r::binary-size(32), s::binary-size(32), v::8>>}
+      v_enc = :binary.encode_unsigned(v)
+      {:ok, <<r::binary-size(32), s::binary-size(32), v_enc::binary>>}
     end
 
     @doc ~S"""
