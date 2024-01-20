@@ -45,7 +45,11 @@ defmodule Signet.Test.Client do
     "0x4"
   end
 
-  def eth_getTransactionReceipt("0x0000000000000000000000000000000000000000000000000000000000000001"), do: %{}
+  def eth_getTransactionReceipt(
+        "0x0000000000000000000000000000000000000000000000000000000000000001"
+      ),
+      do: %{}
+
   def eth_getTransactionReceipt(_trx_id) do
     %{
       "blockHash" => "0xa957d47df264a31badc3ae823e10ac1d444b098d9b73d204c40426e57f47e8c3",
@@ -55,26 +59,75 @@ defmodule Signet.Test.Client do
       "effectiveGasPrice" => "0x5a9c688d4",
       "from" => "0x6221a9c005f6e47eb398fd867784cacfdcfff4e7",
       "gasUsed" => "0xb4c8",
-      "logs" => [%{
-        "logIndex" => "0x1",
-        "blockNumber" => "0x1b4",
-        "blockHash" => "0xaa8216c5785ac562ff41e2dcfdf5785ac562ff41e2dcfdf829c5a142f1fccd7d",
-        "transactionHash" =>  "0xaadf829c5a142f1fccd7d8216c5785ac562ff41e2dcfdf5785ac562ff41e2dcf",
-        "transactionIndex" => "0x0",
-        "address" => "0x16c5785ac562ff41e2dcfdf829c5a142f1fccd7d",
-        "data" => "0x0000000000000000000000000000000000000000000000000000000000000000",
-        "topics" => [
-          "0x59ebeb90bc63057b6515673c3ecf9438e5058bca0f92585014eced636878c9a5"
-        ]
-      }],
+      "logs" => [
+        %{
+          "logIndex" => "0x1",
+          "blockNumber" => "0x1b4",
+          "blockHash" => "0xaa8216c5785ac562ff41e2dcfdf5785ac562ff41e2dcfdf829c5a142f1fccd7d",
+          "transactionHash" =>
+            "0xaadf829c5a142f1fccd7d8216c5785ac562ff41e2dcfdf5785ac562ff41e2dcf",
+          "transactionIndex" => "0x0",
+          "address" => "0x16c5785ac562ff41e2dcfdf829c5a142f1fccd7d",
+          "data" => "0x0000000000000000000000000000000000000000000000000000000000000000",
+          "topics" => [
+            "0x59ebeb90bc63057b6515673c3ecf9438e5058bca0f92585014eced636878c9a5"
+          ]
+        }
+      ],
       "logsBloom" => "0x0000000000000000000000000000000000000000000000000000000000000001",
       "status" => "0x1",
       "to" => "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-      "transactionHash" =>
-        "0x85d995eba9763907fdf35cd2034144dd9d53ce32cbec21349d4b12823c6860c5",
+      "transactionHash" => "0x85d995eba9763907fdf35cd2034144dd9d53ce32cbec21349d4b12823c6860c5",
       "transactionIndex" => "0x66",
       "type" => "0x2"
     }
+  end
+
+  def trace_transaction(_trx_id) do
+    [
+      %{
+        "action" => %{
+          "callType" => "call",
+          "from" => "0x83806d539d4ea1c140489a06660319c9a303f874",
+          "gas" => "0x1a1f8",
+          "input" => "0x",
+          "to" => "0x1c39ba39e4735cb65978d4db400ddd70a72dc750",
+          "value" => "0x7a16c911b4d00000"
+        },
+        "blockHash" => "0x7eb25504e4c202cf3d62fd585d3e238f592c780cca82dacb2ed3cb5b38883add",
+        "blockNumber" => 3_068_185,
+        "result" => %{
+          "gasUsed" => "0x2982",
+          "output" => "0x"
+        },
+        "subtraces" => 2,
+        "traceAddress" => ["0x1c39ba39e4735cb65978d4db400ddd70a72dc750"],
+        "transactionHash" => "0x17104ac9d3312d8c136b7f44d4b8b47852618065ebfa534bd2d3b5ef218ca1f3",
+        "transactionPosition" => 2,
+        "type" => "call"
+      },
+      %{
+        "action" => %{
+          "callType" => "call",
+          "from" => "0x83806d539d4ea1c140489a06660319c9a303f874",
+          "gas" => "0x1a1f8",
+          "input" => "0x",
+          "to" => "0x1c39ba39e4735cb65978d4db400ddd70a72dc750",
+          "value" => "0x7a16c911b4d00000"
+        },
+        "blockHash" => "0x7eb25504e4c202cf3d62fd585d3e238f592c780cca82dacb2ed3cb5b38883add",
+        "blockNumber" => 3_068_186,
+        "result" => %{
+          "gasUsed" => "0x2982",
+          "output" => "0x"
+        },
+        "subtraces" => 2,
+        "traceAddress" => ["0x1c39ba39e4735cb65978d4db400ddd70a72dc750"],
+        "transactionHash" => "0x17104ac9d3312d8c136b7f44d4b8b47852618065ebfa534bd2d3b5ef218ca1f3",
+        "transactionPosition" => 2,
+        "type" => "call"
+      }
+    ]
   end
 
   def eth_gasPrice() do

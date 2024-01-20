@@ -34,7 +34,7 @@ Signet can be installed by adding `signet` to your list of dependencies in `mix.
 ```elixir
 def deps do
   [
-    {:signet, "~> 0.1.10"}
+    {:signet, "~> 0.2.0"}
   ]
 end
 ```
@@ -205,6 +205,12 @@ You can pull a transaction receipt via:
 
 ```elixir
 {:ok, receipt} = Signet.RPC.get_trx_receipt(trx_id)
+```
+
+You can pull a transaction traces via:
+
+```elixir
+{:ok, trace} = Signet.RPC.trace_transaction(trx_id)
 ```
 
 ### Filtering
