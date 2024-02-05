@@ -201,6 +201,12 @@ Finally, `execute_trx` is similar to sending transactions with Web3, which will 
 
 Note: due to our ABI encoder, addresses should be passed in as `unsigned`s, not binaries.
 
+You can pull a transaction receipt via:
+
+```elixir
+{:ok, receipt} = Signet.RPC.get_trx_receipt(trx_id)
+```
+
 ### Filtering
 
 The library also has a built-in system to use JSON-RPC filters (i.e. via `eth_newFilter`). In your application.ex (or any other supervisor), start a new filter:

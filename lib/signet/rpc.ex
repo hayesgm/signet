@@ -153,6 +153,13 @@ defmodule Signet.RPC do
               with {:ok, bin} <- Signet.Util.decode_hex(result) do
                 {:ok, :binary.decode_unsigned(bin)}
               end
+
+            f when is_function(f) ->
+              try do
+                {:ok, f.(result)}
+              rescue _ ->
+                {:error, "failed to decode result"}
+              end
           end
         end
 
@@ -276,6 +283,90 @@ defmodule Signet.RPC do
         block_number
       ],
       Keyword.merge(opts, decode: :hex_unsigned)
+    )
+  end
+
+  @doc """
+  RPC call to get a transaction receipt
+
+  ## Examples
+
+      iex> Signet.RPC.get_trx_receipt(<<0::256>>)
+      {:ok,
+        %Signet.Receipt{
+          transaction_hash: Signet.Util.decode_hex!("0x85d995eba9763907fdf35cd2034144dd9d53ce32cbec21349d4b12823c6860c5"),
+          transaction_index: 0x66,
+          block_hash: Signet.Util.decode_hex!("0xa957d47df264a31badc3ae823e10ac1d444b098d9b73d204c40426e57f47e8c3"),
+          block_number: 0xeff35f,
+          from: Signet.Util.decode_hex!("0x6221a9c005f6e47eb398fd867784cacfdcfff4e7"),
+          to: Signet.Util.decode_hex!("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"),
+          cumulative_gas_used: 0xa12515,
+          effective_gas_price: 0x5a9c688d4,
+          gas_used: 0xb4c8,
+          contract_address: nil,
+          logs: [
+            %Signet.Receipt.Log{
+              log_index: 1,
+              block_number: 0x01b4,
+              block_hash: Signet.Util.decode_hex!("0xaa8216c5785ac562ff41e2dcfdf5785ac562ff41e2dcfdf829c5a142f1fccd7d"),
+              transaction_hash: Signet.Util.decode_hex!("0xaadf829c5a142f1fccd7d8216c5785ac562ff41e2dcfdf5785ac562ff41e2dcf"),
+              transaction_index: 0,
+              address: Signet.Util.decode_hex!("0x16c5785ac562ff41e2dcfdf829c5a142f1fccd7d"),
+              data: Signet.Util.decode_hex!("0x0000000000000000000000000000000000000000000000000000000000000000"),
+              topics: [
+                Signet.Util.decode_hex!("0x59ebeb90bc63057b6515673c3ecf9438e5058bca0f92585014eced636878c9a5")
+              ]
+            }
+          ],
+          logs_bloom: Signet.Util.decode_hex!("0x0000000000000000000000000000000000000000000000000000000000000001"),
+          type: 0x02,
+          status: 0x01,
+        }
+      }
+
+      iex> Signet.RPC.get_trx_receipt("0x85d995eba9763907fdf35cd2034144dd9d53ce32cbec21349d4b12823c6860c5")
+      {:ok,
+        %Signet.Receipt{
+          transaction_hash: Signet.Util.decode_hex!("0x85d995eba9763907fdf35cd2034144dd9d53ce32cbec21349d4b12823c6860c5"),
+          transaction_index: 0x66,
+          block_hash: Signet.Util.decode_hex!("0xa957d47df264a31badc3ae823e10ac1d444b098d9b73d204c40426e57f47e8c3"),
+          block_number: 0xeff35f,
+          from: Signet.Util.decode_hex!("0x6221a9c005f6e47eb398fd867784cacfdcfff4e7"),
+          to: Signet.Util.decode_hex!("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"),
+          cumulative_gas_used: 0xa12515,
+          effective_gas_price: 0x5a9c688d4,
+          gas_used: 0xb4c8,
+          contract_address: nil,
+          logs: [
+            %Signet.Receipt.Log{
+              log_index: 1,
+              block_number: 0x01b4,
+              block_hash: Signet.Util.decode_hex!("0xaa8216c5785ac562ff41e2dcfdf5785ac562ff41e2dcfdf829c5a142f1fccd7d"),
+              transaction_hash: Signet.Util.decode_hex!("0xaadf829c5a142f1fccd7d8216c5785ac562ff41e2dcfdf5785ac562ff41e2dcf"),
+              transaction_index: 0,
+              address: Signet.Util.decode_hex!("0x16c5785ac562ff41e2dcfdf829c5a142f1fccd7d"),
+              data: Signet.Util.decode_hex!("0x0000000000000000000000000000000000000000000000000000000000000000"),
+              topics: [
+                Signet.Util.decode_hex!("0x59ebeb90bc63057b6515673c3ecf9438e5058bca0f92585014eced636878c9a5")
+              ]
+            }
+          ],
+          logs_bloom: Signet.Util.decode_hex!("0x0000000000000000000000000000000000000000000000000000000000000001"),
+          type: 0x02,
+          status: 0x01,
+        }
+      }
+
+      iex> Signet.RPC.get_trx_receipt(<<1::256>>)
+      {:error, "failed to decode result"}
+  """
+  def get_trx_receipt(trx_id, opts \\ [])
+  def get_trx_receipt(trx_id="0x"<>_, opts) when byte_size(trx_id) == 66, do: get_trx_receipt(Signet.Util.decode_hex!(trx_id), opts)
+  def get_trx_receipt(trx_id=<<_::256>>, opts) do
+    send_rpc(
+      "eth_getTransactionReceipt",
+      [Signet.Util.encode_hex(trx_id)],
+      Keyword.merge(opts, decode: &Signet.Receipt.deserialize/1)
     )
   end
 
