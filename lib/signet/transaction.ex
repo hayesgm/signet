@@ -200,6 +200,401 @@ defmodule Signet.Transaction do
     end
   end
 
+  defmodule V2 do
+    defstruct [
+      :chain_id,
+      :nonce,
+      :max_priority_fee_per_gas,
+      :max_fee_per_gas,
+      :gas_limit,
+      :destination,
+      :amount,
+      :data,
+      :access_list,
+      :signature_y_parity,
+      :signature_r,
+      :signature_s
+    ]
+
+    @doc ~S"""
+    Constructs a new V2 (EIP-1559) Ethereum transaction.
+
+    ## Examples
+
+        iex> Signet.Transaction.V2.new(1, {1, :gwei}, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>, [<<2::160>>, <<3::160>>], :goerli)
+        %Signet.Transaction.V2{
+          chain_id: 5,
+          nonce: 1,
+          max_priority_fee_per_gas: 1000000000,
+          max_fee_per_gas: 100000000000,
+          gas_limit: 100000,
+          destination: <<1::160>>,
+          amount: 2,
+          data: <<1, 2, 3>>,
+          access_list: [<<2::160>>, <<3::160>>],
+          signature_y_parity: nil,
+          signature_r: nil,
+          signature_s: nil
+        }
+
+        iex> Signet.Transaction.V2.new(1, {1, :gwei}, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>, [<<2::160>>, <<3::160>>], true, <<0x01::256>>, <<0x02::256>>, :goerli)
+        %Signet.Transaction.V2{
+          chain_id: 5,
+          nonce: 1,
+          max_priority_fee_per_gas: 1000000000,
+          max_fee_per_gas: 100000000000,
+          gas_limit: 100000,
+          destination: <<1::160>>,
+          amount: 2,
+          data: <<1, 2, 3>>,
+          access_list: [<<2::160>>, <<3::160>>],
+          signature_y_parity: true,
+          signature_r: <<0x01::256>>,
+          signature_s: <<0x02::256>>
+        }
+    """
+    def new(
+          nonce,
+          max_priority_fee_per_gas,
+          max_fee_per_gas,
+          gas_limit,
+          destination,
+          amount,
+          data,
+          access_list,
+          chain_id \\ nil
+        ),
+        do:
+          new(
+            nonce,
+            max_priority_fee_per_gas,
+            max_fee_per_gas,
+            gas_limit,
+            destination,
+            amount,
+            data,
+            access_list,
+            nil,
+            nil,
+            nil,
+            chain_id
+          )
+
+    def new(
+          nonce,
+          max_priority_fee_per_gas,
+          max_fee_per_gas,
+          gas_limit,
+          destination,
+          amount,
+          data,
+          access_list,
+          signature_y_parity,
+          signature_r,
+          signature_s,
+          chain_id \\ nil
+        ) do
+      %__MODULE__{
+        chain_id:
+          if(is_nil(chain_id),
+            do: Signet.Application.chain_id(),
+            else: Signet.Util.parse_chain_id(chain_id)
+          ),
+        nonce: nonce,
+        max_priority_fee_per_gas:
+          if(!is_nil(max_priority_fee_per_gas),
+            do: Signet.Util.to_wei(max_priority_fee_per_gas),
+            else: nil
+          ),
+        max_fee_per_gas:
+          if(!is_nil(max_fee_per_gas), do: Signet.Util.to_wei(max_fee_per_gas), else: nil),
+        gas_limit: gas_limit,
+        destination: destination,
+        amount: Signet.Util.to_wei(amount),
+        data: data,
+        access_list: access_list,
+        signature_y_parity: signature_y_parity,
+        signature_r: signature_r,
+        signature_s: signature_s
+      }
+    end
+
+    @doc ~S"""
+    Build an RLP-encoded transaction. Note: if the transaction does not have a signature
+    set (that is, `signature_y_parity`, `signature_r` or `signature_s` are `nil`), then
+    we will encode a partial transaction (which can be used for signing).
+
+    ## Examples
+
+        iex> Signet.Transaction.V2.new(1, {1, :gwei}, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>, [<<2::160>>, <<3::160>>], :goerli)
+        ...> |> Signet.Transaction.V2.encode()
+        ...> |> Base.encode16()
+        "02F8560501843B9ACA0085174876E800830186A09400000000000000000000000000000000000000010283010203EA940000000000000000000000000000000000000002940000000000000000000000000000000000000003"
+
+        iex> Signet.Transaction.V2.new(1, {1, :gwei}, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>, [<<2::160>>, <<3::160>>], true, <<0x01::256>>, <<0x02::256>>, :goerli)
+        ...> |> Signet.Transaction.V2.encode()
+        ...> |> Base.encode16()
+        "02F8990501843B9ACA0085174876E800830186A09400000000000000000000000000000000000000010283010203EA94000000000000000000000000000000000000000294000000000000000000000000000000000000000301A00000000000000000000000000000000000000000000000000000000000000001A00000000000000000000000000000000000000000000000000000000000000002"
+    """
+    def encode(%__MODULE__{
+          chain_id: chain_id,
+          nonce: nonce,
+          max_priority_fee_per_gas: max_priority_fee_per_gas,
+          max_fee_per_gas: max_fee_per_gas,
+          gas_limit: gas_limit,
+          destination: destination,
+          amount: amount,
+          data: data,
+          access_list: access_list,
+          signature_y_parity: signature_y_parity,
+          signature_r: signature_r,
+          signature_s: signature_s
+        })
+        when is_nil(signature_y_parity) or is_nil(signature_r) or is_nil(signature_s) do
+      <<0x02>> <> ExRLP.encode([
+        chain_id,
+        nonce,
+        max_priority_fee_per_gas,
+        max_fee_per_gas,
+        gas_limit,
+        destination,
+        amount,
+        data,
+        access_list
+      ])
+    end
+
+    def encode(%__MODULE__{
+          chain_id: chain_id,
+          nonce: nonce,
+          max_priority_fee_per_gas: max_priority_fee_per_gas,
+          max_fee_per_gas: max_fee_per_gas,
+          gas_limit: gas_limit,
+          destination: destination,
+          amount: amount,
+          data: data,
+          access_list: access_list,
+          signature_y_parity: signature_y_parity,
+          signature_r: signature_r,
+          signature_s: signature_s
+        }) do
+      <<0x02>> <> ExRLP.encode([
+        chain_id,
+        nonce,
+        max_priority_fee_per_gas,
+        max_fee_per_gas,
+        gas_limit,
+        destination,
+        amount,
+        data,
+        access_list,
+        if(signature_y_parity, do: 1, else: 0),
+        signature_r,
+        signature_s
+      ])
+    end
+
+    @doc ~S"""
+    Decode an RLP-encoded transaction. Note: the signature must have been
+    signed (i.e. properly encoded), not simply encoded for signing.
+
+    ## Examples
+
+        iex> Signet.Transaction.V2.decode(Base.decode16!("02F8990501843B9ACA0085174876E800830186A09400000000000000000000000000000000000000010283010203EA94000000000000000000000000000000000000000294000000000000000000000000000000000000000301A00000000000000000000000000000000000000000000000000000000000000001A00000000000000000000000000000000000000000000000000000000000000002"))
+        {:ok, %Signet.Transaction.V2{
+          chain_id: 5,
+          nonce: 1,
+          max_priority_fee_per_gas: 1000000000,
+          max_fee_per_gas: 100000000000,
+          gas_limit: 100000,
+          destination: <<1::160>>,
+          amount: 2,
+          data: <<1, 2, 3>>,
+          access_list: [<<2::160>>, <<3::160>>],
+          signature_y_parity: true,
+          signature_r: 0x01,
+          signature_s: 0x02
+        }}
+    """
+    def decode(<<0x02, trx_enc::binary>>) do
+      case ExRLP.decode(trx_enc) do
+        [
+          chain_id,
+          nonce,
+          max_priority_fee_per_gas,
+          max_fee_per_gas,
+          gas_limit,
+          destination,
+          amount,
+          data,
+          access_list,
+          signature_y_parity,
+          signature_r,
+          signature_s
+        ] ->
+          {:ok,
+           %__MODULE__{
+             chain_id: :binary.decode_unsigned(chain_id),
+             nonce: :binary.decode_unsigned(nonce),
+             max_priority_fee_per_gas: :binary.decode_unsigned(max_priority_fee_per_gas),
+             max_fee_per_gas: :binary.decode_unsigned(max_fee_per_gas),
+             gas_limit: :binary.decode_unsigned(gas_limit),
+             destination: destination,
+             amount: :binary.decode_unsigned(amount),
+             data: data,
+             access_list: access_list,
+             signature_y_parity: :binary.decode_unsigned(signature_y_parity) == 1,
+             signature_r: :binary.decode_unsigned(signature_r),
+             signature_s: :binary.decode_unsigned(signature_s)
+           }}
+
+        _ ->
+          {:error, "invalid v2 transaction"}
+      end
+    end
+
+    @doc ~S"""
+    Adds a signature to a transaction. This overwrites the `signature_y_parity`, `signature_r` and `signature_s` fields.
+
+    ## Examples
+
+        iex> Signet.Transaction.V2.new(1, {1, :gwei}, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>, [<<2::160>>, <<3::160>>], 1, 0x01, 0x02, :goerli)
+        ...> |> Signet.Transaction.V2.add_signature(true, <<1::256>>, <<2::256>>)
+        %Signet.Transaction.V2{
+          chain_id: 5,
+          nonce: 1,
+          max_priority_fee_per_gas: 1000000000,
+          max_fee_per_gas: 100000000000,
+          gas_limit: 100000,
+          destination: <<1::160>>,
+          amount: 2,
+          data: <<1, 2, 3>>,
+          access_list: [<<2::160>>, <<3::160>>],
+          signature_y_parity: true,
+          signature_r: <<0x01::256>>,
+          signature_s: <<0x02::256>>
+        }
+
+        iex> Signet.Transaction.V2.new(1, {1, :gwei}, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>, [<<2::160>>, <<3::160>>], 1, 0x01, 0x02, :goerli)
+        ...> |> Signet.Transaction.V2.add_signature(<<1::256, 2::256, 1::8>>)
+        %Signet.Transaction.V2{
+          chain_id: 5,
+          nonce: 1,
+          max_priority_fee_per_gas: 1000000000,
+          max_fee_per_gas: 100000000000,
+          gas_limit: 100000,
+          destination: <<1::160>>,
+          amount: 2,
+          data: <<1, 2, 3>>,
+          access_list: [<<2::160>>, <<3::160>>],
+          signature_y_parity: true,
+          signature_r: <<0x01::256>>,
+          signature_s: <<0x02::256>>
+        }
+
+        iex> Signet.Transaction.V2.new(1, {1, :gwei}, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>, [<<2::160>>, <<3::160>>], 1, 0x01, 0x02, :goerli)
+        ...> |> Signet.Transaction.V2.add_signature(<<1::256, 2::256, 27::8>>)
+        %Signet.Transaction.V2{
+          chain_id: 5,
+          nonce: 1,
+          max_priority_fee_per_gas: 1000000000,
+          max_fee_per_gas: 100000000000,
+          gas_limit: 100000,
+          destination: <<1::160>>,
+          amount: 2,
+          data: <<1, 2, 3>>,
+          access_list: [<<2::160>>, <<3::160>>],
+          signature_y_parity: false,
+          signature_r: <<0x01::256>>,
+          signature_s: <<0x02::256>>
+        }
+
+        iex> Signet.Transaction.V2.new(1, {1, :gwei}, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>, [<<2::160>>, <<3::160>>], 1, 0x01, 0x02, :goerli)
+        ...> |> Signet.Transaction.V2.add_signature(<<1::256, 2::256, 38::8>>)
+        %Signet.Transaction.V2{
+          chain_id: 5,
+          nonce: 1,
+          max_priority_fee_per_gas: 1000000000,
+          max_fee_per_gas: 100000000000,
+          gas_limit: 100000,
+          destination: <<1::160>>,
+          amount: 2,
+          data: <<1, 2, 3>>,
+          access_list: [<<2::160>>, <<3::160>>],
+          signature_y_parity: true,
+          signature_r: <<0x01::256>>,
+          signature_s: <<0x02::256>>
+        }
+    """
+    def add_signature(
+          transaction = %__MODULE__{},
+          v,
+          r = <<_::256>>,
+          s = <<_::256>>
+        )
+        when is_boolean(v) do
+      %{transaction | signature_y_parity: v, signature_r: r, signature_s: s}
+    end
+
+    def add_signature(
+          transaction = %__MODULE__{},
+          <<r::binary-size(32), s::binary-size(32), v::integer-size(8)>>
+        ) do
+      y_parity =
+        if v < 2 do
+          v == 1
+        else
+          rem(v, 2) == 0
+        end
+
+      %{transaction | signature_y_parity: y_parity, signature_r: r, signature_s: s}
+    end
+
+    @doc ~S"""
+    Recovers a signature from a transaction, if it's been signed. Otherwise returns an error.
+
+    ## Examples
+
+        iex> Signet.Transaction.V2.new(1, {1, :gwei}, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>, [<<2::160>>, <<3::160>>], true, <<0x01::256>>, <<0x02::256>>, :goerli)
+        ...> |> Signet.Transaction.V2.get_signature()
+        {:ok, <<1::256, 2::256, 1::8>>}
+
+        iex> Signet.Transaction.V2.new(1, {1, :gwei}, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>, [<<2::160>>, <<3::160>>], :goerli)
+        ...> |> Signet.Transaction.V2.get_signature()
+        {:error, "transaction missing signature"}
+    """
+    def get_signature(%__MODULE__{signature_y_parity: v, signature_r: r, signature_s: s}) when is_nil(v) or is_nil(r) or is_nil(s),
+      do: {:error, "transaction missing signature"}
+
+    def get_signature(%__MODULE__{signature_y_parity: v, signature_r: r, signature_s: s}) do
+      v_enc = :binary.encode_unsigned(if v, do: 1, else: 0)
+      {:ok, <<r::binary-size(32), s::binary-size(32), v_enc::binary>>}
+    end
+
+    @doc ~S"""
+    Recovers the signer from a given transaction, if it's been signed.
+
+    ## Examples
+
+        iex> {:ok, address} =
+        ...>   Signet.Transaction.V2.new(1, {1, :gwei}, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>, [<<2::160>>, <<3::160>>], true, <<0x01::256>>, <<0x02::256>>, :goerli)
+        ...>   |> Signet.Transaction.V2.recover_signer()
+        ...> Base.encode16(address)
+        "C002CA628F93E1550B5F30ED10902A9E7783364B"
+
+        iex> Signet.Transaction.V2.new(1, {1, :gwei}, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>, [<<2::160>>, <<3::160>>], :goerli)
+        ...> |> Signet.Transaction.V2.recover_signer()
+        {:error, "transaction missing signature"}
+    """
+    def recover_signer(transaction) do
+      trx_encoded = encode(%{transaction | signature_y_parity: nil, signature_r: nil, signature_s: nil})
+
+      with {:ok, signature} <- get_signature(transaction) do
+        {:ok, Signet.Recover.recover_eth(trx_encoded, signature)}
+      end
+    end
+  end
+
   @doc """
   Builds a v1-style call to a given contract
 
@@ -245,6 +640,57 @@ defmodule Signet.Transaction do
     V1.new(nonce, gas_price, gas_limit, address, value, data, chain_id)
   end
 
+  @doc """
+  Builds a v2 (eip-1559)-style call to a given contract
+
+  ## Examples
+
+      iex> Signet.Transaction.build_trx_v2(<<1::160>>, 6, {"baz(uint,address)", [50, :binary.decode_unsigned(<<1::160>>)]}, {50, :gwei}, {10, :gwei}, 100_000, 0, [<<1::160>>], :goerli)
+      %Signet.Transaction.V2{
+        chain_id: 5,
+        nonce: 6,
+        max_priority_fee_per_gas: 50000000000,
+        max_fee_per_gas: 10000000000,
+        gas_limit: 100000,
+        destination: <<1::160>>,
+        amount: 0,
+        data: Base.decode16!("A291ADD600000000000000000000000000000000000000000000000000000000000000320000000000000000000000000000000000000000000000000000000000000001"),
+        access_list: [<<1::160>>],
+        signature_y_parity: nil,
+        signature_r: nil,
+        signature_s: nil
+      }
+
+      iex> call_data = Base.decode16!("A291ADD600000000000000000000000000000000000000000000000000000000000000320000000000000000000000000000000000000000000000000000000000000001")
+      ...> Signet.Transaction.build_trx_v2(<<1::160>>, 5, call_data, {50, :gwei}, {10, :gwei}, 100_000, 0, [<<1::160>>], :goerli)
+      %Signet.Transaction.V2{
+        chain_id: 5,
+        nonce: 5,
+        max_priority_fee_per_gas: 50000000000,
+        max_fee_per_gas: 10000000000,
+        gas_limit: 100000,
+        destination: <<1::160>>,
+        amount: 0,
+        data: Base.decode16!("A291ADD600000000000000000000000000000000000000000000000000000000000000320000000000000000000000000000000000000000000000000000000000000001"),
+        access_list: [<<1::160>>],
+        signature_y_parity: nil,
+        signature_r: nil,
+        signature_s: nil
+      }
+  """
+  def build_trx_v2(address, nonce, call_data, max_priority_fee_per_gas, max_fee_per_gas, gas_limit, amount, access_list, chain_id \\ nil) when is_list(access_list) do
+    data =
+      case call_data do
+        {abi, params} ->
+          ABI.encode(abi, params)
+
+        call_data when is_binary(call_data) ->
+          call_data
+      end
+
+    V2.new(nonce, max_priority_fee_per_gas, max_fee_per_gas, gas_limit, address, amount, data, access_list, chain_id)
+  end
+
   @doc ~S"""
   Builds and signs a transaction, to be ready to be passed to JSON-RPC.
 
@@ -281,39 +727,41 @@ defmodule Signet.Transaction do
     end
   end
 
-  # TODO: Add v2 transactions
-  # def sign_transaction(transaction = %V1{}) do
-  # end
+  @doc ~S"""
+  Builds and signs a V2 transaction, to be ready to be passed to JSON-RPC.
 
-  # defmodule V2 do
-  #   defstruct [
-  #     :chain_id,
-  #     :nonce,
-  #     :max_priority_fee_per_gas,
-  #     :max_fee_per_gas,
-  #     :gas_limit,
-  #     :destination,
-  #     :amount,
-  #     :data,
-  #     :access_list,
-  #     :signature_y_parity,
-  #     :signature_r,
-  #     :signature_s
-  #   ]
+  Optionally takes a callback to modify the transaction before it is signed.
 
-  #   @spec encode(t()) :: binary()
-  #   def encode(transaction=%__MODULE__{}) do
-  #     rlp([
-  #       transaction.chain_id,
-  #       transaction.nonce,
-  #       transaction.max_priority_fee_per_gas,
-  #       transaction.max_fee_per_gas,
-  #       transaction.gas_limit,
-  #       transaction.destination,
-  #       transaction.amount,
-  #       transaction.data,
-  #       transaction.access_list,
-  #     ])
-  #   end
-  # end
+  ## Examples
+
+      iex> signer_proc = Signet.Test.Signer.start_signer()
+      iex> {:ok, signed_trx} = Signet.Transaction.build_signed_trx_v2(<<1::160>>, 5, {"baz(uint,address)", [50, :binary.decode_unsigned(<<1::160>>)]}, {50, :gwei}, {10, :gwei}, 100_000, 0, [], signer: signer_proc, chain_id: :goerli)
+      iex> {:ok, signer} = Signet.Transaction.V2.recover_signer(signed_trx)
+      iex> Base.encode16(signer)
+      "63CC7C25E0CDB121ABB0FE477A6B9901889F99A7"
+  """
+  def build_signed_trx_v2(
+        address,
+        nonce,
+        call_data,
+        max_priority_fee_per_gas,
+        max_fee_per_gas,
+        gas_limit,
+        amount,
+        access_list,
+        opts \\ []
+      ) when is_list(access_list) do
+    signer = Keyword.get(opts, :signer, Signet.Signer.Default)
+    chain_id = Keyword.get(opts, :chain_id, nil)
+    callback = Keyword.get(opts, :callback, nil)
+
+    transaction = build_trx_v2(address, nonce, call_data, max_priority_fee_per_gas, max_fee_per_gas, gas_limit, amount, access_list, chain_id)
+    callback = if(is_nil(callback), do: fn trx -> {:ok, trx} end, else: callback)
+
+    with {:ok, transaction} <- callback.(transaction),
+         transaction_encoded <- V2.encode(transaction),
+         {:ok, signature} <- Signet.Signer.sign(transaction_encoded, signer, chain_id: chain_id) do
+      {:ok, V2.add_signature(transaction, signature)}
+    end
+  end
 end

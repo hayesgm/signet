@@ -135,6 +135,28 @@ defmodule Signet.Test.Client do
     "0x3b9aca00"
   end
 
+  def eth_sendRawTransaction(trx_enc="0x02" <> rest) do
+    {:ok, trx} =
+      trx_enc
+      |> Signet.Util.decode_hex!()
+      |> Signet.Transaction.V2.decode()
+
+    %Signet.Transaction.V2{
+      nonce: nonce,
+      max_priority_fee_per_gas: max_priority_fee_per_gas,
+      max_fee_per_gas: max_fee_per_gas,
+      gas_limit: gas_limit,
+      destination: destination,
+      amount: _amount,
+      data: _data
+    } = trx
+
+    Signet.Util.encode_hex(
+      <<nonce::integer-size(8), max_priority_fee_per_gas::integer-size(64), max_fee_per_gas::integer-size(64), gas_limit::integer-size(24),
+        destination::binary>>
+    )
+  end
+
   def eth_sendRawTransaction(trx_enc) do
     {:ok, trx} =
       trx_enc
@@ -179,9 +201,14 @@ defmodule Signet.Test.Client do
      }}
   end
 
-  # Call that works
-  def eth_call(_trx = %{"to" => "0x0000000000000000000000000000000000000001"}, _block) do
+  # Call that works v1
+  def eth_call(_trx = %{"to" => "0x0000000000000000000000000000000000000001", "gasPrice" => _}, _block) do
     "0x0c"
+  end
+
+  # Call that works v2
+  def eth_call(_trx = %{"to" => "0x0000000000000000000000000000000000000001", "maxPriorityFeePerGas" => _, "maxFeePerGas" => _}, _block) do
+    "0x0d"
   end
 
   # Call to Adaptor- don't care about response
@@ -205,8 +232,14 @@ defmodule Signet.Test.Client do
     "0xcc"
   end
 
-  def eth_estimateGas(_trx, _block) do
+  # V1
+  def eth_estimateGas(_trx = %{"gasPrice" => _}, _block) do
     "0x0d"
+  end
+
+  # V2
+  def eth_estimateGas(_trx = %{"maxPriorityFeePerGas" => _, "maxFeePerGas" => _}, _block) do
+    "0xdd"
   end
 
   def eth_newFilter(%{}) do
