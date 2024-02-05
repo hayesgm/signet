@@ -10,7 +10,7 @@ defmodule Signet.RPC do
   @default_gas_price nil
   @default_base_fee nil
   @default_base_fee_buffer 1.20
-  @default_priority_fee {0, :gwei}
+  @default_priority_fee nil
   @default_gas_buffer 1.50
 
   defp headers(extra_headers) do
@@ -198,11 +198,32 @@ defmodule Signet.RPC do
       iex> <<nonce::integer-size(8), gas_price::integer-size(64), gas_limit::integer-size(24), to::binary>> = trx_id
       iex> {nonce, gas_price, gas_limit, to}
       {5, 50000000000, 100000, <<1::160>>}
+
+      iex> signer_proc = Signet.Test.Signer.start_signer()
+      iex> {:ok, signed_trx} = Signet.Transaction.build_signed_trx_v2(<<1::160>>, 5, {"baz(uint,address)", [50, :binary.decode_unsigned(<<1::160>>)]}, {50, :gwei}, {10, :gwei}, 100_000, 0, [], chain_id: :goerli, signer: signer_proc)
+      iex> {:ok, trx_id} = Signet.RPC.send_trx(signed_trx)
+      iex> <<nonce::integer-size(8), max_priority_fee_per_gas::integer-size(64), max_fee_per_gas::integer-size(64), gas_limit::integer-size(24), to::binary>> = trx_id
+      iex> {nonce, max_priority_fee_per_gas, max_fee_per_gas, gas_limit, to}
+      {5, 50000000000, 10000000000, 100000, <<1::160>>}
   """
-  def send_trx(trx = %Signet.Transaction.V1{}, opts \\ []) do
+  def send_trx(trx, opts \\ [])
+
+  def send_trx(trx = %Signet.Transaction.V1{}, opts) do
     send_rpc(
       "eth_sendRawTransaction",
       [Signet.Util.encode_hex(Signet.Transaction.V1.encode(trx))],
+      Keyword.merge(opts, decode: :hex)
+    )
+  end
+
+  def send_trx(
+        trx = %Signet.Transaction.V2{signature_y_parity: v, signature_r: r, signature_s: s},
+        opts
+      )
+      when not is_nil(v) and not is_nil(r) and not is_nil(s) do
+    send_rpc(
+      "eth_sendRawTransaction",
+      [Signet.Util.encode_hex(Signet.Transaction.V2.encode(trx))],
       Keyword.merge(opts, decode: :hex)
     )
   end
@@ -215,6 +236,10 @@ defmodule Signet.RPC do
       iex> Signet.Transaction.V1.new(1, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>)
       iex> |> Signet.RPC.call_trx()
       {:ok, <<0x0c>>}
+
+      iex> Signet.Transaction.V2.new(1, {1, :gwei}, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>, [<<2::160>>, <<3::160>>], :goerli)
+      iex> |> Signet.RPC.call_trx()
+      {:ok, <<0x0d>>}
 
       iex> Signet.Transaction.V1.new(1, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>)
       iex> |> Signet.RPC.call_trx(decode: :hex_unsigned)
@@ -234,7 +259,9 @@ defmodule Signet.RPC do
       iex> |> Signet.RPC.call_trx(errors: errors)
       {:error, "error 3: execution reverted (Cool(uint256,string)[1, \"cat\"])"}
   """
-  def call_trx(trx = %Signet.Transaction.V1{}, opts \\ []) do
+  def call_trx(trx, opts \\ [])
+
+  def call_trx(trx = %Signet.Transaction.V1{}, opts) do
     from = Keyword.get(opts, :from)
     block_number = Keyword.get(opts, :block_number, "latest")
     errors = Keyword.get(opts, :errors, [])
@@ -258,6 +285,31 @@ defmodule Signet.RPC do
     )
   end
 
+  def call_trx(trx = %Signet.Transaction.V2{}, opts) do
+    from = Keyword.get(opts, :from)
+    block_number = Keyword.get(opts, :block_number, "latest")
+    errors = Keyword.get(opts, :errors, [])
+
+    send_rpc(
+      "eth_call",
+      [
+        %{
+          from: if(is_nil(from), do: nil, else: Signet.Util.encode_hex(from)),
+          to: Signet.Util.encode_hex(trx.destination),
+          gas: Signet.Util.encode_hex(trx.gas_limit, true),
+          maxPriorityFeePerGas: Signet.Util.encode_hex(trx.max_priority_fee_per_gas, true),
+          maxFeePerGas: Signet.Util.encode_hex(trx.max_fee_per_gas, true),
+          value: Signet.Util.encode_hex(trx.amount, true),
+          data: Signet.Util.encode_hex(trx.data, true)
+        },
+        block_number
+      ],
+      opts
+      |> Keyword.put_new(:decode, :hex)
+      |> Keyword.put_new(:errors, errors)
+    )
+  end
+
   @doc """
   RPC call to call to estimate gas used by a given call.
 
@@ -266,8 +318,14 @@ defmodule Signet.RPC do
       iex> Signet.Transaction.V1.new(1, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>)
       iex> |> Signet.RPC.estimate_gas()
       {:ok, 0x0d}
+
+      iex> Signet.Transaction.V2.new(1, {1, :gwei}, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>, [<<2::160>>, <<3::160>>], :goerli)
+      iex> |> Signet.RPC.estimate_gas()
+      {:ok, 0xdd}
   """
-  def estimate_gas(trx = %Signet.Transaction.V1{}, opts \\ []) do
+  def estimate_gas(trx, opts \\ [])
+
+  def estimate_gas(trx = %Signet.Transaction.V1{}, opts) do
     from = Keyword.get(opts, :from)
     block_number = Keyword.get(opts, :block_number, "latest")
 
@@ -279,6 +337,27 @@ defmodule Signet.RPC do
           to: Signet.Util.encode_hex(trx.to),
           gasPrice: Signet.Util.encode_hex(trx.gas_price, true),
           value: Signet.Util.encode_hex(trx.value, true),
+          data: Signet.Util.encode_hex(trx.data, true)
+        },
+        block_number
+      ],
+      Keyword.merge(opts, decode: :hex_unsigned)
+    )
+  end
+
+  def estimate_gas(trx = %Signet.Transaction.V2{}, opts) do
+    from = Keyword.get(opts, :from)
+    block_number = Keyword.get(opts, :block_number, "latest")
+
+    send_rpc(
+      "eth_estimateGas",
+      [
+        %{
+          from: if(is_nil(from), do: nil, else: Signet.Util.encode_hex(from)),
+          to: Signet.Util.encode_hex(trx.destination),
+          maxPriorityFeePerGas: Signet.Util.encode_hex(trx.max_priority_fee_per_gas, true),
+          maxFeePerGas: Signet.Util.encode_hex(trx.max_fee_per_gas, true),
+          value: Signet.Util.encode_hex(trx.amount, true),
           data: Signet.Util.encode_hex(trx.data, true)
         },
         block_number
@@ -474,7 +553,6 @@ defmodule Signet.RPC do
           base fee and priority fee.
 
   ## Examples
-
       iex> signer_proc = Signet.Test.Signer.start_signer()
       iex> {:ok, trx_id} = Signet.RPC.execute_trx(<<1::160>>, {"baz(uint,address)", [50, :binary.decode_unsigned(<<1::160>>)]}, gas_price: {50, :gwei}, value: 0, signer: signer_proc)
       iex> <<nonce::integer-size(8), gas_price::integer-size(64), gas_limit::integer-size(24), to::binary>> = trx_id
@@ -504,28 +582,43 @@ defmodule Signet.RPC do
       iex> {nonce, gas_price, gas_limit, to}
       {10, 50000000000, 100000, <<10::160>>}
 
-      iex> # Default gas price
+      iex> # Default gas price v1
       iex> signer_proc = Signet.Test.Signer.start_signer()
-      iex> {:ok, trx_id} = Signet.RPC.execute_trx(<<10::160>>, {"baz(uint,address)", [50, <<1::160>> |> :binary.decode_unsigned]}, gas_limit: 100_000, value: 0, nonce: 10, verify: false, signer: signer_proc)
+      iex> {:ok, trx_id} = Signet.RPC.execute_trx(<<10::160>>, {"baz(uint,address)", [50, <<1::160>> |> :binary.decode_unsigned]}, gas_limit: 100_000, trx_type: :v1, value: 0, nonce: 10, verify: false, signer: signer_proc)
       iex> <<nonce::integer-size(8), gas_price::integer-size(64), gas_limit::integer-size(24), to::binary>> = trx_id
       iex> {nonce, gas_price, gas_limit, to}
       {10, 1200000000, 100000, <<10::160>>}
 
-      iex> # Set priority fee
+      iex> # Default gas price v2
+      iex> signer_proc = Signet.Test.Signer.start_signer()
+      iex> {:ok, trx_id} = Signet.RPC.execute_trx(<<10::160>>, {"baz(uint,address)", [50, <<1::160>> |> :binary.decode_unsigned]}, gas_limit: 100_000, trx_type: :v2, value: 0, nonce: 10, verify: false, signer: signer_proc)
+      iex> <<nonce::integer-size(8), max_priority_fee_per_gas::integer-size(64), max_fee_per_gas::integer-size(64), gas_limit::integer-size(24), to::binary>> = trx_id
+      iex> {nonce, max_priority_fee_per_gas, max_fee_per_gas, gas_limit, to}
+      {10, 0, 1200000000, 100000, <<10::160>>}
+
+      iex> # Default gas price (trx_type: nil)
+      iex> signer_proc = Signet.Test.Signer.start_signer()
+      iex> {:ok, trx_id} = Signet.RPC.execute_trx(<<10::160>>, {"baz(uint,address)", [50, <<1::160>> |> :binary.decode_unsigned]}, gas_limit: 100_000, value: 0, nonce: 10, verify: false, signer: signer_proc)
+      iex> <<nonce::integer-size(8), max_priority_fee_per_gas::integer-size(64), max_fee_per_gas::integer-size(64), gas_limit::integer-size(24), to::binary>> = trx_id
+      iex> {nonce, max_priority_fee_per_gas, max_fee_per_gas, gas_limit, to}
+      {10, 0, 1200000000, 100000, <<10::160>>}
+
+      iex> # Set priority fee (v2)
       iex> signer_proc = Signet.Test.Signer.start_signer()
       iex> {:ok, trx_id} = Signet.RPC.execute_trx(<<10::160>>, {"baz(uint,address)", [50, <<1::160>> |> :binary.decode_unsigned]}, priority_fee: {3, :gwei}, gas_limit: 100_000, value: 0, nonce: 10, verify: false, signer: signer_proc)
-      iex> <<nonce::integer-size(8), gas_price::integer-size(64), gas_limit::integer-size(24), to::binary>> = trx_id
-      iex> {nonce, gas_price, gas_limit, to}
-      {10, 4200000000, 100000, <<10::160>>}
+      iex> <<nonce::integer-size(8), max_priority_fee_per_gas::integer-size(64), max_fee_per_gas::integer-size(64), gas_limit::integer-size(24), to::binary>> = trx_id
+      iex> {nonce, max_priority_fee_per_gas, max_fee_per_gas, gas_limit, to}
+      {10, 3000000000, 1200000000, 100000, <<10::160>>}
 
-      iex> # Set base fee and priority fee
+      iex> # Set base fee and priority fee (v2)
       iex> signer_proc = Signet.Test.Signer.start_signer()
       iex> {:ok, trx_id} = Signet.RPC.execute_trx(<<10::160>>, {"baz(uint,address)", [50, <<1::160>> |> :binary.decode_unsigned]}, base_fee: {1, :gwei}, priority_fee: {3, :gwei}, gas_limit: 100_000, value: 0, nonce: 10, verify: false, signer: signer_proc)
-      iex> <<nonce::integer-size(8), gas_price::integer-size(64), gas_limit::integer-size(24), to::binary>> = trx_id
-      iex> {nonce, gas_price, gas_limit, to}
-      {10, 4000000000, 100000, <<10::160>>}
+      iex> <<nonce::integer-size(8), max_priority_fee_per_gas::integer-size(64), max_fee_per_gas::integer-size(64), gas_limit::integer-size(24), to::binary>> = trx_id
+      iex> {nonce, max_priority_fee_per_gas, max_fee_per_gas, gas_limit, to}
+      {10, 3000000000, 1000000000, 100000, <<10::160>>}
   """
   def execute_trx(contract, call_data, opts \\ []) do
+    {trx_type, opts} = Keyword.pop(opts, :trx_type, nil)
     {gas_price_user, opts} = Keyword.pop(opts, :gas_price, @default_gas_price)
     {base_fee_user, opts} = Keyword.pop(opts, :base_fee, @default_base_fee)
     {base_fee_buffer, opts} = Keyword.pop(opts, :base_fee_buffer, @default_base_fee_buffer)
@@ -535,37 +628,56 @@ defmodule Signet.RPC do
     {value, opts} = Keyword.pop(opts, :value, 0)
     {nonce, opts} = Keyword.pop(opts, :nonce)
     {verify, opts} = Keyword.pop(opts, :verify, true)
+    {access_list, opts} = Keyword.pop(opts, :access_list, [])
     {signer, opts} = Keyword.pop(opts, :signer, Signet.Signer.Default)
 
     signer_address = Signet.Signer.address(signer)
     chain_id = Signet.Signer.chain_id(signer)
     opts = Keyword.put_new(opts, :from, signer_address)
 
-    gas_price_result =
-      case gas_price_user do
-        nil ->
-          # Base Price + Priority Fee
-          base_fee_result =
-            case base_fee_user do
-              nil ->
-                # Estimate base price
-                with {:ok, base_fee_est} <- gas_price(opts) do
-                  {:ok, ceil(base_fee_est * base_fee_buffer)}
-                end
-
-              val ->
-                # User-specified base price
-                {:ok, to_wei(val)}
-            end
-
-          # Add in Priority fee
-          with {:ok, base_fee} <- base_fee_result do
-            {:ok, base_fee + to_wei(priority_fee)}
+    # Determine the type of the transaction based on the gas inputs. This is complicated because
+    # a) we don't want the user to specify what they want since it would break earlier clients,
+    # and b) it should be obvious on the inputs, e.g. `gas_price` implies a V1 transaction,
+    # while `base_fee` or `priority_fee` imply a V2 transaction, and c) we want to default
+    # users to V2 transactions if nothing is specified.
+    trx_type_result =
+      case {trx_type, gas_price_user, priority_fee, base_fee_user} do
+        {:v1, nil, nil, nil} ->
+          with {:ok, base_fee_est} <- gas_price(opts) do
+            {:ok, {:v1, ceil(base_fee_est * base_fee_buffer)}}
           end
 
-        els ->
-          # User-specified total gas price
-          {:ok, to_wei(els)}
+        {:v1, gas_price, nil, nil} ->
+          {:ok, {:v1, to_wei(gas_price)}}
+
+        {:v2, nil, max_priority_fee_per_gas, max_fee_per_gas}
+        when not is_nil(max_priority_fee_per_gas) and not is_nil(max_fee_per_gas) ->
+          {:ok, {:v2, to_wei(max_priority_fee_per_gas), to_wei(max_fee_per_gas)}}
+
+        # magic matches
+
+        # only v1 has gas price
+        {nil, gas_price, nil, nil} when not is_nil(gas_price) ->
+          {:ok, {:v1, to_wei(gas_price)}}
+
+        # only v2 has both max fee and max priority fee
+        {nil, nil, max_priority_fee_per_gas, max_fee_per_gas}
+        when not is_nil(max_priority_fee_per_gas) and not is_nil(max_fee_per_gas) ->
+          {:ok, {:v2, to_wei(max_priority_fee_per_gas), to_wei(max_fee_per_gas)}}
+
+        # v2 can also only set max_priority fee
+        {ty, nil, max_priority_fee_per_gas_user, nil} when is_nil(ty) or ty == :v2 ->
+          max_priority_fee_per_gas =
+            if is_nil(max_priority_fee_per_gas_user),
+              do: 0,
+              else: to_wei(max_priority_fee_per_gas_user)
+
+          with {:ok, base_fee_est} <- gas_price(opts) do
+            {:ok, {:v2, max_priority_fee_per_gas, ceil(base_fee_est * base_fee_buffer)}}
+          end
+
+        _ ->
+          raise "mismatched transaction type and gas price settings"
       end
 
     estimate_and_verify = fn trx ->
@@ -584,21 +696,39 @@ defmodule Signet.RPC do
       end
     end
 
-    with {:ok, gas_price} <- gas_price_result,
+    with {:ok, trx_type} <- trx_type_result,
          {:ok, nonce} <-
            if(!is_nil(nonce), do: {:ok, nonce}, else: get_nonce(signer_address, opts)),
          {:ok, trx} <-
-           Signet.Transaction.build_signed_trx(
-             contract,
-             nonce,
-             call_data,
-             gas_price,
-             gas_limit,
-             value,
-             signer: signer,
-             chain_id: chain_id,
-             callback: estimate_and_verify
-           ),
+           (case trx_type do
+              {:v1, gas_price} ->
+                Signet.Transaction.build_signed_trx(
+                  contract,
+                  nonce,
+                  call_data,
+                  gas_price,
+                  gas_limit,
+                  value,
+                  signer: signer,
+                  chain_id: chain_id,
+                  callback: estimate_and_verify
+                )
+
+              {:v2, max_priority_fee_per_gas, max_fee_per_gas} ->
+                Signet.Transaction.build_signed_trx_v2(
+                  contract,
+                  nonce,
+                  call_data,
+                  max_priority_fee_per_gas,
+                  max_fee_per_gas,
+                  gas_limit,
+                  value,
+                  access_list,
+                  signer: signer,
+                  chain_id: chain_id,
+                  callback: estimate_and_verify
+                )
+            end),
          {:ok, tx_id} <- send_trx(trx, opts) do
       {:ok, tx_id}
     end

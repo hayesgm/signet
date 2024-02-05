@@ -54,7 +54,7 @@ defmodule Signet.Signer do
       "63CC7C25E0CDB121ABB0FE477A6B9901889F99A7"
 
       iex> signer_proc = Signet.Test.Signer.start_signer()
-      iex> {:ok, <<r::256, s::256, v::binary>>} = Signet.Signer.sign("test", signer_proc, chain_id: 0x05f5e0ff)
+      iex> {:ok, <<_r::256, _s::256, v::binary>>} = Signet.Signer.sign("test", signer_proc, chain_id: 0x05f5e0ff)
       iex> :binary.decode_unsigned(v)
       0x05f5e0ff * 2 + 35 + 1
   """
