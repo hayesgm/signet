@@ -16,7 +16,7 @@ defmodule Signet.Typed do
   defmodule Type do
     defstruct [:fields]
 
-    @type primitive() :: :address | {:uint, number()} | {:bytes, number()} | :string
+    @type primitive() :: :address | {:uint, number()} | {:bytes, number()} | :string | :bytes
     @type field_type() :: primitive() | String.t()
     @type type_list() :: [{String.t(), field_type()}]
     @type t() :: %__MODULE__{fields: type_list()}
@@ -94,6 +94,9 @@ defmodule Signet.Typed do
         iex> Signet.Typed.Type.serialize_type({:bytes, 32})
         "bytes32"
 
+        iex> Signet.Typed.Type.serialize_type(:bytes)
+        "bytes"
+
         iex> Signet.Typed.Type.serialize_type("Person")
         "Person"
     """
@@ -102,6 +105,7 @@ defmodule Signet.Typed do
     def serialize_type({:uint, sz}), do: "uint#{sz}"
     def serialize_type({:bytes, sz}), do: "bytes#{sz}"
     def serialize_type(:string), do: "string"
+    def serialize_type(:bytes), do: "bytes"
     def serialize_type(custom_type) when is_binary(custom_type), do: custom_type
 
     @doc ~S"""
@@ -112,6 +116,9 @@ defmodule Signet.Typed do
 
         iex> Signet.Typed.Type.deserialize_type("address")
         :address
+
+        iex> Signet.Typed.Type.deserialize_type("bytes")
+        :bytes
 
         iex> Signet.Typed.Type.deserialize_type("uint256")
         {:uint, 256}
@@ -127,6 +134,7 @@ defmodule Signet.Typed do
     def deserialize_type("uint256"), do: {:uint, 256}
     def deserialize_type("bytes32"), do: {:bytes, 32}
     def deserialize_type("string"), do: :string
+    def deserialize_type("bytes"), do: :bytes
     def deserialize_type(custom_type) when is_binary(custom_type), do: custom_type
 
     @doc ~S"""
@@ -148,10 +156,14 @@ defmodule Signet.Typed do
 
         iex> Signet.Typed.Type.deserialize_value!("Cow", :string)
         "Cow"
+
+        iex> Signet.Typed.Type.deserialize_value!("0xCCDD", :bytes)
+        <<0xCC, 0xDD>>
     """
     @spec deserialize_value!(term(), primitive()) :: term()
     def deserialize_value!(value, :address), do: Signet.Util.decode_hex!(value)
     def deserialize_value!(value, :string), do: value
+    def deserialize_value!(value, :bytes), do: Signet.Util.decode_hex!(value)
     def deserialize_value!(value, {:uint, _}), do: value
 
     def deserialize_value!(value, {:bytes, sz}),
@@ -176,10 +188,14 @@ defmodule Signet.Typed do
 
         iex> Signet.Typed.Type.serialize_value("Cow", :string)
         "Cow"
+
+        iex> Signet.Typed.Type.serialize_value(<<0xCC, 0xDD>>, :bytes)
+        "0xCCDD"
     """
     @spec serialize_value(term(), primitive()) :: term()
     def serialize_value(value, :address), do: serialize_value(value, {:bytes, 20})
     def serialize_value(value, :string), do: value
+    def serialize_value(value, :bytes), do: Signet.Util.encode_hex(value)
     def serialize_value(value, {:uint, _}), do: value
 
     def serialize_value(value, {:bytes, sz}) do
@@ -202,11 +218,18 @@ defmodule Signet.Typed do
 
         iex> Signet.Typed.Type.encode_data_value(<<0xCC>>, {:bytes, 32})
         <<0::248, 0xCC>>
+
+        iex> Signet.Typed.Type.encode_data_value(<<0xCC, 0xDD>>, :bytes)
+        <<144, 20, 184, 80, 112, 54, 41, 211, 15, 92, 140, 108, 134, 166, 173, 152, 26, 185, 49, 153, 151, 73, 6, 41, 215, 218, 55, 232, 202, 233, 133, 161>>
+
+        iex> Signet.Typed.Type.encode_data_value("Cow", :string)
+        <<140, 29, 43, 213, 52, 131, 148, 118, 23, 25, 218, 17, 236, 103, 238, 218, 233, 80, 45, 19, 126, 137, 64, 254, 232, 236, 214, 246, 65, 238, 22, 72>>
     """
     @spec encode_data_value(term(), primitive()) :: term()
     def encode_data_value(value, :address), do: Signet.Util.pad(value, 32)
     def encode_data_value(value, {:uint, _}), do: Signet.Util.encode_bytes(value, 32)
     def encode_data_value(value, :string), do: Signet.Util.keccak(value)
+    def encode_data_value(value, :bytes), do: Signet.Util.keccak(value)
     def encode_data_value(value, {:bytes, _}), do: Signet.Util.pad(value, 32)
   end
 

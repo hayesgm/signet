@@ -157,8 +157,9 @@ defmodule Signet.RPC do
             f when is_function(f) ->
               try do
                 {:ok, f.(result)}
-              rescue _ ->
-                {:error, "failed to decode result"}
+              rescue
+                _ ->
+                  {:error, "failed to decode result"}
               end
           end
         end
@@ -361,12 +362,76 @@ defmodule Signet.RPC do
       {:error, "failed to decode result"}
   """
   def get_trx_receipt(trx_id, opts \\ [])
-  def get_trx_receipt(trx_id="0x"<>_, opts) when byte_size(trx_id) == 66, do: get_trx_receipt(Signet.Util.decode_hex!(trx_id), opts)
-  def get_trx_receipt(trx_id=<<_::256>>, opts) do
+
+  def get_trx_receipt(trx_id = "0x" <> _, opts) when byte_size(trx_id) == 66,
+    do: get_trx_receipt(Signet.Util.decode_hex!(trx_id), opts)
+
+  def get_trx_receipt(trx_id = <<_::256>>, opts) do
     send_rpc(
       "eth_getTransactionReceipt",
       [Signet.Util.encode_hex(trx_id)],
       Keyword.merge(opts, decode: &Signet.Receipt.deserialize/1)
+    )
+  end
+
+  @doc """
+  RPC call to get a transaction receipt
+
+  ## Examples
+
+      iex> Signet.RPC.trace_trx("0x85d995eba9763907fdf35cd2034144dd9d53ce32cbec21349d4b12823c6860c5")
+      {:ok,
+        [
+        %Signet.Trace{
+          action: %Signet.Trace.Action{
+            call_type: "call",
+            from: Signet.Util.decode_hex!("0x83806d539d4ea1c140489a06660319c9a303f874"),
+            gas: 0x01a1f8,
+            input: <<>>,
+            to: Signet.Util.decode_hex!("0x1c39ba39e4735cb65978d4db400ddd70a72dc750"),
+            value: 0x7a16c911b4d00000,
+          },
+          block_hash: Signet.Util.decode_hex!("0x7eb25504e4c202cf3d62fd585d3e238f592c780cca82dacb2ed3cb5b38883add"),
+          block_number: 3068185,
+          gas_used: 0x2982,
+          output: <<>>,
+          subtraces: 2,
+          trace_address: [Signet.Util.decode_hex!("0x1c39ba39e4735cb65978d4db400ddd70a72dc750")],
+          transaction_hash: Signet.Util.decode_hex!("0x17104ac9d3312d8c136b7f44d4b8b47852618065ebfa534bd2d3b5ef218ca1f3"),
+          transaction_position: 2,
+          type: "call"
+        },
+        %Signet.Trace{
+          action: %Signet.Trace.Action{
+            call_type: "call",
+            from: Signet.Util.decode_hex!("0x83806d539d4ea1c140489a06660319c9a303f874"),
+            gas: 0x01a1f8,
+            input: <<>>,
+            to: Signet.Util.decode_hex!("0x1c39ba39e4735cb65978d4db400ddd70a72dc750"),
+            value: 0x7a16c911b4d00000,
+          },
+          block_hash: Signet.Util.decode_hex!("0x7eb25504e4c202cf3d62fd585d3e238f592c780cca82dacb2ed3cb5b38883add"),
+          block_number: 3068186,
+          gas_used: 0x2982,
+          output: <<>>,
+          subtraces: 2,
+          trace_address: [Signet.Util.decode_hex!("0x1c39ba39e4735cb65978d4db400ddd70a72dc750")],
+          transaction_hash: Signet.Util.decode_hex!("0x17104ac9d3312d8c136b7f44d4b8b47852618065ebfa534bd2d3b5ef218ca1f3"),
+          transaction_position: 2,
+          type: "call"
+        }
+      ]}
+  """
+  def trace_trx(trx_id, opts \\ [])
+
+  def trace_trx(trx_id = "0x" <> _, opts) when byte_size(trx_id) == 66,
+    do: trace_trx(Signet.Util.decode_hex!(trx_id), opts)
+
+  def trace_trx(trx_id = <<_::256>>, opts) do
+    send_rpc(
+      "trace_transaction",
+      [Signet.Util.encode_hex(trx_id)],
+      Keyword.merge(opts, decode: &Signet.Trace.deserialize_many/1)
     )
   end
 
