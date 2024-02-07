@@ -351,17 +351,18 @@ defmodule Signet.Transaction do
           signature_s: signature_s
         })
         when is_nil(signature_y_parity) or is_nil(signature_r) or is_nil(signature_s) do
-      <<0x02>> <> ExRLP.encode([
-        chain_id,
-        nonce,
-        max_priority_fee_per_gas,
-        max_fee_per_gas,
-        gas_limit,
-        destination,
-        amount,
-        data,
-        access_list
-      ])
+      <<0x02>> <>
+        ExRLP.encode([
+          chain_id,
+          nonce,
+          max_priority_fee_per_gas,
+          max_fee_per_gas,
+          gas_limit,
+          destination,
+          amount,
+          data,
+          access_list
+        ])
     end
 
     def encode(%__MODULE__{
@@ -378,20 +379,21 @@ defmodule Signet.Transaction do
           signature_r: signature_r,
           signature_s: signature_s
         }) do
-      <<0x02>> <> ExRLP.encode([
-        chain_id,
-        nonce,
-        max_priority_fee_per_gas,
-        max_fee_per_gas,
-        gas_limit,
-        destination,
-        amount,
-        data,
-        access_list,
-        if(signature_y_parity, do: 1, else: 0),
-        signature_r,
-        signature_s
-      ])
+      <<0x02>> <>
+        ExRLP.encode([
+          chain_id,
+          nonce,
+          max_priority_fee_per_gas,
+          max_fee_per_gas,
+          gas_limit,
+          destination,
+          amount,
+          data,
+          access_list,
+          if(signature_y_parity, do: 1, else: 0),
+          signature_r,
+          signature_s
+        ])
     end
 
     @doc ~S"""
@@ -563,8 +565,9 @@ defmodule Signet.Transaction do
         ...> |> Signet.Transaction.V2.get_signature()
         {:error, "transaction missing signature"}
     """
-    def get_signature(%__MODULE__{signature_y_parity: v, signature_r: r, signature_s: s}) when is_nil(v) or is_nil(r) or is_nil(s),
-      do: {:error, "transaction missing signature"}
+    def get_signature(%__MODULE__{signature_y_parity: v, signature_r: r, signature_s: s})
+        when is_nil(v) or is_nil(r) or is_nil(s),
+        do: {:error, "transaction missing signature"}
 
     def get_signature(%__MODULE__{signature_y_parity: v, signature_r: r, signature_s: s}) do
       v_enc = :binary.encode_unsigned(if v, do: 1, else: 0)
@@ -587,7 +590,8 @@ defmodule Signet.Transaction do
         {:error, "transaction missing signature"}
     """
     def recover_signer(transaction) do
-      trx_encoded = encode(%{transaction | signature_y_parity: nil, signature_r: nil, signature_s: nil})
+      trx_encoded =
+        encode(%{transaction | signature_y_parity: nil, signature_r: nil, signature_s: nil})
 
       with {:ok, signature} <- get_signature(transaction) do
         {:ok, Signet.Recover.recover_eth(trx_encoded, signature)}
@@ -678,7 +682,18 @@ defmodule Signet.Transaction do
         signature_s: nil
       }
   """
-  def build_trx_v2(address, nonce, call_data, max_priority_fee_per_gas, max_fee_per_gas, gas_limit, amount, access_list, chain_id \\ nil) when is_list(access_list) do
+  def build_trx_v2(
+        address,
+        nonce,
+        call_data,
+        max_priority_fee_per_gas,
+        max_fee_per_gas,
+        gas_limit,
+        amount,
+        access_list,
+        chain_id \\ nil
+      )
+      when is_list(access_list) do
     data =
       case call_data do
         {abi, params} ->
@@ -688,7 +703,17 @@ defmodule Signet.Transaction do
           call_data
       end
 
-    V2.new(nonce, max_priority_fee_per_gas, max_fee_per_gas, gas_limit, address, amount, data, access_list, chain_id)
+    V2.new(
+      nonce,
+      max_priority_fee_per_gas,
+      max_fee_per_gas,
+      gas_limit,
+      address,
+      amount,
+      data,
+      access_list,
+      chain_id
+    )
   end
 
   @doc ~S"""
@@ -750,12 +775,25 @@ defmodule Signet.Transaction do
         amount,
         access_list,
         opts \\ []
-      ) when is_list(access_list) do
+      )
+      when is_list(access_list) do
     signer = Keyword.get(opts, :signer, Signet.Signer.Default)
     chain_id = Keyword.get(opts, :chain_id, nil)
     callback = Keyword.get(opts, :callback, nil)
 
-    transaction = build_trx_v2(address, nonce, call_data, max_priority_fee_per_gas, max_fee_per_gas, gas_limit, amount, access_list, chain_id)
+    transaction =
+      build_trx_v2(
+        address,
+        nonce,
+        call_data,
+        max_priority_fee_per_gas,
+        max_fee_per_gas,
+        gas_limit,
+        amount,
+        access_list,
+        chain_id
+      )
+
     callback = if(is_nil(callback), do: fn trx -> {:ok, trx} end, else: callback)
 
     with {:ok, transaction} <- callback.(transaction),

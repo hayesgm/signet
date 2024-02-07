@@ -104,7 +104,7 @@ defmodule Signet.Signer do
 
   # Note absence of address in state, find it and set it and then sign. Address will be cached on next signing.
   def handle_call(
-    {:sign, {message, chain_id}},
+        {:sign, {message, chain_id}},
         _from,
         state = %{name: name, mfa: {mod, _fn, args} = mfa}
       ) do

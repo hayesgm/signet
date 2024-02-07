@@ -505,7 +505,8 @@ defmodule Signet.RPC do
       iex> Signet.RPC.get_trx_receipt(<<2::256>>)
       {:ok, nil}
   """
-  @spec get_trx_receipt(binary() | String.t(), Keyword.t()) :: {:ok, Signet.Receipt.t() | nil} | {:error, term()  }
+  @spec get_trx_receipt(binary() | String.t(), Keyword.t()) ::
+          {:ok, Signet.Receipt.t() | nil} | {:error, term()}
   def get_trx_receipt(trx_id, opts \\ [])
 
   def get_trx_receipt(trx_id = "0x" <> _, opts) when byte_size(trx_id) == 66,
@@ -515,13 +516,15 @@ defmodule Signet.RPC do
     send_rpc(
       "eth_getTransactionReceipt",
       [Signet.Util.encode_hex(trx_id)],
-      Keyword.merge(opts, decode: fn
-        nil ->
-          nil
+      Keyword.merge(opts,
+        decode: fn
+          nil ->
+            nil
 
-        receipt_params ->
-          Signet.Receipt.deserialize(receipt_params)
-      end)
+          receipt_params ->
+            Signet.Receipt.deserialize(receipt_params)
+        end
+      )
     )
   end
 

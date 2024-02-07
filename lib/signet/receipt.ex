@@ -10,15 +10,23 @@ defmodule Signet.Receipt do
 
   defmodule Log do
     @type t() :: %__MODULE__{
-      log_index: integer(), # QUANTITY - integer of the log index position in the block. null when its pending log.
-      block_number: integer(), # QUANTITY - the block number where this log was in. null when its pending. null when its pending log.
-      block_hash: <<_::256>>, # DATA, 32 Bytes - hash of the block where this log was in. null when its pending. null when its pending log.
-      transaction_hash: <<_::256>>, # DATA, 32 Bytes - hash of the transactions this log was created from. null when its pending log.
-      transaction_index: integer(), # QUANTITY - integer of the transactions index position log was created from. null when its pending log.
-      address: <<_::160>>, # DATA, 20 Bytes - address from which this log originated. 
-      data: binary, # DATA - contains zero or more 32 Bytes non-indexed arguments of the log.
-      topics: [<<_::256>>] # Array of DATA - Array of 0 to 4 32 Bytes DATA of indexed log arguments. (In solidity: The first topic is the hash of the signature of the event (e.g. Deposit(address,bytes32,uint256)), except you declared the event with the anonymous specifier.)
-    }
+            # QUANTITY - integer of the log index position in the block. null when its pending log.
+            log_index: integer(),
+            # QUANTITY - the block number where this log was in. null when its pending. null when its pending log.
+            block_number: integer(),
+            # DATA, 32 Bytes - hash of the block where this log was in. null when its pending. null when its pending log.
+            block_hash: <<_::256>>,
+            # DATA, 32 Bytes - hash of the transactions this log was created from. null when its pending log.
+            transaction_hash: <<_::256>>,
+            # QUANTITY - integer of the transactions index position log was created from. null when its pending log.
+            transaction_index: integer(),
+            # DATA, 20 Bytes - address from which this log originated. 
+            address: <<_::160>>,
+            # DATA - contains zero or more 32 Bytes non-indexed arguments of the log.
+            data: binary,
+            # Array of DATA - Array of 0 to 4 32 Bytes DATA of indexed log arguments. (In solidity: The first topic is the hash of the signature of the event (e.g. Deposit(address,bytes32,uint256)), except you declared the event with the anonymous specifier.)
+            topics: [<<_::256>>]
+          }
 
     defstruct [
       :log_index,
@@ -28,7 +36,7 @@ defmodule Signet.Receipt do
       :transaction_index,
       :address,
       :data,
-      :topics,
+      :topics
     ]
 
     @doc ~S"""
@@ -65,7 +73,7 @@ defmodule Signet.Receipt do
         }
     """
     @spec deserialize(map()) :: t() | no_return()
-    def deserialize(params=%{}) do
+    def deserialize(params = %{}) do
       %__MODULE__{
         log_index: Signet.Util.decode_hex_number!(params["logIndex"]),
         block_number: Signet.Util.decode_hex_number!(params["blockNumber"]),
@@ -80,21 +88,35 @@ defmodule Signet.Receipt do
   end
 
   @type t() :: %__MODULE__{
-    transaction_hash: <<_::256>>, # DATA, 32 Bytes - hash of the transaction.
-    transaction_index: integer(), # QUANTITY - integer of the transactions index position in the block.
-    block_hash: <<_::256>>, # DATA, 32 Bytes - hash of the block where this transaction was in.
-    block_number: integer(), # QUANTITY - block number where this transaction was in.
-    from: <<_::160>>, # DATA, 20 Bytes - address of the sender.
-    to: <<_::160>>, # DATA, 20 Bytes - address of the receiver. null when its a contract creation transaction.
-    cumulative_gas_used: integer(), # QUANTITY - The total amount of gas used when this transaction was executed in the block.
-    effective_gas_price: integer(), # QUANTITY - The sum of the base fee and tip paid per unit of gas.
-    gas_used: integer(), # QUANTITY - The amount of gas used by this specific transaction alone.
-    contract_address: <<_::160>> | nil, # DATA, 20 Bytes - The contract address created, if the transaction was a contract creation, otherwise null.
-    logs: [Log.t()], # Array of log objects, which this transaction generated.
-    logs_bloom: <<_::1024>>, # DATA, 256 Bytes - Bloom filter for light clients to quickly retrieve related logs.
-    type: integer(), # QUANTITY - integer of the transaction type, 0x0 for legacy transactions, 0x1 for access list types, 0x2 for dynamic fees.
-    status: integer(), # QUANTITY either 1 (success) or 0 (failure)
-  }
+          # DATA, 32 Bytes - hash of the transaction.
+          transaction_hash: <<_::256>>,
+          # QUANTITY - integer of the transactions index position in the block.
+          transaction_index: integer(),
+          # DATA, 32 Bytes - hash of the block where this transaction was in.
+          block_hash: <<_::256>>,
+          # QUANTITY - block number where this transaction was in.
+          block_number: integer(),
+          # DATA, 20 Bytes - address of the sender.
+          from: <<_::160>>,
+          # DATA, 20 Bytes - address of the receiver. null when its a contract creation transaction.
+          to: <<_::160>>,
+          # QUANTITY - The total amount of gas used when this transaction was executed in the block.
+          cumulative_gas_used: integer(),
+          # QUANTITY - The sum of the base fee and tip paid per unit of gas.
+          effective_gas_price: integer(),
+          # QUANTITY - The amount of gas used by this specific transaction alone.
+          gas_used: integer(),
+          # DATA, 20 Bytes - The contract address created, if the transaction was a contract creation, otherwise null.
+          contract_address: <<_::160>> | nil,
+          # Array of log objects, which this transaction generated.
+          logs: [Log.t()],
+          # DATA, 256 Bytes - Bloom filter for light clients to quickly retrieve related logs.
+          logs_bloom: <<_::1024>>,
+          # QUANTITY - integer of the transaction type, 0x0 for legacy transactions, 0x1 for access list types, 0x2 for dynamic fees.
+          type: integer(),
+          # QUANTITY either 1 (success) or 0 (failure)
+          status: integer()
+        }
 
   defstruct [
     :transaction_hash,
@@ -110,7 +132,7 @@ defmodule Signet.Receipt do
     :logs,
     :logs_bloom,
     :type,
-    :status,
+    :status
   ]
 
   @doc ~S"""
@@ -305,7 +327,7 @@ defmodule Signet.Receipt do
       }
   """
   @spec deserialize(map()) :: t() | no_return()
-  def deserialize(params=%{}) do
+  def deserialize(params = %{}) do
     %__MODULE__{
       transaction_hash: Signet.Util.decode_word!(params["transactionHash"]),
       transaction_index: Signet.Util.decode_hex_number!(params["transactionIndex"]),
@@ -316,7 +338,11 @@ defmodule Signet.Receipt do
       cumulative_gas_used: Signet.Util.decode_hex_number!(params["cumulativeGasUsed"]),
       effective_gas_price: Signet.Util.decode_hex_number!(params["effectiveGasPrice"]),
       gas_used: Signet.Util.decode_hex_number!(params["gasUsed"]),
-      contract_address: (if is_nil(params["contractAddress"]), do: nil, else: Signet.Util.decode_address!(params["contractAddress"])),
+      contract_address:
+        if(is_nil(params["contractAddress"]),
+          do: nil,
+          else: Signet.Util.decode_address!(params["contractAddress"])
+        ),
       logs: Enum.map(params["logs"], &Log.deserialize/1),
       logs_bloom: Signet.Util.decode_sized_hex!(params["logsBloom"], 256),
       type: Signet.Util.decode_hex_number!(params["type"]),
