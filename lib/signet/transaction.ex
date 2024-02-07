@@ -8,6 +8,18 @@ defmodule Signet.Transaction do
     Represents a V1 or "Legacy" (that is, pre-EIP-1559) transaction.
     """
 
+    @type t :: %__MODULE__{
+            nonce: integer(),
+            gas_price: integer(),
+            gas_limit: integer(),
+            to: <<_::160>>,
+            value: integer(),
+            data: binary(),
+            v: integer(),
+            r: integer(),
+            s: integer()
+          }
+
     defstruct [
       :nonce,
       :gas_price,
@@ -201,6 +213,25 @@ defmodule Signet.Transaction do
   end
 
   defmodule V2 do
+    @moduledoc """
+    Represents a V2 or EIP-1559 transaction.
+    """
+
+    @type t :: %__MODULE__{
+            chain_id: integer(),
+            nonce: integer(),
+            max_priority_fee_per_gas: integer(),
+            max_fee_per_gas: integer(),
+            gas_limit: integer(),
+            destination: <<_::160>>,
+            amount: integer(),
+            data: binary(),
+            access_list: [<<_::160>>],
+            signature_y_parity: boolean(),
+            signature_r: <<_::256>>,
+            signature_s: <<_::256>>
+          }
+
     defstruct [
       :chain_id,
       :nonce,
