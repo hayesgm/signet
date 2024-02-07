@@ -17,7 +17,7 @@ defmodule Signet.Receipt do
       transaction_index: integer(), # QUANTITY - integer of the transactions index position log was created from. null when its pending log.
       address: <<_::160>>, # DATA, 20 Bytes - address from which this log originated. 
       data: binary, # DATA - contains zero or more 32 Bytes non-indexed arguments of the log.
-      topics: [<<_::256>>] # rray of DATA - Array of 0 to 4 32 Bytes DATA of indexed log arguments. (In solidity: The first topic is the hash of the signature of the event (e.g. Deposit(address,bytes32,uint256)), except you declared the event with the anonymous specifier.)
+      topics: [<<_::256>>] # Array of DATA - Array of 0 to 4 32 Bytes DATA of indexed log arguments. (In solidity: The first topic is the hash of the signature of the event (e.g. Deposit(address,bytes32,uint256)), except you declared the event with the anonymous specifier.)
     }
 
     defstruct [
@@ -91,7 +91,7 @@ defmodule Signet.Receipt do
     gas_used: integer(), # QUANTITY - The amount of gas used by this specific transaction alone.
     contract_address: <<_::160>> | nil, # DATA, 20 Bytes - The contract address created, if the transaction was a contract creation, otherwise null.
     logs: [Log.t()], # Array of log objects, which this transaction generated.
-    logs_bloom: <<_::256>>, # DATA, 256 Bytes - Bloom filter for light clients to quickly retrieve related logs.
+    logs_bloom: <<_::1024>>, # DATA, 256 Bytes - Bloom filter for light clients to quickly retrieve related logs.
     type: integer(), # QUANTITY - integer of the transaction type, 0x0 for legacy transactions, 0x1 for access list types, 0x2 for dynamic fees.
     status: integer(), # QUANTITY either 1 (success) or 0 (failure)
   }
@@ -140,7 +140,7 @@ defmodule Signet.Receipt do
       ...>       "0x59ebeb90bc63057b6515673c3ecf9438e5058bca0f92585014eced636878c9a5"
       ...>     ]
       ...>   }],
-      ...>   "logsBloom" => "0x0000000000000000000000000000000000000000000000000000000000000001",
+      ...>   "logsBloom" => "0x00000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001",
       ...>   "status" => "0x1",
       ...>   "to" => "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
       ...>   "transactionHash" =>
@@ -174,9 +174,134 @@ defmodule Signet.Receipt do
             ]
           }
         ],
-        logs_bloom: Signet.Util.decode_hex!("0x0000000000000000000000000000000000000000000000000000000000000001"),
+        logs_bloom: Signet.Util.decode_hex!("0x00000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001"),
         type: 0x02,
         status: 0x01,
+      }
+
+      iex> %{
+      ...>   "transactionHash" => "0xf9e69be4f1ae524854e14dc820c519d8f2b86e52c60e54448abf920d22fb6fe2",
+      ...>   "transactionIndex" => "0x0",
+      ...>   "blockHash" => "0x4bc3c26b1a599ced9876d9bf9a17c9bd58ec8b71a68e75335de7f2820e9336ca",
+      ...>   "blockNumber" => "0xa01df4",
+      ...>   "from" => "0xb03d1100c68e58aa1895f8c1f230c0851ff41851",
+      ...>   "to" => "0x9d8ec03e9ddb71f04da9db1e38837aaac1782a97",
+      ...>   "cumulativeGasUsed" => "0x365b2",
+      ...>   "gasUsed" => "0x365b2",
+      ...>   "contractAddress" => nil,
+      ...>   "logs" => [
+      ...>     %{
+      ...>       "address" => "0x9d8ec03e9ddb71f04da9db1e38837aaac1782a97",
+      ...>       "topics" => [
+      ...>         "0x3ffe5de331422c5ec98e2d9ced07156f640bb51e235ef956e50263d4b28d3ae4",
+      ...>         "0x0000000000000000000000002326aba712500ae3114b664aeb51dba2c2fb416d",
+      ...>         "0x0000000000000000000000002326aba712500ae3114b664aeb51dba2c2fb416d"
+      ...>       ],
+      ...>       "data" =>
+      ...>         "0x000000000000000000000000cb372382aa9a9e6f926714f4305afac4566f75380000000000000000000000000000000000000000000000000000000000000000",
+      ...>       "blockHash" => "0x4bc3c26b1a599ced9876d9bf9a17c9bd58ec8b71a68e75335de7f2820e9336ca",
+      ...>       "blockNumber" => "0xa01df4",
+      ...>       "transactionHash" =>
+      ...>         "0xf9e69be4f1ae524854e14dc820c519d8f2b86e52c60e54448abf920d22fb6fe2",
+      ...>       "transactionIndex" => "0x0",
+      ...>       "logIndex" => "0x0",
+      ...>       "removed" => false
+      ...>     },
+      ...>     %{
+      ...>       "address" => "0xcb372382aa9a9e6f926714f4305afac4566f7538",
+      ...>       "topics" => [
+      ...>         "0xe0d20d95fbbe7375f6edead77b5ce5c5b096e7dac85848c45c37a95eaf17fe62",
+      ...>         "0x0000000000000000000000009d8ec03e9ddb71f04da9db1e38837aaac1782a97",
+      ...>         "0x00000000000000000000000054f0a87eb5c8c8ba70243de1ac19e735b41b10a2",
+      ...>         "0x0000000000000000000000000000000000000000000000000000000000000000"
+      ...>       ],
+      ...>       "data" => "0x0000000000000000000000000000000000000000000000000000000000000000",
+      ...>       "blockHash" => "0x4bc3c26b1a599ced9876d9bf9a17c9bd58ec8b71a68e75335de7f2820e9336ca",
+      ...>       "blockNumber" => "0xa01df4",
+      ...>       "transactionHash" =>
+      ...>         "0xf9e69be4f1ae524854e14dc820c519d8f2b86e52c60e54448abf920d22fb6fe2",
+      ...>       "transactionIndex" => "0x0",
+      ...>       "logIndex" => "0x1",
+      ...>       "removed" => false
+      ...>     },
+      ...>     %{
+      ...>       "address" => "0xcb372382aa9a9e6f926714f4305afac4566f7538",
+      ...>       "topics" => ["0x0000000000000000000000000000000000000000000000000000000000000055"],
+      ...>       "data" => "0x",
+      ...>       "blockHash" => "0x4bc3c26b1a599ced9876d9bf9a17c9bd58ec8b71a68e75335de7f2820e9336ca",
+      ...>       "blockNumber" => "0xa01df4",
+      ...>       "transactionHash" =>
+      ...>         "0xf9e69be4f1ae524854e14dc820c519d8f2b86e52c60e54448abf920d22fb6fe2",
+      ...>       "transactionIndex" => "0x0",
+      ...>       "logIndex" => "0x2",
+      ...>       "removed" => false
+      ...>     }
+      ...>   ],
+      ...>   "status" => "0x1",
+      ...>   "logsBloom" =>
+      ...>     "0x00800000000000000000000400000000000000000000000000000000000000000000000000000000000000000000002000200040000000000000000200001000000000000000000000000000000000000000000000000000000000000010000000008000020000004000000200000800000000000000000000220000000000000000000000000800000000000400000000000000000000000000000000000000000000040000000000008000008000000000000000000000000000000004000000800000000000004000000000000000000000000000000004080000000020000000000000000080000000000000000000000000000000000000000000000000",
+      ...>   "type" => "0x0",
+      ...>   "effectiveGasPrice" => "0x47868c0a",
+      ...>   "deposit_nonce" => nil
+      ...> }
+      ...> |> Signet.Receipt.deserialize()
+      %Signet.Receipt{
+        transaction_hash: Signet.Util.decode_hex!("0xf9e69be4f1ae524854e14dc820c519d8f2b86e52c60e54448abf920d22fb6fe2"),
+        transaction_index: 0,
+        block_hash: Signet.Util.decode_hex!("0x4bc3c26b1a599ced9876d9bf9a17c9bd58ec8b71a68e75335de7f2820e9336ca"),
+        block_number: 10493428,
+        from: Signet.Util.decode_hex!("0xb03d1100c68e58aa1895f8c1f230c0851ff41851"),
+        to: Signet.Util.decode_hex!("0x9d8ec03e9ddb71f04da9db1e38837aaac1782a97"),
+        cumulative_gas_used: 222642,
+        effective_gas_price: 1200000010,
+        gas_used: 222642,
+        contract_address: nil,
+        logs: [
+          %Signet.Receipt.Log{
+            log_index: 0,
+            block_number: 10493428,
+            block_hash: Signet.Util.decode_hex!("0x4bc3c26b1a599ced9876d9bf9a17c9bd58ec8b71a68e75335de7f2820e9336ca"),
+            transaction_hash: Signet.Util.decode_hex!("0xf9e69be4f1ae524854e14dc820c519d8f2b86e52c60e54448abf920d22fb6fe2"),
+            transaction_index: 0,
+            address: Signet.Util.decode_hex!("0x9d8ec03e9ddb71f04da9db1e38837aaac1782a97"),
+            data: Signet.Util.decode_hex!("0x000000000000000000000000cb372382aa9a9e6f926714f4305afac4566f75380000000000000000000000000000000000000000000000000000000000000000"),
+            topics: [
+              Signet.Util.decode_hex!("0x3ffe5de331422c5ec98e2d9ced07156f640bb51e235ef956e50263d4b28d3ae4"),
+              Signet.Util.decode_hex!("0x0000000000000000000000002326aba712500ae3114b664aeb51dba2c2fb416d"),
+              Signet.Util.decode_hex!("0x0000000000000000000000002326aba712500ae3114b664aeb51dba2c2fb416d")
+            ]
+          },
+          %Signet.Receipt.Log{
+            log_index: 1,
+            block_number: 10493428,
+            block_hash: Signet.Util.decode_hex!("0x4bc3c26b1a599ced9876d9bf9a17c9bd58ec8b71a68e75335de7f2820e9336ca"),
+            transaction_hash: Signet.Util.decode_hex!("0xf9e69be4f1ae524854e14dc820c519d8f2b86e52c60e54448abf920d22fb6fe2"),
+            transaction_index: 0,
+            address: Signet.Util.decode_hex!("0xcb372382aa9a9e6f926714f4305afac4566f7538"),
+            data: Signet.Util.decode_hex!("0x0000000000000000000000000000000000000000000000000000000000000000"),
+            topics: [
+              Signet.Util.decode_hex!("0xe0d20d95fbbe7375f6edead77b5ce5c5b096e7dac85848c45c37a95eaf17fe62"),
+              Signet.Util.decode_hex!("0x0000000000000000000000009d8ec03e9ddb71f04da9db1e38837aaac1782a97"),
+              Signet.Util.decode_hex!("0x00000000000000000000000054f0a87eb5c8c8ba70243de1ac19e735b41b10a2"),
+              Signet.Util.decode_hex!("0x0000000000000000000000000000000000000000000000000000000000000000")
+            ]
+          },
+          %Signet.Receipt.Log{
+            log_index: 2,
+            block_number: 10493428,
+            block_hash: Signet.Util.decode_hex!("0x4bc3c26b1a599ced9876d9bf9a17c9bd58ec8b71a68e75335de7f2820e9336ca"),
+            transaction_hash: Signet.Util.decode_hex!("0xf9e69be4f1ae524854e14dc820c519d8f2b86e52c60e54448abf920d22fb6fe2"),
+            transaction_index: 0,
+            address: Signet.Util.decode_hex!("0xcb372382aa9a9e6f926714f4305afac4566f7538"),
+            data: <<>>,
+            topics: [
+              Signet.Util.decode_hex!("0x0000000000000000000000000000000000000000000000000000000000000055")
+            ]
+          }
+        ],
+        logs_bloom: Signet.Util.decode_hex!("0x00800000000000000000000400000000000000000000000000000000000000000000000000000000000000000000002000200040000000000000000200001000000000000000000000000000000000000000000000000000000000000010000000008000020000004000000200000800000000000000000000220000000000000000000000000800000000000400000000000000000000000000000000000000000000040000000000008000008000000000000000000000000000000004000000800000000000004000000000000000000000000000000004080000000020000000000000000080000000000000000000000000000000000000000000000000"),
+        type: 0,
+        status: 1
       }
   """
   @spec deserialize(map()) :: t() | no_return()
@@ -193,7 +318,7 @@ defmodule Signet.Receipt do
       gas_used: Signet.Util.decode_hex_number!(params["gasUsed"]),
       contract_address: (if is_nil(params["contractAddress"]), do: nil, else: Signet.Util.decode_address!(params["contractAddress"])),
       logs: Enum.map(params["logs"], &Log.deserialize/1),
-      logs_bloom: Signet.Util.decode_word!(params["logsBloom"]),
+      logs_bloom: Signet.Util.decode_sized_hex!(params["logsBloom"], 256),
       type: Signet.Util.decode_hex_number!(params["type"]),
       status: Signet.Util.decode_hex_number!(params["status"])
     }

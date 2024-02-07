@@ -367,11 +367,12 @@ defmodule Signet.RPC do
   end
 
   @doc """
-  RPC call to get a transaction receipt
+  RPC call to get a transaction receipt. Note, this will return {:ok, %Signet.Receipt{}} or {:ok, nil} if the
+  receipt is not yet available.
 
   ## Examples
 
-      iex> Signet.RPC.get_trx_receipt(<<0::256>>)
+      iex> Signet.RPC.get_trx_receipt(Signet.Util.decode_hex!("0x85d995eba9763907fdf35cd2034144dd9d53ce32cbec21349d4b12823c6860c5"))
       {:ok,
         %Signet.Receipt{
           transaction_hash: Signet.Util.decode_hex!("0x85d995eba9763907fdf35cd2034144dd9d53ce32cbec21349d4b12823c6860c5"),
@@ -398,7 +399,7 @@ defmodule Signet.RPC do
               ]
             }
           ],
-          logs_bloom: Signet.Util.decode_hex!("0x0000000000000000000000000000000000000000000000000000000000000001"),
+          logs_bloom: Signet.Util.decode_hex!("0x00000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001"),
           type: 0x02,
           status: 0x01,
         }
@@ -431,15 +432,80 @@ defmodule Signet.RPC do
               ]
             }
           ],
-          logs_bloom: Signet.Util.decode_hex!("0x0000000000000000000000000000000000000000000000000000000000000001"),
+          logs_bloom: Signet.Util.decode_hex!("0x00000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001"),
           type: 0x02,
           status: 0x01,
         }
       }
 
+      iex> Signet.RPC.get_trx_receipt("0xf9e69be4f1ae524854e14dc820c519d8f2b86e52c60e54448abf920d22fb6fe2")
+      {:ok, %Signet.Receipt{
+        transaction_hash: Signet.Util.decode_hex!("0xf9e69be4f1ae524854e14dc820c519d8f2b86e52c60e54448abf920d22fb6fe2"),
+        transaction_index: 0,
+        block_hash: Signet.Util.decode_hex!("0x4bc3c26b1a599ced9876d9bf9a17c9bd58ec8b71a68e75335de7f2820e9336ca"),
+        block_number: 10493428,
+        from: Signet.Util.decode_hex!("0xb03d1100c68e58aa1895f8c1f230c0851ff41851"),
+        to: Signet.Util.decode_hex!("0x9d8ec03e9ddb71f04da9db1e38837aaac1782a97"),
+        cumulative_gas_used: 222642,
+        effective_gas_price: 1200000010,
+        gas_used: 222642,
+        contract_address: nil,
+        logs: [
+          %Signet.Receipt.Log{
+            log_index: 0,
+            block_number: 10493428,
+            block_hash: Signet.Util.decode_hex!("0x4bc3c26b1a599ced9876d9bf9a17c9bd58ec8b71a68e75335de7f2820e9336ca"),
+            transaction_hash: Signet.Util.decode_hex!("0xf9e69be4f1ae524854e14dc820c519d8f2b86e52c60e54448abf920d22fb6fe2"),
+            transaction_index: 0,
+            address: Signet.Util.decode_hex!("0x9d8ec03e9ddb71f04da9db1e38837aaac1782a97"),
+            data: Signet.Util.decode_hex!("0x000000000000000000000000cb372382aa9a9e6f926714f4305afac4566f75380000000000000000000000000000000000000000000000000000000000000000"),
+            topics: [
+              Signet.Util.decode_hex!("0x3ffe5de331422c5ec98e2d9ced07156f640bb51e235ef956e50263d4b28d3ae4"),
+              Signet.Util.decode_hex!("0x0000000000000000000000002326aba712500ae3114b664aeb51dba2c2fb416d"),
+              Signet.Util.decode_hex!("0x0000000000000000000000002326aba712500ae3114b664aeb51dba2c2fb416d")
+            ]
+          },
+          %Signet.Receipt.Log{
+            log_index: 1,
+            block_number: 10493428,
+            block_hash: Signet.Util.decode_hex!("0x4bc3c26b1a599ced9876d9bf9a17c9bd58ec8b71a68e75335de7f2820e9336ca"),
+            transaction_hash: Signet.Util.decode_hex!("0xf9e69be4f1ae524854e14dc820c519d8f2b86e52c60e54448abf920d22fb6fe2"),
+            transaction_index: 0,
+            address: Signet.Util.decode_hex!("0xcb372382aa9a9e6f926714f4305afac4566f7538"),
+            data: Signet.Util.decode_hex!("0x0000000000000000000000000000000000000000000000000000000000000000"),
+            topics: [
+              Signet.Util.decode_hex!("0xe0d20d95fbbe7375f6edead77b5ce5c5b096e7dac85848c45c37a95eaf17fe62"),
+              Signet.Util.decode_hex!("0x0000000000000000000000009d8ec03e9ddb71f04da9db1e38837aaac1782a97"),
+              Signet.Util.decode_hex!("0x00000000000000000000000054f0a87eb5c8c8ba70243de1ac19e735b41b10a2"),
+              Signet.Util.decode_hex!("0x0000000000000000000000000000000000000000000000000000000000000000")
+            ]
+          },
+          %Signet.Receipt.Log{
+            log_index: 2,
+            block_number: 10493428,
+            block_hash: Signet.Util.decode_hex!("0x4bc3c26b1a599ced9876d9bf9a17c9bd58ec8b71a68e75335de7f2820e9336ca"),
+            transaction_hash: Signet.Util.decode_hex!("0xf9e69be4f1ae524854e14dc820c519d8f2b86e52c60e54448abf920d22fb6fe2"),
+            transaction_index: 0,
+            address: Signet.Util.decode_hex!("0xcb372382aa9a9e6f926714f4305afac4566f7538"),
+            data: <<>>,
+            topics: [
+              Signet.Util.decode_hex!("0x0000000000000000000000000000000000000000000000000000000000000055")
+            ]
+          }
+        ],
+        logs_bloom: Signet.Util.decode_hex!("0x00800000000000000000000400000000000000000000000000000000000000000000000000000000000000000000002000200040000000000000000200001000000000000000000000000000000000000000000000000000000000000010000000008000020000004000000200000800000000000000000000220000000000000000000000000800000000000400000000000000000000000000000000000000000000040000000000008000008000000000000000000000000000000004000000800000000000004000000000000000000000000000000004080000000020000000000000000080000000000000000000000000000000000000000000000000"),
+        type: 0,
+        status: 1
+      }}
+
+
       iex> Signet.RPC.get_trx_receipt(<<1::256>>)
       {:error, "failed to decode result"}
+
+      iex> Signet.RPC.get_trx_receipt(<<2::256>>)
+      {:ok, nil}
   """
+  @spec get_trx_receipt(binary() | String.t(), Keyword.t()) :: {:ok, Signet.Receipt.t() | nil} | {:error, term()  }
   def get_trx_receipt(trx_id, opts \\ [])
 
   def get_trx_receipt(trx_id = "0x" <> _, opts) when byte_size(trx_id) == 66,
@@ -449,7 +515,13 @@ defmodule Signet.RPC do
     send_rpc(
       "eth_getTransactionReceipt",
       [Signet.Util.encode_hex(trx_id)],
-      Keyword.merge(opts, decode: &Signet.Receipt.deserialize/1)
+      Keyword.merge(opts, decode: fn
+        nil ->
+          nil
+
+        receipt_params ->
+          Signet.Receipt.deserialize(receipt_params)
+      end)
     )
   end
 
