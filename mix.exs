@@ -4,7 +4,7 @@ defmodule Signet.MixProject do
   def project do
     [
       app: :signet,
-      version: "0.2.0-alpha6",
+      version: "0.2.0",
       elixir: "~> 1.13",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
@@ -52,7 +52,7 @@ defmodule Signet.MixProject do
       {:curvy, "~> 0.3.1"},
       {:goth, "~> 1.4.3", optional: true},
       {:ex_rlp, "~> 0.6.0"},
-      {:abi, "~> 0.1.20"},
+      {:abi, "~> 0.1.21"},
       {:junit_formatter, "~> 3.3.1", only: [:test]}
     ]
   end

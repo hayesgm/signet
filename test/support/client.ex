@@ -213,7 +213,7 @@ defmodule Signet.Test.Client do
     "0x3b9aca00"
   end
 
-  def eth_sendRawTransaction(trx_enc = "0x02" <> rest) do
+  def eth_sendRawTransaction(trx_enc = "0x02" <> _rest) do
     {:ok, trx} =
       trx_enc
       |> Signet.Util.decode_hex!()
