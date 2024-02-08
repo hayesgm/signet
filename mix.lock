@@ -1,5 +1,5 @@
 %{
-  "abi": {:hex, :abi, "1.0.0-alpha2", "8e887f7d4cdd622c7c78f7ea54011ef86914e300e955f2220bb80415d08e2a01", [:mix], [{:ex_sha3, "~> 0.1.4", [hex: :ex_sha3, repo: "hexpm", optional: false]}, {:jason, "~> 1.4", [hex: :jason, repo: "hexpm", optional: false]}], "hexpm", "afb855e8fb3a973bf2418537c02ee088afb3a93df39477879f8524d69506cdf8"},
+  "abi": {:hex, :abi, "1.0.0-alpha3", "e3cacf8d1858bfd9c8e5a297fe521d0344c5766089d291c529654aafe0b332bb", [:mix], [{:ex_sha3, "~> 0.1.4", [hex: :ex_sha3, repo: "hexpm", optional: false]}, {:jason, "~> 1.4", [hex: :jason, repo: "hexpm", optional: false]}], "hexpm", "4936d3138226fcab27e3f0ef02da17c278249935199b161991f109525e9e4181"},
   "castore": {:hex, :castore, "1.0.5", "9eeebb394cc9a0f3ae56b813459f990abb0a3dedee1be6b27fdb50301930502f", [:mix], [], "hexpm", "8d7c597c3e4a64c395980882d4bca3cebb8d74197c590dc272cfd3b6a6310578"},
   "certifi": {:hex, :certifi, "2.12.0", "2d1cca2ec95f59643862af91f001478c9863c2ac9cb6e2f89780bfd8de987329", [:rebar3], [], "hexpm", "ee68d85df22e554040cdb4be100f33873ac6051387baf6a8f6ce82272340ff1c"},
   "curvy": {:hex, :curvy, "0.3.1", "2645a11452743a37de2393da4d2e60700632498b166413b4f73bc34c57a911e1", [:mix], [], "hexpm", "82df293452f7b751becabc29e8aad0f7d88ffdcd790ac7a2ea16ea1544681d8a"},
