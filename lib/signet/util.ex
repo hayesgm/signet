@@ -74,6 +74,7 @@ defmodule Signet.Util do
   @spec decode_sized_hex!(String.t(), integer()) :: binary() | no_return()
   def decode_sized_hex!(hex, size) do
     result = decode_hex!(hex)
+
     if byte_size(result) == size do
       result
     else
@@ -297,8 +298,8 @@ defmodule Signet.Util do
     hash = Signet.Hash.keccak(String.downcase(address_enc))
 
     # Use a charlist to semi-quickly get the correct hex digit
-    lower = '0123456789abcdef'
-    upper = '0123456789ABCDEF'
+    lower = ~c"0123456789abcdef"
+    upper = ~c"0123456789ABCDEF"
 
     res =
       for {nibble, hash_val} <- Enum.zip(nibbles(address), nibbles(hash)), into: [] do
@@ -387,7 +388,8 @@ defmodule Signet.Util do
         <<1::256, 2::256, 0>>
     """
     @spec normalize_signature(Signet.signature(), rec_type()) :: Signet.signature() | :no_return
-    def normalize_signature(<<rs::binary-size(64), v>>, rec_type \\ :eip155) when rec_type in @rec_types do
+    def normalize_signature(<<rs::binary-size(64), v>>, rec_type \\ :eip155)
+        when rec_type in @rec_types do
       v_normalized = normalize(v, rec_type)
 
       <<rs::binary-size(64), v_normalized::8>>
@@ -425,6 +427,7 @@ defmodule Signet.Util do
     @spec recover_base(non_neg_integer()) :: 0 | 1 | no_return()
     def recover_base(v) when v in [0, 1], do: v
     def recover_base(v) when v in [27, 28], do: v - 27
+
     def recover_base(v) when v >= 35 do
       case v - Signet.Application.chain_id() * 2 - 35 do
         base when base in [0, 1] ->

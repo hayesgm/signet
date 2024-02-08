@@ -50,7 +50,84 @@ defmodule Signet.Test.Client do
       ),
       do: %{}
 
-  def eth_getTransactionReceipt(_trx_id) do
+  def eth_getTransactionReceipt(
+        "0x0000000000000000000000000000000000000000000000000000000000000002"
+      ),
+      do: nil
+
+  def eth_getTransactionReceipt(
+        "0xF9E69BE4F1AE524854E14DC820C519D8F2B86E52C60E54448ABF920D22FB6FE2"
+      ) do
+    %{
+      "transactionHash" => "0xf9e69be4f1ae524854e14dc820c519d8f2b86e52c60e54448abf920d22fb6fe2",
+      "transactionIndex" => "0x0",
+      "blockHash" => "0x4bc3c26b1a599ced9876d9bf9a17c9bd58ec8b71a68e75335de7f2820e9336ca",
+      "blockNumber" => "0xa01df4",
+      "from" => "0xb03d1100c68e58aa1895f8c1f230c0851ff41851",
+      "to" => "0x9d8ec03e9ddb71f04da9db1e38837aaac1782a97",
+      "cumulativeGasUsed" => "0x365b2",
+      "gasUsed" => "0x365b2",
+      "contractAddress" => nil,
+      "logs" => [
+        %{
+          "address" => "0x9d8ec03e9ddb71f04da9db1e38837aaac1782a97",
+          "topics" => [
+            "0x3ffe5de331422c5ec98e2d9ced07156f640bb51e235ef956e50263d4b28d3ae4",
+            "0x0000000000000000000000002326aba712500ae3114b664aeb51dba2c2fb416d",
+            "0x0000000000000000000000002326aba712500ae3114b664aeb51dba2c2fb416d"
+          ],
+          "data" =>
+            "0x000000000000000000000000cb372382aa9a9e6f926714f4305afac4566f75380000000000000000000000000000000000000000000000000000000000000000",
+          "blockHash" => "0x4bc3c26b1a599ced9876d9bf9a17c9bd58ec8b71a68e75335de7f2820e9336ca",
+          "blockNumber" => "0xa01df4",
+          "transactionHash" =>
+            "0xf9e69be4f1ae524854e14dc820c519d8f2b86e52c60e54448abf920d22fb6fe2",
+          "transactionIndex" => "0x0",
+          "logIndex" => "0x0",
+          "removed" => false
+        },
+        %{
+          "address" => "0xcb372382aa9a9e6f926714f4305afac4566f7538",
+          "topics" => [
+            "0xe0d20d95fbbe7375f6edead77b5ce5c5b096e7dac85848c45c37a95eaf17fe62",
+            "0x0000000000000000000000009d8ec03e9ddb71f04da9db1e38837aaac1782a97",
+            "0x00000000000000000000000054f0a87eb5c8c8ba70243de1ac19e735b41b10a2",
+            "0x0000000000000000000000000000000000000000000000000000000000000000"
+          ],
+          "data" => "0x0000000000000000000000000000000000000000000000000000000000000000",
+          "blockHash" => "0x4bc3c26b1a599ced9876d9bf9a17c9bd58ec8b71a68e75335de7f2820e9336ca",
+          "blockNumber" => "0xa01df4",
+          "transactionHash" =>
+            "0xf9e69be4f1ae524854e14dc820c519d8f2b86e52c60e54448abf920d22fb6fe2",
+          "transactionIndex" => "0x0",
+          "logIndex" => "0x1",
+          "removed" => false
+        },
+        %{
+          "address" => "0xcb372382aa9a9e6f926714f4305afac4566f7538",
+          "topics" => ["0x0000000000000000000000000000000000000000000000000000000000000055"],
+          "data" => "0x",
+          "blockHash" => "0x4bc3c26b1a599ced9876d9bf9a17c9bd58ec8b71a68e75335de7f2820e9336ca",
+          "blockNumber" => "0xa01df4",
+          "transactionHash" =>
+            "0xf9e69be4f1ae524854e14dc820c519d8f2b86e52c60e54448abf920d22fb6fe2",
+          "transactionIndex" => "0x0",
+          "logIndex" => "0x2",
+          "removed" => false
+        }
+      ],
+      "status" => "0x1",
+      "logsBloom" =>
+        "0x00800000000000000000000400000000000000000000000000000000000000000000000000000000000000000000002000200040000000000000000200001000000000000000000000000000000000000000000000000000000000000010000000008000020000004000000200000800000000000000000000220000000000000000000000000800000000000400000000000000000000000000000000000000000000040000000000008000008000000000000000000000000000000004000000800000000000004000000000000000000000000000000004080000000020000000000000000080000000000000000000000000000000000000000000000000",
+      "type" => "0x0",
+      "effectiveGasPrice" => "0x47868c0a",
+      "deposit_nonce" => nil
+    }
+  end
+
+  def eth_getTransactionReceipt(
+        "0x85D995EBA9763907FDF35CD2034144DD9D53CE32CBEC21349D4B12823C6860C5"
+      ) do
     %{
       "blockHash" => "0xa957d47df264a31badc3ae823e10ac1d444b098d9b73d204c40426e57f47e8c3",
       "blockNumber" => "0xeff35f",
@@ -74,7 +151,8 @@ defmodule Signet.Test.Client do
           ]
         }
       ],
-      "logsBloom" => "0x0000000000000000000000000000000000000000000000000000000000000001",
+      "logsBloom" =>
+        "0x00000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001",
       "status" => "0x1",
       "to" => "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
       "transactionHash" => "0x85d995eba9763907fdf35cd2034144dd9d53ce32cbec21349d4b12823c6860c5",
@@ -135,6 +213,28 @@ defmodule Signet.Test.Client do
     "0x3b9aca00"
   end
 
+  def eth_sendRawTransaction(trx_enc = "0x02" <> _rest) do
+    {:ok, trx} =
+      trx_enc
+      |> Signet.Util.decode_hex!()
+      |> Signet.Transaction.V2.decode()
+
+    %Signet.Transaction.V2{
+      nonce: nonce,
+      max_priority_fee_per_gas: max_priority_fee_per_gas,
+      max_fee_per_gas: max_fee_per_gas,
+      gas_limit: gas_limit,
+      destination: destination,
+      amount: _amount,
+      data: _data
+    } = trx
+
+    Signet.Util.encode_hex(
+      <<nonce::integer-size(8), max_priority_fee_per_gas::integer-size(64),
+        max_fee_per_gas::integer-size(64), gas_limit::integer-size(24), destination::binary>>
+    )
+  end
+
   def eth_sendRawTransaction(trx_enc) do
     {:ok, trx} =
       trx_enc
@@ -179,9 +279,24 @@ defmodule Signet.Test.Client do
      }}
   end
 
-  # Call that works
-  def eth_call(_trx = %{"to" => "0x0000000000000000000000000000000000000001"}, _block) do
+  # Call that works v1
+  def eth_call(
+        _trx = %{"to" => "0x0000000000000000000000000000000000000001", "gasPrice" => _},
+        _block
+      ) do
     "0x0c"
+  end
+
+  # Call that works v2
+  def eth_call(
+        _trx = %{
+          "to" => "0x0000000000000000000000000000000000000001",
+          "maxPriorityFeePerGas" => _,
+          "maxFeePerGas" => _
+        },
+        _block
+      ) do
+    "0x0d"
   end
 
   # Call to Adaptor- don't care about response
@@ -205,8 +320,14 @@ defmodule Signet.Test.Client do
     "0xcc"
   end
 
-  def eth_estimateGas(_trx, _block) do
+  # V1
+  def eth_estimateGas(_trx = %{"gasPrice" => _}, _block) do
     "0x0d"
+  end
+
+  # V2
+  def eth_estimateGas(_trx = %{"maxPriorityFeePerGas" => _, "maxFeePerGas" => _}, _block) do
+    "0xdd"
   end
 
   def eth_newFilter(%{}) do
