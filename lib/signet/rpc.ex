@@ -755,6 +755,22 @@ defmodule Signet.RPC do
         data: <<162, 145, 173, 214, 0::248, 50, 0::248, 1>>,
         access_list: []
       }
+
+      iex> # Sets chain id
+      iex> signer_proc = Signet.Test.Signer.start_signer()
+      iex> {:ok, trx} = Signet.RPC.prepare_trx(<<10::160>>, {"baz(uint,address)", [50, <<1::160>> |> :binary.decode_unsigned]}, base_fee: {1, :gwei}, priority_fee: {3, :gwei}, gas_limit: 100_000, value: 0, nonce: 10, verify: false, signer: signer_proc, chain_id: 99)
+      iex> %{trx|signature_y_parity: nil, signature_r: nil, signature_s: nil}
+      %Signet.Transaction.V2{
+        chain_id: 99,
+        nonce: 10,
+        gas_limit: 100000,
+        destination: <<10::160>>,
+        amount: 0,
+        max_fee_per_gas: 1000000000,
+        max_priority_fee_per_gas: 3000000000,
+        data: <<162, 145, 173, 214, 0::248, 50, 0::248, 1>>,
+        access_list: []
+      }
   """
   def prepare_trx(contract, call_data, opts \\ []) do
     with {:ok, trx, _send_opts} <- prepare_trx_(contract, call_data, opts) do
@@ -778,7 +794,7 @@ defmodule Signet.RPC do
     {signer, opts} = Keyword.pop(opts, :signer, Signet.Signer.Default)
 
     signer_address = Signet.Signer.address(signer)
-    chain_id = Signet.Signer.chain_id(signer)
+    chain_id = Keyword.get_lazy(opts, :chain_id, fn -> Signet.Signer.chain_id(signer) end)
     send_opts = Keyword.put_new(opts, :from, signer_address)
 
     # Determine the type of the transaction based on the gas inputs. This is complicated because
