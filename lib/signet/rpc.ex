@@ -74,6 +74,8 @@ defmodule Signet.RPC do
     end
   end
 
+  defp decode_error(_, _errors), do: :not_found
+
   defp decode_response(response, id, errors) do
     with {:ok, %{"jsonrpc" => "2.0", "result" => result, "id" => ^id}} <- Jason.decode(response) do
       {:ok, result}
@@ -258,52 +260,20 @@ defmodule Signet.RPC do
       iex> Signet.Transaction.V1.new(1, {100, :gwei}, 100_000, <<11::160>>, {2, :wei}, <<1, 2, 3>>)
       iex> |> Signet.RPC.call_trx(errors: errors)
       {:error, "error 3: execution reverted (Cool(uint256,string)[1, \"cat\"])"}
+
+      iex> errors = ["Cool(uint256,string)"]
+      iex> Signet.Transaction.V1.new(1, {100, :gwei}, 100_000, <<12::160>>, {2, :wei}, <<1, 2, 3>>)
+      iex> |> Signet.RPC.call_trx(errors: errors)
+      {:error, "error 3: execution reverted (0x)"}
   """
-  def call_trx(trx, opts \\ [])
-
-  def call_trx(trx = %Signet.Transaction.V1{}, opts) do
+  def call_trx(trx, opts \\ []) do
     from = Keyword.get(opts, :from)
     block_number = Keyword.get(opts, :block_number, "latest")
     errors = Keyword.get(opts, :errors, [])
 
     send_rpc(
       "eth_call",
-      [
-        %{
-          from: if(is_nil(from), do: nil, else: Signet.Util.encode_hex(from)),
-          to: Signet.Util.encode_hex(trx.to),
-          gas: Signet.Util.encode_hex(trx.gas_limit, true),
-          gasPrice: Signet.Util.encode_hex(trx.gas_price, true),
-          value: Signet.Util.encode_hex(trx.value, true),
-          data: Signet.Util.encode_hex(trx.data, true)
-        },
-        block_number
-      ],
-      opts
-      |> Keyword.put_new(:decode, :hex)
-      |> Keyword.put_new(:errors, errors)
-    )
-  end
-
-  def call_trx(trx = %Signet.Transaction.V2{}, opts) do
-    from = Keyword.get(opts, :from)
-    block_number = Keyword.get(opts, :block_number, "latest")
-    errors = Keyword.get(opts, :errors, [])
-
-    send_rpc(
-      "eth_call",
-      [
-        %{
-          from: if(is_nil(from), do: nil, else: Signet.Util.encode_hex(from)),
-          to: Signet.Util.encode_hex(trx.destination),
-          gas: Signet.Util.encode_hex(trx.gas_limit, true),
-          maxPriorityFeePerGas: Signet.Util.encode_hex(trx.max_priority_fee_per_gas, true),
-          maxFeePerGas: Signet.Util.encode_hex(trx.max_fee_per_gas, true),
-          value: Signet.Util.encode_hex(trx.amount, true),
-          data: Signet.Util.encode_hex(trx.data, true)
-        },
-        block_number
-      ],
+      [to_call_params(trx, from), block_number],
       opts
       |> Keyword.put_new(:decode, :hex)
       |> Keyword.put_new(:errors, errors)
@@ -323,45 +293,13 @@ defmodule Signet.RPC do
       iex> |> Signet.RPC.estimate_gas()
       {:ok, 0xdd}
   """
-  def estimate_gas(trx, opts \\ [])
-
-  def estimate_gas(trx = %Signet.Transaction.V1{}, opts) do
+  def estimate_gas(trx, opts \\ []) do
     from = Keyword.get(opts, :from)
     block_number = Keyword.get(opts, :block_number, "latest")
 
     send_rpc(
       "eth_estimateGas",
-      [
-        %{
-          from: if(is_nil(from), do: nil, else: Signet.Util.encode_hex(from)),
-          to: Signet.Util.encode_hex(trx.to),
-          gasPrice: Signet.Util.encode_hex(trx.gas_price, true),
-          value: Signet.Util.encode_hex(trx.value, true),
-          data: Signet.Util.encode_hex(trx.data, true)
-        },
-        block_number
-      ],
-      Keyword.merge(opts, decode: :hex_unsigned)
-    )
-  end
-
-  def estimate_gas(trx = %Signet.Transaction.V2{}, opts) do
-    from = Keyword.get(opts, :from)
-    block_number = Keyword.get(opts, :block_number, "latest")
-
-    send_rpc(
-      "eth_estimateGas",
-      [
-        %{
-          from: if(is_nil(from), do: nil, else: Signet.Util.encode_hex(from)),
-          to: Signet.Util.encode_hex(trx.destination),
-          maxPriorityFeePerGas: Signet.Util.encode_hex(trx.max_priority_fee_per_gas, true),
-          maxFeePerGas: Signet.Util.encode_hex(trx.max_fee_per_gas, true),
-          value: Signet.Util.encode_hex(trx.amount, true),
-          data: Signet.Util.encode_hex(trx.data, true)
-        },
-        block_number
-      ],
+      [to_call_params(trx, from), block_number],
       Keyword.merge(opts, decode: :hex_unsigned)
     )
   end
@@ -585,6 +523,110 @@ defmodule Signet.RPC do
     send_rpc(
       "trace_transaction",
       [Signet.Util.encode_hex(trx_id)],
+      Keyword.merge(opts, decode: &Signet.Trace.deserialize_many/1)
+    )
+  end
+
+  @doc """
+  RPC to trace a transaction call speculatively.
+
+  ## Examples
+
+      iex> Signet.Transaction.V1.new(1, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>)
+      ...> |> Signet.RPC.trace_call()
+      {:ok,
+        [
+        %Signet.Trace{
+          action: %Signet.Trace.Action{
+            call_type: "call",
+            from: Signet.Util.decode_hex!("0x83806d539d4ea1c140489a06660319c9a303f874"),
+            gas: 0x01a1f8,
+            input: <<>>,
+            to: Signet.Util.decode_hex!("0x1c39ba39e4735cb65978d4db400ddd70a72dc750"),
+            value: 0x7a16c911b4d00000,
+          },
+          block_hash: Signet.Util.decode_hex!("0x7eb25504e4c202cf3d62fd585d3e238f592c780cca82dacb2ed3cb5b38883add"),
+          block_number: 3068185,
+          gas_used: 0x2982,
+          output: <<>>,
+          subtraces: 2,
+          trace_address: [Signet.Util.decode_hex!("0x1c39ba39e4735cb65978d4db400ddd70a72dc750")],
+          transaction_hash: Signet.Util.decode_hex!("0x17104ac9d3312d8c136b7f44d4b8b47852618065ebfa534bd2d3b5ef218ca1f3"),
+          transaction_position: 2,
+          type: "call"
+        },
+        %Signet.Trace{
+          action: %Signet.Trace.Action{
+            call_type: "call",
+            from: Signet.Util.decode_hex!("0x83806d539d4ea1c140489a06660319c9a303f874"),
+            gas: 0x01a1f8,
+            input: <<>>,
+            to: Signet.Util.decode_hex!("0x1c39ba39e4735cb65978d4db400ddd70a72dc750"),
+            value: 0x7a16c911b4d00000,
+          },
+          block_hash: Signet.Util.decode_hex!("0x7eb25504e4c202cf3d62fd585d3e238f592c780cca82dacb2ed3cb5b38883add"),
+          block_number: 3068186,
+          gas_used: 0x2982,
+          output: <<>>,
+          subtraces: 2,
+          trace_address: [Signet.Util.decode_hex!("0x1c39ba39e4735cb65978d4db400ddd70a72dc750")],
+          transaction_hash: Signet.Util.decode_hex!("0x17104ac9d3312d8c136b7f44d4b8b47852618065ebfa534bd2d3b5ef218ca1f3"),
+          transaction_position: 2,
+          type: "call"
+        }
+      ]}
+
+      iex> Signet.Transaction.V2.new(1, {1, :gwei}, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>, [<<2::160>>, <<3::160>>], :goerli)
+      ...> |> Signet.RPC.trace_call()
+      {:ok,
+        [
+        %Signet.Trace{
+          action: %Signet.Trace.Action{
+            call_type: "call",
+            from: Signet.Util.decode_hex!("0x83806d539d4ea1c140489a06660319c9a303f874"),
+            gas: 0x01a1f8,
+            input: <<>>,
+            to: Signet.Util.decode_hex!("0x1c39ba39e4735cb65978d4db400ddd70a72dc750"),
+            value: 0x7a16c911b4d00000,
+          },
+          block_hash: Signet.Util.decode_hex!("0x7eb25504e4c202cf3d62fd585d3e238f592c780cca82dacb2ed3cb5b38883add"),
+          block_number: 3068185,
+          gas_used: 0x2982,
+          output: <<>>,
+          subtraces: 2,
+          trace_address: [Signet.Util.decode_hex!("0x1c39ba39e4735cb65978d4db400ddd70a72dc750")],
+          transaction_hash: Signet.Util.decode_hex!("0x17104ac9d3312d8c136b7f44d4b8b47852618065ebfa534bd2d3b5ef218ca1f3"),
+          transaction_position: 2,
+          type: "call"
+        },
+        %Signet.Trace{
+          action: %Signet.Trace.Action{
+            call_type: "call",
+            from: Signet.Util.decode_hex!("0x83806d539d4ea1c140489a06660319c9a303f874"),
+            gas: 0x01a1f8,
+            input: <<>>,
+            to: Signet.Util.decode_hex!("0x1c39ba39e4735cb65978d4db400ddd70a72dc750"),
+            value: 0x7a16c911b4d00000,
+          },
+          block_hash: Signet.Util.decode_hex!("0x7eb25504e4c202cf3d62fd585d3e238f592c780cca82dacb2ed3cb5b38883add"),
+          block_number: 3068186,
+          gas_used: 0x2982,
+          output: <<>>,
+          subtraces: 2,
+          trace_address: [Signet.Util.decode_hex!("0x1c39ba39e4735cb65978d4db400ddd70a72dc750")],
+          transaction_hash: Signet.Util.decode_hex!("0x17104ac9d3312d8c136b7f44d4b8b47852618065ebfa534bd2d3b5ef218ca1f3"),
+          transaction_position: 2,
+          type: "call"
+        }
+      ]}
+  """
+  def trace_call(trx, opts \\ []) do
+    from = Keyword.get(opts, :from)
+    block_number = Keyword.get(opts, :block_number, "latest")
+
+    send_rpc(
+      "trace_call",
+      [to_call_params(trx, from), ["trace"], block_number],
       Keyword.merge(opts, decode: &Signet.Trace.deserialize_many/1)
     )
   end
@@ -937,5 +979,26 @@ defmodule Signet.RPC do
     with {:ok, trx, send_opts} <- prepare_trx_(contract, call_data, opts) do
       send_trx(trx, send_opts)
     end
+  end
+
+  defp to_call_params(trx = %Signet.Transaction.V1{}, from) do
+    %{
+      from: if(is_nil(from), do: nil, else: Signet.Util.encode_hex(from)),
+      to: Signet.Util.encode_hex(trx.to),
+      gasPrice: Signet.Util.encode_hex(trx.gas_price, true),
+      value: Signet.Util.encode_hex(trx.value, true),
+      data: Signet.Util.encode_hex(trx.data, true)
+    }
+  end
+
+  defp to_call_params(trx = %Signet.Transaction.V2{}, from) do
+    %{
+      from: if(is_nil(from), do: nil, else: Signet.Util.encode_hex(from)),
+      to: Signet.Util.encode_hex(trx.destination),
+      maxPriorityFeePerGas: Signet.Util.encode_hex(trx.max_priority_fee_per_gas, true),
+      maxFeePerGas: Signet.Util.encode_hex(trx.max_fee_per_gas, true),
+      value: Signet.Util.encode_hex(trx.amount, true),
+      data: Signet.Util.encode_hex(trx.data, true)
+    }
   end
 end
