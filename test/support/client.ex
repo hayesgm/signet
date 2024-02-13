@@ -208,6 +208,54 @@ defmodule Signet.Test.Client do
     ]
   end
 
+  # TODO: Add other outputs
+  def trace_call(_trx = %{"to" => _}, ["trace"], _block) do
+    [
+      %{
+        "action" => %{
+          "callType" => "call",
+          "from" => "0x83806d539d4ea1c140489a06660319c9a303f874",
+          "gas" => "0x1a1f8",
+          "input" => "0x",
+          "to" => "0x1c39ba39e4735cb65978d4db400ddd70a72dc750",
+          "value" => "0x7a16c911b4d00000"
+        },
+        "blockHash" => "0x7eb25504e4c202cf3d62fd585d3e238f592c780cca82dacb2ed3cb5b38883add",
+        "blockNumber" => 3_068_185,
+        "result" => %{
+          "gasUsed" => "0x2982",
+          "output" => "0x"
+        },
+        "subtraces" => 2,
+        "traceAddress" => ["0x1c39ba39e4735cb65978d4db400ddd70a72dc750"],
+        "transactionHash" => "0x17104ac9d3312d8c136b7f44d4b8b47852618065ebfa534bd2d3b5ef218ca1f3",
+        "transactionPosition" => 2,
+        "type" => "call"
+      },
+      %{
+        "action" => %{
+          "callType" => "call",
+          "from" => "0x83806d539d4ea1c140489a06660319c9a303f874",
+          "gas" => "0x1a1f8",
+          "input" => "0x",
+          "to" => "0x1c39ba39e4735cb65978d4db400ddd70a72dc750",
+          "value" => "0x7a16c911b4d00000"
+        },
+        "blockHash" => "0x7eb25504e4c202cf3d62fd585d3e238f592c780cca82dacb2ed3cb5b38883add",
+        "blockNumber" => 3_068_186,
+        "result" => %{
+          "gasUsed" => "0x2982",
+          "output" => "0x"
+        },
+        "subtraces" => 2,
+        "traceAddress" => ["0x1c39ba39e4735cb65978d4db400ddd70a72dc750"],
+        "transactionHash" => "0x17104ac9d3312d8c136b7f44d4b8b47852618065ebfa534bd2d3b5ef218ca1f3",
+        "transactionPosition" => 2,
+        "type" => "call"
+      }
+    ]
+  end
+
   def eth_gasPrice() do
     # 1 gwei
     "0x3b9aca00"
@@ -275,6 +323,16 @@ defmodule Signet.Test.Client do
      %{
        "code" => 3,
        "data" => Signet.Util.encode_hex(ABI.encode("Cool(uint256,string)", [1, "cat"])),
+       "message" => "execution reverted"
+     }}
+  end
+
+  # Call that fails with a blank data
+  def eth_call(_trx = %{"to" => "0x000000000000000000000000000000000000000C"}, _block) do
+    {:error,
+     %{
+       "code" => 3,
+       "data" => "0x",
        "message" => "execution reverted"
      }}
   end
