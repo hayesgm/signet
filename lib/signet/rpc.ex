@@ -84,24 +84,29 @@ defmodule Signet.RPC do
        %{
          "jsonrpc" => "2.0",
          "error" => %{
-           "code" => code,
+           "code" => code = 3,
            "data" => data_hex,
            "message" => message
          },
          "id" => ^id
        }} ->
-        with {:ok, data} <- Signet.Util.decode_hex(data_hex),
-             {:ok, error_abi, error_params} <- decode_error(data, errors) do
-          # TODO: Try to clean up how this is shown, just a little.
-          if is_nil(error_params) do
-            {:error, "error #{code}: #{message} (#{error_abi})"}
-          else
-            {:error, "error #{code}: #{message} (#{error_abi}#{inspect(error_params)})"}
+        extra_revert_data =
+          case Signet.Util.decode_hex(data_hex) do
+            {:ok, data} ->
+              case decode_error(data, errors) do
+                {:ok, error_abi, error_params} when not is_nil(error_params) ->
+                  %{error_abi: error_abi, error_params: error_params}
+
+                _ ->
+                  %{}
+              end
+              |> Enum.into(%{revert: data})
+
+            _ ->
+              %{}
           end
-        else
-          _ ->
-            {:error, "error #{code}: #{message} (#{data_hex})"}
-        end
+
+        {:error, Map.merge(%{code: code, message: message}, extra_revert_data)}
 
       {:ok,
        %{
@@ -112,13 +117,10 @@ defmodule Signet.RPC do
          },
          "id" => ^id
        }} ->
-        {:error, "error #{code}: #{message}"}
-
-      {:error, error} ->
-        {:error, error}
+        {:error, %{code: code, message: message}}
 
       _ ->
-        {:error, "invalid JSON-RPC response"}
+        {:error, %{code: -999, message: "invalid JSON-RPC response"}}
     end
   end
 
@@ -133,6 +135,8 @@ defmodule Signet.RPC do
       iex> Signet.RPC.send_rpc("get_balance", ["0x407d73d8a49eeb85d32cf465507dd71d507100c1", "latest"], ethereum_node: "http://example.com")
       {:ok, "0x0234c8a3397aab58"}
   """
+  @spec send_rpc(String.t(), [term()], Keyword.t()) ::
+          {:ok, term()} | {:error, %{code: integer(), message: String.t()}}
   def send_rpc(method, params, opts \\ []) do
     headers = Keyword.get(opts, :headers, [])
     decode = Keyword.get(opts, :decode, nil)
@@ -249,22 +253,22 @@ defmodule Signet.RPC do
 
       iex> Signet.Transaction.V1.new(1, {100, :gwei}, 100_000, <<10::160>>, {2, :wei}, <<1, 2, 3>>)
       iex> |> Signet.RPC.call_trx()
-      {:error, "error 3: execution reverted (0x3d738b2e)"}
+      {:error, %{code: 3, message: "execution reverted", revert: <<61, 115, 139, 46>>}}
 
       iex> errors = ["Unauthorized()", "BadNonce()", "NotEnoughSigners()", "NotActiveWithdrawalAddress()", "NotActiveOperator()", "DuplicateSigners()"]
       iex> Signet.Transaction.V1.new(1, {100, :gwei}, 100_000, <<10::160>>, {2, :wei}, <<1, 2, 3>>)
       iex> |> Signet.RPC.call_trx(errors: errors)
-      {:error, "error 3: execution reverted (NotActiveOperator()[])"}
+      {:error, %{code: 3, message: "execution reverted", error_abi: "NotActiveOperator()", error_params: [], revert: <<61, 115, 139, 46>>}}
 
       iex> errors = ["Cool(uint256,string)"]
       iex> Signet.Transaction.V1.new(1, {100, :gwei}, 100_000, <<11::160>>, {2, :wei}, <<1, 2, 3>>)
       iex> |> Signet.RPC.call_trx(errors: errors)
-      {:error, "error 3: execution reverted (Cool(uint256,string)[1, \"cat\"])"}
+      {:error, %{code: 3, message: "execution reverted", error_abi: "Cool(uint256,string)", error_params: [1, "cat"], revert: ABI.encode("Cool(uint256,string)", [1, "cat"])}}
 
       iex> errors = ["Cool(uint256,string)"]
       iex> Signet.Transaction.V1.new(1, {100, :gwei}, 100_000, <<12::160>>, {2, :wei}, <<1, 2, 3>>)
       iex> |> Signet.RPC.call_trx(errors: errors)
-      {:error, "error 3: execution reverted (0x)"}
+      {:error, %{code: 3, message: "execution reverted", revert: <<>>}}
   """
   def call_trx(trx, opts \\ []) do
     from = Keyword.get(opts, :from)
@@ -706,7 +710,7 @@ defmodule Signet.RPC do
 
       iex> signer_proc = Signet.Test.Signer.start_signer()
       iex> Signet.RPC.prepare_trx(<<10::160>>, {"baz(uint,address)", [50, <<1::160>> |> :binary.decode_unsigned]}, gas_price: {50, :gwei}, gas_limit: 100_000, value: 0, nonce: 10, signer: signer_proc)
-      {:error, "error 3: execution reverted (0x3d738b2e)"}
+      {:error, %{code: 3, message: "execution reverted", revert: <<61, 115, 139, 46>>}}
 
       iex> # Set gas price directly
       iex> signer_proc = Signet.Test.Signer.start_signer()
@@ -966,7 +970,7 @@ defmodule Signet.RPC do
 
       iex> signer_proc = Signet.Test.Signer.start_signer()
       iex> Signet.RPC.execute_trx(<<10::160>>, {"baz(uint,address)", [50, <<1::160>> |> :binary.decode_unsigned]}, gas_price: {50, :gwei}, gas_limit: 100_000, value: 0, nonce: 10, signer: signer_proc)
-      {:error, "error 3: execution reverted (0x3d738b2e)"}
+      {:error, %{code: 3, message: "execution reverted", revert: <<61, 115, 139, 46>>}}
 
       iex> # Set base fee and priority fee (v2)
       iex> signer_proc = Signet.Test.Signer.start_signer()
