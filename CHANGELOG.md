@@ -1,3 +1,27 @@
+## v1.0.0-alpha6
+
+- Adjust return value of RPC call [BREAKING]
+
+## v1.0.0-alpha5
+
+- Add `trace_call` Support (1.0.0-alpha5)
+
+## v1.0.0-alpha4
+
+- This patch accepts `chain_id` as an input option to `prepare_trx` instead of using the default chain_id for the signer. This is as we move to a better version of multi-chain world.
+
+## v1.0.0-alpha3
+
+- Bump ABI dep
+
+## v1.0.0-alpha2
+
+- Bump ABI dep
+
+## v1.0.0-alpha1
+
+- Support EIP-1559 transactions
+
 ## v0.1.10
 
 - Add simple auto-publish mechanism
