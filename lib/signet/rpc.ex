@@ -10,7 +10,6 @@ defmodule Signet.RPC do
   @default_gas_price nil
   @default_base_fee nil
   @default_base_fee_buffer 1.20
-  @default_priority_fee nil
   @default_gas_buffer 1.50
 
   defp headers(extra_headers) do
@@ -652,6 +651,47 @@ defmodule Signet.RPC do
   end
 
   @doc """
+  RPC call to call to get the current max priority fee per gas.
+
+  ## Examples
+
+      iex> Signet.RPC.max_priority_fee_per_gas()
+      {:ok, 1000000001}
+  """
+  def max_priority_fee_per_gas(opts \\ []) do
+    send_rpc(
+      "eth_maxPriorityFeePerGas",
+      [],
+      Keyword.merge(opts, decode: :hex_unsigned)
+    )
+  end
+
+  @doc """
+  RPC call to call to get the Eip-1559 fee history data.
+
+  ## Examples
+
+      iex> Signet.RPC.fee_history()
+      {:ok, %Signet.FeeHistory{
+        base_fee_per_gas: [20566340803, 20460504186, 19629790325, 19239635811, 19090900440, 19048391846],
+        gas_used_ratio: [0.4794155666666667, 0.3375966, 0.42049746666666665, 0.4690773, 0.49109343333333333],
+        oldest_block: 16607861,
+        reward: [[1000000000, 1000000000, 1500000000], [1000000000, 1000000000, 2000000000], [1000000000, 1000000000, 1000000000], [780000000, 1000000000, 2000000000], [1000000000, 1000000000, 1500000000]]
+      }}
+  """
+  def fee_history(opts \\ []) do
+    block_count = Keyword.get(opts, :block_count, 1)
+    newest_block = Keyword.get(opts, :newest_block, "latest")
+    reward_percentiles = Keyword.get(opts, :reward_percentiles, [])
+
+    send_rpc(
+      "eth_feeHistory",
+      [block_count, newest_block, reward_percentiles],
+      Keyword.merge(opts, decode: &Signet.FeeHistory.deserialize/1)
+    )
+  end
+
+  @doc """
   Helper function to work with other Signet modules to get a nonce, sign a transction, and prepare it to be submitted on-chain.
 
   If you need higher-level functionality, like manual nonce tracking, you may want to use the more granular function calls.
@@ -748,8 +788,8 @@ defmodule Signet.RPC do
         gas_limit: 100000,
         destination: <<10::160>>,
         amount: 0,
-        max_fee_per_gas: 1200000000,
-        max_priority_fee_per_gas: 0,
+        max_fee_per_gas: 25679608965,
+        max_priority_fee_per_gas: 1000000001,
         data: <<162, 145, 173, 214, 0::248, 50, 0::248, 1>>,
         access_list: []
       }
@@ -764,8 +804,8 @@ defmodule Signet.RPC do
         gas_limit: 100000,
         destination: <<10::160>>,
         amount: 0,
-        max_fee_per_gas: 1200000000,
-        max_priority_fee_per_gas: 0,
+        max_fee_per_gas: 25679608965,
+        max_priority_fee_per_gas: 1000000001,
         data: <<162, 145, 173, 214, 0::248, 50, 0::248, 1>>,
         access_list: []
       }
@@ -780,7 +820,7 @@ defmodule Signet.RPC do
         gas_limit: 100000,
         destination: <<10::160>>,
         amount: 0,
-        max_fee_per_gas: 1200000000,
+        max_fee_per_gas: 27679608964,
         max_priority_fee_per_gas: 3000000000,
         data: <<162, 145, 173, 214, 0::248, 50, 0::248, 1>>,
         access_list: []
@@ -796,7 +836,7 @@ defmodule Signet.RPC do
         gas_limit: 100000,
         destination: <<10::160>>,
         amount: 0,
-        max_fee_per_gas: 1000000000,
+        max_fee_per_gas: 4200000000,
         max_priority_fee_per_gas: 3000000000,
         data: <<162, 145, 173, 214, 0::248, 50, 0::248, 1>>,
         access_list: []
@@ -812,7 +852,7 @@ defmodule Signet.RPC do
         gas_limit: 100000,
         destination: <<10::160>>,
         amount: 0,
-        max_fee_per_gas: 1000000000,
+        max_fee_per_gas: 4200000000,
         max_priority_fee_per_gas: 3000000000,
         data: <<162, 145, 173, 214, 0::248, 50, 0::248, 1>>,
         access_list: []
@@ -830,7 +870,7 @@ defmodule Signet.RPC do
     {gas_price_user, opts} = Keyword.pop(opts, :gas_price, @default_gas_price)
     {base_fee_user, opts} = Keyword.pop(opts, :base_fee, @default_base_fee)
     {base_fee_buffer, opts} = Keyword.pop(opts, :base_fee_buffer, @default_base_fee_buffer)
-    {priority_fee, opts} = Keyword.pop(opts, :priority_fee, @default_priority_fee)
+    {priority_fee_user, opts} = Keyword.pop(opts, :priority_fee, nil)
     {gas_limit, opts} = Keyword.pop(opts, :gas_limit)
     {gas_buffer, opts} = Keyword.pop(opts, :gas_buffer, @default_gas_buffer)
     {value, opts} = Keyword.pop(opts, :value, 0)
@@ -849,39 +889,21 @@ defmodule Signet.RPC do
     # while `base_fee` or `priority_fee` imply a V2 transaction, and c) we want to default
     # users to V2 transactions if nothing is specified.
     trx_type_result =
-      case {trx_type, gas_price_user, priority_fee, base_fee_user} do
+      case {trx_type, gas_price_user, base_fee_user, priority_fee_user} do
         {:v1, nil, nil, nil} ->
           with {:ok, base_fee_est} <- gas_price(opts) do
             {:ok, {:v1, ceil(base_fee_est * base_fee_buffer)}}
           end
 
-        {:v1, gas_price, nil, nil} ->
+        # v1 by way of setting gas price
+        {ty, gas_price, nil, nil} when not is_nil(gas_price) and ty in [nil, :v1] ->
           {:ok, {:v1, to_wei(gas_price)}}
 
-        {:v2, nil, max_priority_fee_per_gas, max_fee_per_gas}
-        when not is_nil(max_priority_fee_per_gas) and not is_nil(max_fee_per_gas) ->
-          {:ok, {:v2, to_wei(max_priority_fee_per_gas), to_wei(max_fee_per_gas)}}
-
-        # magic matches
-
-        # only v1 has gas price
-        {nil, gas_price, nil, nil} when not is_nil(gas_price) ->
-          {:ok, {:v1, to_wei(gas_price)}}
-
-        # only v2 has both max fee and max priority fee
-        {nil, nil, max_priority_fee_per_gas, max_fee_per_gas}
-        when not is_nil(max_priority_fee_per_gas) and not is_nil(max_fee_per_gas) ->
-          {:ok, {:v2, to_wei(max_priority_fee_per_gas), to_wei(max_fee_per_gas)}}
-
-        # v2 can also only set max_priority fee
-        {ty, nil, max_priority_fee_per_gas_user, nil} when is_nil(ty) or ty == :v2 ->
-          max_priority_fee_per_gas =
-            if is_nil(max_priority_fee_per_gas_user),
-              do: 0,
-              else: to_wei(max_priority_fee_per_gas_user)
-
-          with {:ok, base_fee_est} <- gas_price(opts) do
-            {:ok, {:v2, max_priority_fee_per_gas, ceil(base_fee_est * base_fee_buffer)}}
+        # otherwise, try v2
+        {ty, nil, user_base_fee, user_priority_fee} when ty in [nil, :v2] ->
+          with {:ok, max_fee_per_gas, max_priority_fee_per_gas} <-
+                 v2_gas_parameters(user_base_fee, user_priority_fee, base_fee_buffer, opts) do
+            {:ok, {:v2, max_fee_per_gas, max_priority_fee_per_gas}}
           end
 
         _ ->
@@ -922,7 +944,7 @@ defmodule Signet.RPC do
                   callback: estimate_and_verify
                 )
 
-              {:v2, max_priority_fee_per_gas, max_fee_per_gas} ->
+              {:v2, max_fee_per_gas, max_priority_fee_per_gas} ->
                 Signet.Transaction.build_signed_trx_v2(
                   contract,
                   nonce,
@@ -977,7 +999,7 @@ defmodule Signet.RPC do
       iex> {:ok, trx_id} = Signet.RPC.execute_trx(<<10::160>>, {"baz(uint,address)", [50, <<1::160>> |> :binary.decode_unsigned]}, base_fee: {1, :gwei}, priority_fee: {3, :gwei}, gas_limit: 100_000, value: 0, nonce: 10, verify: false, signer: signer_proc)
       iex> <<nonce::integer-size(8), max_priority_fee_per_gas::integer-size(64), max_fee_per_gas::integer-size(64), gas_limit::integer-size(24), to::binary>> = trx_id
       iex> {nonce, max_priority_fee_per_gas, max_fee_per_gas, gas_limit, to}
-      {10, 3000000000, 1000000000, 100000, <<10::160>>}
+      {10, 3000000000, 4200000000, 100000, <<10::160>>}
   """
   def execute_trx(contract, call_data, opts \\ []) do
     with {:ok, trx, send_opts} <- prepare_trx_(contract, call_data, opts) do
@@ -1004,5 +1026,35 @@ defmodule Signet.RPC do
       value: Signet.Util.encode_hex(trx.amount, true),
       data: Signet.Util.encode_hex(trx.data, true)
     }
+  end
+
+  def v2_gas_parameters(user_base_fee, user_priority_fee, buffer, rpc_opts) do
+    base_fee_result =
+      if not is_nil(user_base_fee) do
+        {:ok, to_wei(user_base_fee)}
+      else
+        with {:ok, %Signet.FeeHistory{base_fee_per_gas: [fee_history_base_fee | _]}} <-
+               fee_history(rpc_opts) do
+          {:ok, fee_history_base_fee}
+        else
+          {:ok, _} ->
+            {:error, "missing fee history"}
+
+          err ->
+            err
+        end
+      end
+
+    max_priority_fee_per_gas_result =
+      if not is_nil(user_priority_fee) do
+        {:ok, to_wei(user_priority_fee)}
+      else
+        max_priority_fee_per_gas(rpc_opts)
+      end
+
+    with {:ok, base_fee} <- base_fee_result,
+         {:ok, max_priority_fee_per_gas} <- max_priority_fee_per_gas_result do
+      {:ok, ceil(base_fee * buffer + max_priority_fee_per_gas), max_priority_fee_per_gas}
+    end
   end
 end

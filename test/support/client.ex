@@ -161,6 +161,54 @@ defmodule Signet.Test.Client do
     }
   end
 
+  def eth_feeHistory(_block_count, _newest_block, _reward_percentiles \\ []) do
+    %{
+      "oldestBlock" => "0xfd6a75",
+      "reward" => [
+        [
+          "0x3b9aca00",
+          "0x3b9aca00",
+          "0x59682f00"
+        ],
+        [
+          "0x3b9aca00",
+          "0x3b9aca00",
+          "0x77359400"
+        ],
+        [
+          "0x3b9aca00",
+          "0x3b9aca00",
+          "0x3b9aca00"
+        ],
+        [
+          "0x2e7ddb00",
+          "0x3b9aca00",
+          "0x77359400"
+        ],
+        [
+          "0x3b9aca00",
+          "0x3b9aca00",
+          "0x59682f00"
+        ]
+      ],
+      "baseFeePerGas" => [
+        "0x4c9d974c3",
+        "0x4c38a847a",
+        "0x49206d475",
+        "0x47ac58b63",
+        "0x471e805d8",
+        "0x46f5f64a6"
+      ],
+      "gasUsedRatio" => [
+        0.4794155666666667,
+        0.3375966,
+        0.42049746666666665,
+        0.4690773,
+        0.49109343333333333
+      ]
+    }
+  end
+
   def trace_transaction("0x000000000000000000000000000000000000000000000000000000000000000A") do
     [
       %{
@@ -512,6 +560,10 @@ defmodule Signet.Test.Client do
   def eth_gasPrice() do
     # 1 gwei
     "0x3b9aca00"
+  end
+
+  def eth_maxPriorityFeePerGas() do
+    "0x3b9aca01"
   end
 
   def eth_sendRawTransaction(trx_enc = "0x02" <> _rest) do
