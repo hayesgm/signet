@@ -7,7 +7,7 @@ defmodule Signet.Trace do
   an Ethereum JSON-RPC host.
 
   See also:
-    * Alcemy docs: https://docs.alchemy.com/reference/trace-transaction
+    * Alchemy docs: https://docs.alchemy.com/reference/trace-transaction
     * Infura docs: https://docs.infura.io/networks/ethereum/json-rpc-methods/trace-methods/trace_transaction
     * Infura trace object: https://docs.infura.io/networks/ethereum/json-rpc-methods/trace-methods/#trace
   """
