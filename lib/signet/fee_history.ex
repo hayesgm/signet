@@ -6,7 +6,7 @@ defmodule Signet.FeeHistory do
   an Ethereum JSON-RPC host.
 
   See also:
-    * Alcemy docs: https://docs.alchemy.com/reference/eth-feehistory
+    * Alchemy docs: https://docs.alchemy.com/reference/eth-feehistory
     * Infura docs: https://docs.infura.io/api/networks/ethereum/json-rpc-methods/eth_feehistory
   """
 
