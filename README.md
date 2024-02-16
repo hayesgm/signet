@@ -34,7 +34,7 @@ Signet can be installed by adding `signet` to your list of dependencies in `mix.
 ```elixir
 def deps do
   [
-    {:signet, "~> 1.0.0-alpha9"}
+    {:signet, "~> 1.0.0-alpha10"}
   ]
 end
 ```
@@ -169,7 +169,13 @@ Signet.RPC.send_rpc("net_version", [])
 You can build an Ethereum (pre-EIP-1559) transaction, e.g.:
 
 ```elixir
-transaction = Signet.Transaction.V1.new(1, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>)
+transaction = Signet.Transaction.build_trx(<<1::160>>, 5, {"baz(uint,address)", [50, :binary.decode_unsigned(<<1::160>>)]}, {50, :gwei}, 100_000, 0, 5)
+```
+
+Or an EIP-1559 transaction, e.g.:
+
+```elixir
+transaction = Signet.Transaction.build_trx_v2(<<1::160>>, 6, {"baz(uint,address)", [50, :binary.decode_unsigned(<<1::160>>)]}, {50, :gwei}, {10, :gwei}, 100_000, 0, [<<1::160>>], :goerli)
 ```
 
 And you can get the results from calling that transaction, via:
@@ -190,7 +196,7 @@ You can also pass in known Solidity errors, to have them decoded for you, e.g.:
 > errors = ["Cool(uint256,string)"]
 > Signet.Transaction.V1.new(1, {100, :gwei}, 100_000, <<11::160>>, {2, :wei}, <<1, 2, 3>>)
 > |> Signet.RPC.call_trx(errors: errors)
-{:error, "error 3: execution reverted (Cool(uint256,string)[1, \"cat\"])"}
+{:error, %{code: 3, message: "execution reverted", error_abi: "Cool(uint256,string)", error_params: [1, "cat"], revert: ABI.encode("Cool(uint256,string)", [1, "cat"])}}
 ```
 
 Finally, `execute_trx` is similar to sending transactions with Web3, which will pull a nonce and estimate gas, before submitting the transaction to the Ethereum node:
@@ -211,6 +217,12 @@ You can pull a transaction traces via:
 
 ```elixir
 {:ok, trace} = Signet.RPC.trace_transaction(trx_id)
+```
+
+You can test a transaction with a trace via:
+
+```elixir
+{:ok, trace} = Signet.RPC.trace_call(trx_id)
 ```
 
 ### Filtering

@@ -168,7 +168,9 @@ defmodule Signet.RPC do
               rescue
                 e ->
                   if verbose do
-                    Logger.error("[Signet][RPC][#{method}] Error decoding response. error=#{inspect(e)}, response=#{inspect(result)}")
+                    Logger.error(
+                      "[Signet][RPC][#{method}] Error decoding response. error=#{inspect(e)}, response=#{inspect(result)}"
+                    )
 
                     {:error, "failed to decode `#{method}` response: #{inspect(e)}"}
                   else
@@ -1072,7 +1074,9 @@ defmodule Signet.RPC do
 
     with {:ok, base_fee} <- base_fee_result,
          {:ok, max_priority_fee_per_gas} <- max_priority_fee_per_gas_result do
-      {:ok, {:v2, ceil(base_fee * buffer_multiplier + max_priority_fee_per_gas), max_priority_fee_per_gas}}
+      {:ok,
+       {:v2, ceil(base_fee * buffer_multiplier + max_priority_fee_per_gas),
+        max_priority_fee_per_gas}}
     end
   end
 

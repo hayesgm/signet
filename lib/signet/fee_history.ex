@@ -14,7 +14,7 @@ defmodule Signet.FeeHistory do
           oldest_block: integer(),
           base_fee_per_gas: [integer()],
           gas_used_ratio: [integer()],
-          reward: [[float()]]
+          reward: [[float()]] | nil
         }
 
   defstruct [
@@ -81,19 +81,31 @@ defmodule Signet.FeeHistory do
         oldest_block: 16607861,
         reward: [[1000000000, 1000000000, 1500000000], [1000000000, 1000000000, 2000000000], [1000000000, 1000000000, 1000000000], [780000000, 1000000000, 2000000000], [1000000000, 1000000000, 1500000000]]
       }
+
+      iex> %{"baseFeePerGas" => ["0xa", "0xa"], "gasUsedRatio" => [0.1878495], "oldestBlock" => "0xa01de6"}
+      ...> |> Signet.FeeHistory.deserialize()
+      %Signet.FeeHistory{base_fee_per_gas: [10, 10], gas_used_ratio: [0.1878495], oldest_block: 10493414, reward: nil}
   """
   @spec deserialize(map()) :: t() | no_return()
-  def deserialize(%{
-        "oldestBlock" => oldest_block,
-        "reward" => reward,
-        "baseFeePerGas" => base_fee_per_gas,
-        "gasUsedRatio" => gas_used_ratio
-      }) do
+  def deserialize(
+        params = %{
+          "oldestBlock" => oldest_block,
+          "baseFeePerGas" => base_fee_per_gas,
+          "gasUsedRatio" => gas_used_ratio
+        }
+      ) do
     %__MODULE__{
       oldest_block: Signet.Util.decode_hex_number!(oldest_block),
       base_fee_per_gas: Enum.map(base_fee_per_gas, &Signet.Util.decode_hex_number!/1),
       gas_used_ratio: gas_used_ratio,
-      reward: Enum.map(reward, fn r -> Enum.map(r, &Signet.Util.decode_hex_number!/1) end)
+      reward:
+        case params["reward"] do
+          nil ->
+            nil
+
+          reward ->
+            Enum.map(reward, fn r -> Enum.map(r, &Signet.Util.decode_hex_number!/1) end)
+        end
     }
   end
 end
