@@ -2,6 +2,8 @@ defmodule Signet.RPC do
   @moduledoc """
   Excessively simple RPC client for Ethereum.
   """
+  require Logger
+
   import Signet.Util, only: [to_wei: 1]
 
   defp ethereum_node(), do: Signet.Application.ethereum_node()
@@ -141,6 +143,7 @@ defmodule Signet.RPC do
     decode = Keyword.get(opts, :decode, nil)
     errors = Keyword.get(opts, :errors, nil)
     timeout = Keyword.get(opts, :timeout, 30_000)
+    verbose = Keyword.get(opts, :verbose, false)
     url = Keyword.get(opts, :ethereum_node, ethereum_node())
     body = get_body(method, params)
 
@@ -163,8 +166,16 @@ defmodule Signet.RPC do
               try do
                 {:ok, f.(result)}
               rescue
-                _ ->
-                  {:error, "failed to decode result"}
+                e ->
+                  if verbose do
+                    Logger.error("[Signet][RPC][#{method}] Error decoding response. error=#{inspect(e)}, response=#{inspect(result)}")
+
+                    {:error, "failed to decode `#{method}` response: #{inspect(e)}"}
+                  else
+                    Logger.info("[Signet][RPC][#{method}] Error decoding response: #{inspect(e)}")
+
+                    {:error, "failed to decode `#{method}` response: #{inspect(e)}"}
+                  end
               end
           end
         end
@@ -441,7 +452,10 @@ defmodule Signet.RPC do
 
 
       iex> Signet.RPC.get_trx_receipt(<<1::256>>)
-      {:error, "failed to decode result"}
+      {:error, "failed to decode `eth_getTransactionReceipt` response: %FunctionClauseError{module: Signet.Util, function: :decode_hex, arity: 1, kind: nil, args: nil, clauses: nil}"}
+
+      iex> Signet.RPC.get_trx_receipt(<<1::256>>, verbose: true)
+      {:error, "failed to decode `eth_getTransactionReceipt` response: %FunctionClauseError{module: Signet.Util, function: :decode_hex, arity: 1, kind: nil, args: nil, clauses: nil}"}
 
       iex> Signet.RPC.get_trx_receipt(<<2::256>>)
       {:ok, nil}
