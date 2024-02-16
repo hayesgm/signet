@@ -1,4 +1,8 @@
 
+## v1.0.0-alpha10
+
+- Allow nil rewards from `eth_feeHistory`
+
 ## v1.0.0-alpha9
 
 - Improve error logging for RPC decoding errors
