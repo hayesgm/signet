@@ -697,9 +697,9 @@ defmodule Signet.RPC do
   If you need higher-level functionality, like manual nonce tracking, you may want to use the more granular function calls.
 
   Options:
-    * `gas_price` - Set the base gas for the transaction, overrides all other gas prices listed below (default `nil`) [note: only compatible with V1 transaction]
-    * `base_fee` - Set the base price for the transaction, if nil, will use base gas price from `eth_gasPrice` call (default `nil`) [note: only compatible with V2 transactions]
-    * `base_fee_buffer` - Buffer for the gas price when estimating gas (default: 1.2 = 120%) [note: only compatible with V2 transactions]
+    * `gas_price` - Set the gas price for a v1 (non-Eip1559) transaction, if nil, comes from `eth_gasPrice` (default `nil`) [note: only compatible with V1 transaction]
+    * `base_fee` - Set the base price for the transaction, if nil, will use base gas price from `eth_feeHistory` (default `nil`) [note: only compatible with V2 transactions]
+    * `base_fee_buffer` - Buffer for the gas price or base fee when estimating gas price. Ingored if `gas_price` (for v1) or `base_fee` (for v2) is specified directly (default: 1.2 = 120%)
     * `priority_fee` - Additional gas to send as a priority fee. (default: `{0, :gwei}`) [note: only compatible with V2 transactions]
     * `gas_limit` - Set the gas limit for the transaction (default: calls `eth_estimateGas`)
     * `gas_buffer` - Buffer if estimating gas limit (default: 1.5 = 150%)
@@ -836,7 +836,7 @@ defmodule Signet.RPC do
         gas_limit: 100000,
         destination: <<10::160>>,
         amount: 0,
-        max_fee_per_gas: 4200000000,
+        max_fee_per_gas: 4000000000,
         max_priority_fee_per_gas: 3000000000,
         data: <<162, 145, 173, 214, 0::248, 50, 0::248, 1>>,
         access_list: []
@@ -852,7 +852,7 @@ defmodule Signet.RPC do
         gas_limit: 100000,
         destination: <<10::160>>,
         amount: 0,
-        max_fee_per_gas: 4200000000,
+        max_fee_per_gas: 4000000000,
         max_priority_fee_per_gas: 3000000000,
         data: <<162, 145, 173, 214, 0::248, 50, 0::248, 1>>,
         access_list: []
@@ -890,21 +890,17 @@ defmodule Signet.RPC do
     # users to V2 transactions if nothing is specified.
     trx_type_result =
       case {trx_type, gas_price_user, base_fee_user, priority_fee_user} do
+        # v1 specified
         {:v1, nil, nil, nil} ->
-          with {:ok, base_fee_est} <- gas_price(opts) do
-            {:ok, {:v1, ceil(base_fee_est * base_fee_buffer)}}
-          end
+          v1_gas_parameters(nil, base_fee_buffer, send_opts)
 
-        # v1 by way of setting gas price
-        {ty, gas_price, nil, nil} when not is_nil(gas_price) and ty in [nil, :v1] ->
-          {:ok, {:v1, to_wei(gas_price)}}
+        # surmise :v1 since gas_price is set but not v2 gas parameters
+        {nil, gas_price, nil, nil} when not is_nil(gas_price) ->
+          v1_gas_parameters(gas_price, base_fee_buffer, send_opts)
 
-        # otherwise, try v2
+        # any valid :v2 combination
         {ty, nil, user_base_fee, user_priority_fee} when ty in [nil, :v2] ->
-          with {:ok, max_fee_per_gas, max_priority_fee_per_gas} <-
-                 v2_gas_parameters(user_base_fee, user_priority_fee, base_fee_buffer, opts) do
-            {:ok, {:v2, max_fee_per_gas, max_priority_fee_per_gas}}
-          end
+          v2_gas_parameters(user_base_fee, user_priority_fee, base_fee_buffer, send_opts)
 
         _ ->
           raise "mismatched transaction type and gas price settings"
@@ -999,7 +995,7 @@ defmodule Signet.RPC do
       iex> {:ok, trx_id} = Signet.RPC.execute_trx(<<10::160>>, {"baz(uint,address)", [50, <<1::160>> |> :binary.decode_unsigned]}, base_fee: {1, :gwei}, priority_fee: {3, :gwei}, gas_limit: 100_000, value: 0, nonce: 10, verify: false, signer: signer_proc)
       iex> <<nonce::integer-size(8), max_priority_fee_per_gas::integer-size(64), max_fee_per_gas::integer-size(64), gas_limit::integer-size(24), to::binary>> = trx_id
       iex> {nonce, max_priority_fee_per_gas, max_fee_per_gas, gas_limit, to}
-      {10, 3000000000, 4200000000, 100000, <<10::160>>}
+      {10, 3000000000, 4000000000, 100000, <<10::160>>}
   """
   def execute_trx(contract, call_data, opts \\ []) do
     with {:ok, trx, send_opts} <- prepare_trx_(contract, call_data, opts) do
@@ -1028,33 +1024,54 @@ defmodule Signet.RPC do
     }
   end
 
-  def v2_gas_parameters(user_base_fee, user_priority_fee, buffer, rpc_opts) do
-    base_fee_result =
-      if not is_nil(user_base_fee) do
-        {:ok, to_wei(user_base_fee)}
+  defp v1_gas_parameters(user_gas_price, buffer, rpc_opts) do
+    gas_price_result =
+      if is_nil(user_gas_price) do
+        gas_price(rpc_opts)
       else
-        with {:ok, %Signet.FeeHistory{base_fee_per_gas: [fee_history_base_fee | _]}} <-
-               fee_history(rpc_opts) do
-          {:ok, fee_history_base_fee}
-        else
-          {:ok, _} ->
-            {:error, "missing fee history"}
+        {:ok, to_wei(user_gas_price)}
+      end
 
-          err ->
-            err
-        end
+    buffer_multiplier = if is_nil(user_gas_price), do: buffer, else: 1
+
+    with {:ok, gas_price} <- gas_price_result do
+      {:ok, {:v1, ceil(gas_price * buffer_multiplier)}}
+    end
+  end
+
+  defp v2_gas_parameters(user_base_fee, user_priority_fee, buffer, rpc_opts) do
+    base_fee_result =
+      if is_nil(user_base_fee) do
+        get_fee_history_base_fee(rpc_opts)
+      else
+        {:ok, to_wei(user_base_fee)}
       end
 
     max_priority_fee_per_gas_result =
-      if not is_nil(user_priority_fee) do
-        {:ok, to_wei(user_priority_fee)}
-      else
+      if is_nil(user_priority_fee) do
         max_priority_fee_per_gas(rpc_opts)
+      else
+        {:ok, to_wei(user_priority_fee)}
       end
+
+    buffer_multiplier = if is_nil(user_base_fee), do: buffer, else: 1
 
     with {:ok, base_fee} <- base_fee_result,
          {:ok, max_priority_fee_per_gas} <- max_priority_fee_per_gas_result do
-      {:ok, ceil(base_fee * buffer + max_priority_fee_per_gas), max_priority_fee_per_gas}
+      {:ok, {:v2, ceil(base_fee * buffer_multiplier + max_priority_fee_per_gas), max_priority_fee_per_gas}}
+    end
+  end
+
+  defp get_fee_history_base_fee(rpc_opts) do
+    with {:ok, %Signet.FeeHistory{base_fee_per_gas: [fee_history_base_fee | _]}} <-
+           fee_history(rpc_opts) do
+      {:ok, fee_history_base_fee}
+    else
+      {:ok, _} ->
+        {:error, "missing fee history"}
+
+      err ->
+        err
     end
   end
 end
