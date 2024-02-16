@@ -1,3 +1,20 @@
+
+## v1.0.0-alpha9
+
+- Improve error logging for RPC decoding errors
+
+## v1.0.0-alpha8
+
+- Add Fee History and MaxFeePerGas Endpoints [1.0.0-alpha8] (#34)
+  - Add Fee History Endpoint
+  - Try to simplify logic even more, don't apply buffer when values are set directly
+
+## v1.0.0-alpha7
+
+- Improve Trace Support [1.0.0-alpha7]
+
+- This patch improves trace support to handle more cases, such as contract creation and reverts. The trace code isn't heavily documented, so we're mostly going off of some real-life examples.
+
 ## v1.0.0-alpha6
 
 - Adjust return value of RPC call [BREAKING]
