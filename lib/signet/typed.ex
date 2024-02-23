@@ -16,7 +16,13 @@ defmodule Signet.Typed do
   defmodule Type do
     defstruct [:fields]
 
-    @type primitive() :: :address | {:uint, number()} | {:bytes, number()} | :string | :bytes | {:array, primitive()}
+    @type primitive() ::
+            :address
+            | {:uint, number()}
+            | {:bytes, number()}
+            | :string
+            | :bytes
+            | {:array, primitive()}
     @type field_type() :: primitive() | String.t()
     @type type_list() :: [{String.t(), field_type()}]
     @type t() :: %__MODULE__{fields: type_list()}
@@ -145,6 +151,7 @@ defmodule Signet.Typed do
     def deserialize_type("bytes32"), do: {:bytes, 32}
     def deserialize_type("string"), do: :string
     def deserialize_type("bytes"), do: :bytes
+
     def deserialize_type(ty) when is_binary(ty) do
       cond do
         String.ends_with?(ty, "[]") ->
@@ -193,8 +200,8 @@ defmodule Signet.Typed do
     def deserialize_value!(value, {:bytes, sz}),
       do: Signet.Util.pad(Signet.Util.decode_hex!(value), sz)
 
-    def deserialize_value!(value, {:array, ty}) when is_list(value), do:
-      Enum.map(value, &deserialize_value!(&1, ty))
+    def deserialize_value!(value, {:array, ty}) when is_list(value),
+      do: Enum.map(value, &deserialize_value!(&1, ty))
 
     @doc ~S"""
     Serializes a value of a given type to pass to JSON or JavaScript.
@@ -234,8 +241,8 @@ defmodule Signet.Typed do
       |> Signet.Util.encode_hex()
     end
 
-    def serialize_value(value, {:array, ty}) when is_list(value), do:
-      Enum.map(value, &serialize_value(&1, ty))
+    def serialize_value(value, {:array, ty}) when is_list(value),
+      do: Enum.map(value, &serialize_value(&1, ty))
 
     @doc ~S"""
     Encodes a value for `encodeData`, as per the EIP-712 spec. Specifically, raw values are
@@ -267,6 +274,7 @@ defmodule Signet.Typed do
     def encode_data_value(value, :string), do: Signet.Util.keccak(value)
     def encode_data_value(value, :bytes), do: Signet.Util.keccak(value)
     def encode_data_value(value, {:bytes, _}), do: Signet.Util.pad(value, 32)
+
     def encode_data_value(value, {:array, ty}) do
       value
       |> Enum.map(&encode_data_value(&1, ty))

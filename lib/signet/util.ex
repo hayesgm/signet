@@ -255,7 +255,12 @@ defmodule Signet.Util do
     ropsten: 2,
     rinkeby: 4,
     goerli: 5,
-    kovan: 42
+    kovan: 42,
+    base: 8453,
+    base_sepolia: 84532,
+    arbitrum: 42161,
+    mumbai: 80001,
+    sepolia: 11_155_111
   }
 
   @doc ~S"""
@@ -268,6 +273,9 @@ defmodule Signet.Util do
 
       iex> Signet.Util.parse_chain_id(:goerli)
       5
+
+      iex> Signet.Util.parse_chain_id(:sepolia)
+      11155111
   """
   def parse_chain_id(chain_id) when is_atom(chain_id), do: Map.fetch!(@chains, chain_id)
   def parse_chain_id(chain_id) when is_integer(chain_id), do: chain_id
