@@ -16,7 +16,7 @@ defmodule Signet.Typed do
   defmodule Type do
     defstruct [:fields]
 
-    @type primitive() :: :address | {:uint, number()} | {:bytes, number()} | :string | :bytes | {:list, primitive()}
+    @type primitive() :: :address | {:uint, number()} | {:bytes, number()} | :string | :bytes | {:array, primitive()}
     @type field_type() :: primitive() | String.t()
     @type type_list() :: [{String.t(), field_type()}]
     @type t() :: %__MODULE__{fields: type_list()}
@@ -97,7 +97,7 @@ defmodule Signet.Typed do
         iex> Signet.Typed.Type.serialize_type(:bytes)
         "bytes"
 
-        iex> Signet.Typed.Type.serialize_type({:list, :bytes})
+        iex> Signet.Typed.Type.serialize_type({:array, :bytes})
         "bytes[]"
 
         iex> Signet.Typed.Type.serialize_type("Person")
@@ -109,7 +109,7 @@ defmodule Signet.Typed do
     def serialize_type({:bytes, sz}), do: "bytes#{sz}"
     def serialize_type(:string), do: "string"
     def serialize_type(:bytes), do: "bytes"
-    def serialize_type({:list, ty}), do: "#{serialize_type(ty)}[]"
+    def serialize_type({:array, ty}), do: "#{serialize_type(ty)}[]"
     def serialize_type(custom_type) when is_binary(custom_type), do: custom_type
 
     @doc ~S"""
@@ -131,7 +131,7 @@ defmodule Signet.Typed do
         {:bytes, 32}
 
         iex> Signet.Typed.Type.deserialize_type("bytes32[]")
-        {:list, {:bytes, 32}}
+        {:array, {:bytes, 32}}
 
         iex> Signet.Typed.Type.deserialize_type("Person")
         "Person"
@@ -148,7 +148,7 @@ defmodule Signet.Typed do
     def deserialize_type(ty) when is_binary(ty) do
       cond do
         String.ends_with?(ty, "[]") ->
-          {:list, deserialize_type(String.slice(ty, 0, String.length(ty) - 2))}
+          {:array, deserialize_type(String.slice(ty, 0, String.length(ty) - 2))}
 
         String.length(ty) > 0 and String.slice(ty, 0, 1) == String.upcase(String.slice(ty, 0, 1)) ->
           ty
@@ -181,7 +181,7 @@ defmodule Signet.Typed do
         iex> Signet.Typed.Type.deserialize_value!("0xCCDD", :bytes)
         <<0xCC, 0xDD>>
 
-        iex> Signet.Typed.Type.deserialize_value!(["0xCCDD", "0xEE"], {:list, :bytes})
+        iex> Signet.Typed.Type.deserialize_value!(["0xCCDD", "0xEE"], {:array, :bytes})
         [<<0xCC, 0xDD>>, <<0xEE>>]
     """
     @spec deserialize_value!(term(), primitive()) :: term()
@@ -193,7 +193,7 @@ defmodule Signet.Typed do
     def deserialize_value!(value, {:bytes, sz}),
       do: Signet.Util.pad(Signet.Util.decode_hex!(value), sz)
 
-    def deserialize_value!(value, {:list, ty}) when is_list(value), do:
+    def deserialize_value!(value, {:array, ty}) when is_list(value), do:
       Enum.map(value, &deserialize_value!(&1, ty))
 
     @doc ~S"""
@@ -219,7 +219,7 @@ defmodule Signet.Typed do
         iex> Signet.Typed.Type.serialize_value(<<0xCC, 0xDD>>, :bytes)
         "0xCCDD"
 
-        iex> Signet.Typed.Type.serialize_value([<<0xCC, 0xDD>>, <<0xEE>>], {:list, :bytes})
+        iex> Signet.Typed.Type.serialize_value([<<0xCC, 0xDD>>, <<0xEE>>], {:array, :bytes})
         ["0xCCDD", "0xEE"]
     """
     @spec serialize_value(term(), primitive()) :: term()
@@ -234,7 +234,7 @@ defmodule Signet.Typed do
       |> Signet.Util.encode_hex()
     end
 
-    def serialize_value(value, {:list, ty}) when is_list(value), do:
+    def serialize_value(value, {:array, ty}) when is_list(value), do:
       Enum.map(value, &serialize_value(&1, ty))
 
     @doc ~S"""
@@ -258,7 +258,7 @@ defmodule Signet.Typed do
         iex> Signet.Typed.Type.encode_data_value("Cow", :string)
         Base.decode16!("8C1D2BD5348394761719DA11EC67EEDAE9502D137E8940FEE8ECD6F641EE1648")
 
-        iex> Signet.Typed.Type.encode_data_value([<<0xCC, 0xDD>>, <<0xEE>>], {:list, :bytes})
+        iex> Signet.Typed.Type.encode_data_value([<<0xCC, 0xDD>>, <<0xEE>>], {:array, :bytes})
         Base.decode16!("134619415A3C9FE841D99F7CFD5C0BCCFC7CF0DAE90743A3D717C748A3961CF5")
     """
     @spec encode_data_value(term(), primitive()) :: term()
@@ -267,7 +267,7 @@ defmodule Signet.Typed do
     def encode_data_value(value, :string), do: Signet.Util.keccak(value)
     def encode_data_value(value, :bytes), do: Signet.Util.keccak(value)
     def encode_data_value(value, {:bytes, _}), do: Signet.Util.pad(value, 32)
-    def encode_data_value(value, {:list, ty}) do
+    def encode_data_value(value, {:array, ty}) do
       value
       |> Enum.map(&encode_data_value(&1, ty))
       |> Enum.join()
@@ -823,7 +823,7 @@ defmodule Signet.Typed do
       ...>     version: "1"
       ...>   },
       ...>   types: %{
-      ...>     "Array" => %Signet.Typed.Type{fields: [{"a", {:uint, 256}}, {"b", {:uint, 256}}, {"c", :string}, {"d", {:list, :bytes}}]}
+      ...>     "Array" => %Signet.Typed.Type{fields: [{"a", {:uint, 256}}, {"b", {:uint, 256}}, {"c", :string}, {"d", {:array, :bytes}}]}
       ...>   },
       ...>   value: %{
       ...>     "a" => 55,
