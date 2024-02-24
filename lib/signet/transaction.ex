@@ -558,6 +558,23 @@ defmodule Signet.Transaction do
           signature_r: <<0x01::256>>,
           signature_s: <<0x02::256>>
         }
+
+        iex> Signet.Transaction.V2.new(1, {1, :gwei}, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>, [<<2::160>>, <<3::160>>], 1, 0x01, 0x02, :goerli)
+        ...> |> Signet.Transaction.V2.add_signature(<<1::256, 2::256, 3838::16>>)
+        %Signet.Transaction.V2{
+          chain_id: 5,
+          nonce: 1,
+          max_priority_fee_per_gas: 1000000000,
+          max_fee_per_gas: 100000000000,
+          gas_limit: 100000,
+          destination: <<1::160>>,
+          amount: 2,
+          data: <<1, 2, 3>>,
+          access_list: [<<2::160>>, <<3::160>>],
+          signature_y_parity: true,
+          signature_r: <<0x01::256>>,
+          signature_s: <<0x02::256>>
+        }
     """
     def add_signature(
           transaction = %__MODULE__{},
@@ -571,8 +588,9 @@ defmodule Signet.Transaction do
 
     def add_signature(
           transaction = %__MODULE__{},
-          <<r::binary-size(32), s::binary-size(32), v::integer-size(8)>>
+          <<r::binary-size(32), s::binary-size(32), v_bin::binary>>
         ) do
+      v = :binary.decode_unsigned(v_bin)
       y_parity =
         if v < 2 do
           v == 1
