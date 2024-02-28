@@ -21,9 +21,8 @@ defmodule Signet.RPC do
     ] ++ extra_headers
   end
 
-  defp get_body(method, params) do
-    id = System.unique_integer([:positive])
-
+  @doc false
+  def get_body(method, params, id) do
     %{
       "jsonrpc" => "2.0",
       "method" => method,
@@ -145,7 +144,8 @@ defmodule Signet.RPC do
     timeout = Keyword.get(opts, :timeout, 30_000)
     verbose = Keyword.get(opts, :verbose, false)
     url = Keyword.get(opts, :ethereum_node, ethereum_node())
-    body = get_body(method, params)
+    id = Keyword.get_lazy(opts, :id, fn -> System.unique_integer([:positive]) end)
+    body = get_body(method, params, id)
 
     case http_client().post(url, Jason.encode!(body), headers(headers), recv_timeout: timeout) do
       {:ok, %HTTPoison.Response{status_code: code, body: resp_body}} when code in 200..299 ->
