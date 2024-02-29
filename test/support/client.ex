@@ -806,6 +806,17 @@ defmodule Signet.Test.Client do
     "0xcc"
   end
 
+  # Reverting
+  def eth_estimateGas(_trx = %{"to" => "0x000000000000000000000000000000000000000A"}, _block) do
+    {:error,
+     %{
+       "code" => 3,
+       "message" => "execution reverted: Dai/insufficient-balance",
+       "data" =>
+         "0x08c379a0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000184461692f696e73756666696369656e742d62616c616e63650000000000000000"
+     }}
+  end
+
   # V1
   def eth_estimateGas(_trx = %{"gasPrice" => _}, _block) do
     "0x0d"

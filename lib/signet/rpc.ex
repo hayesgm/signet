@@ -32,7 +32,7 @@ defmodule Signet.RPC do
   end
 
   # See https://blog.soliditylang.org/2021/04/21/custom-errors/
-  defp decode_error(<<error_hash::binary-size(4), error_data::binary>>, errors) do
+  defp decode_error(<<error_hash::binary-size(4), error_data::binary>>, errors) when is_list(errors) do
     all_errors = ["Panic(uint256)" | errors]
 
     case Enum.find(all_errors, fn error ->
@@ -308,6 +308,10 @@ defmodule Signet.RPC do
       iex> Signet.Transaction.V2.new(1, {1, :gwei}, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>, [<<2::160>>, <<3::160>>], :goerli)
       iex> |> Signet.RPC.estimate_gas()
       {:ok, 0xdd}
+
+      iex> Signet.Transaction.V2.new(1, {1, :gwei}, {100, :gwei}, 100_000, <<10::160>>, {2, :wei}, <<1, 2, 3>>, [<<2::160>>, <<3::160>>], :goerli)
+      iex> |> Signet.RPC.estimate_gas()
+      {:error, %{code: 3, message: "execution reverted: Dai/insufficient-balance", revert: Signet.Util.decode_hex!("0x08c379a0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000184461692f696e73756666696369656e742d62616c616e63650000000000000000")}}
   """
   def estimate_gas(trx, opts \\ []) do
     from = Keyword.get(opts, :from)

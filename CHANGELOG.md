@@ -1,4 +1,8 @@
 
+## v1.0.0-beta7
+
+- Improve error handling of RPC calls
+
 ## v1.0.0-beta6
 
 - Add `eth_getCode` support
