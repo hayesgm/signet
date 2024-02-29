@@ -1,4 +1,8 @@
 
+## v1.0.0-beta6
+
+- Add `eth_getCode` support
+
 ## v1.0.0-beta5
 
 - Add `trace_callMany` support

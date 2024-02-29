@@ -321,6 +321,24 @@ defmodule Signet.RPC do
   end
 
   @doc """
+  RPC call to get code for a contract at an address.
+
+  ## Examples
+
+      iex> Signet.RPC.get_code(<<1::160>>)
+      {:ok, <<0x11, 0x22, 0x33>>}
+  """
+  def get_code(address = <<_::160>>, opts \\ []) do
+    block_number = Keyword.get(opts, :block_number, "latest")
+
+    send_rpc(
+      "eth_getCode",
+      [Signet.Util.encode_hex(address), block_number],
+      Keyword.merge(opts, decode: :hex)
+    )
+  end
+
+  @doc """
   RPC call to get a transaction receipt. Note, this will return {:ok, %Signet.Receipt{}} or {:ok, nil} if the
   receipt is not yet available.
 

@@ -816,6 +816,10 @@ defmodule Signet.Test.Client do
     "0xdd"
   end
 
+  def eth_getCode(_address, _block) do
+    "0x112233"
+  end
+
   def eth_newFilter(%{}) do
     "0xf11735"
   end
