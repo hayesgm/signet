@@ -55,6 +55,25 @@ defmodule Signet.Trace do
           to: Signet.Util.decode_hex!("0x1c39ba39e4735cb65978d4db400ddd70a72dc750"),
           value: 0x7a16c911b4d00000,
         }
+
+        iex> %{
+        ...>   "callType" => "call",
+        ...>   "from" => "0x0000000000000000000000000000000000000000",
+        ...>   "gas" => "0x1dcd0f58",
+        ...>   "input" =>
+        ...>     "0xd1692f56000000000000000000000000142da9114e5a98e015aa95afca0585e84832a612000000000000000000000000142da9114e5a98e015aa95afca0585e84832a6120000000000000000000000000000000000000000000000000000000000000000",
+        ...>   "to" => "0x13172ee393713fba9925a9a752341ebd31e8d9a7",
+        ...>   "value" => "0x0"
+        ...> }
+        ...> |> Signet.Trace.Action.deserialize()
+        %Signet.Trace.Action{
+          call_type: "call",
+          from: Signet.Util.decode_hex!("0x0000000000000000000000000000000000000000"),
+          gas: 0x1dcd0f58,
+          input: Signet.Util.decode_hex!("0xd1692f56000000000000000000000000142da9114e5a98e015aa95afca0585e84832a612000000000000000000000000142da9114e5a98e015aa95afca0585e84832a6120000000000000000000000000000000000000000000000000000000000000000"),
+          to: Signet.Util.decode_hex!("0x13172ee393713fba9925a9a752341ebd31e8d9a7"),
+          value: 0x0,
+        }
     """
     @spec deserialize(map()) :: t() | no_return()
     def deserialize(params = %{"callType" => call_type}) when is_binary(call_type) do
@@ -245,61 +264,93 @@ defmodule Signet.Trace do
         transaction_position: 0,
         type: "call"
       }
+
+      iex> %{
+      ...>   "action" => %{
+      ...>     "callType" => "call",
+      ...>     "from" => "0x0000000000000000000000000000000000000000",
+      ...>     "gas" => "0x1dcd0f58",
+      ...>     "input" =>
+      ...>       "0xd1692f56000000000000000000000000142da9114e5a98e015aa95afca0585e84832a612000000000000000000000000142da9114e5a98e015aa95afca0585e84832a6120000000000000000000000000000000000000000000000000000000000000000",
+      ...>     "to" => "0x13172ee393713fba9925a9a752341ebd31e8d9a7",
+      ...>     "value" => "0x0"
+      ...>   },
+      ...>   "error" => "Reverted",
+      ...>   "result" => %{"gasUsed" => "0x1d55dd47", "output" => "0x"},
+      ...>   "subtraces" => 1,
+      ...>   "traceAddress" => [],
+      ...>   "type" => "call"
+      ...> }
+      ...> |> Signet.Trace.deserialize()
+      %Signet.Trace{
+        action: %Signet.Trace.Action{
+          call_type: "call",
+          from: Signet.Util.decode_hex!("0x0000000000000000000000000000000000000000"),
+          gas: 0x1dcd0f58,
+          input: Signet.Util.decode_hex!("0xd1692f56000000000000000000000000142da9114e5a98e015aa95afca0585e84832a612000000000000000000000000142da9114e5a98e015aa95afca0585e84832a6120000000000000000000000000000000000000000000000000000000000000000"),
+          to: Signet.Util.decode_hex!("0x13172ee393713fba9925a9a752341ebd31e8d9a7"),
+          value: 0x0,
+        },
+        block_hash: nil,
+        block_number: nil,
+        gas_used: 0x1d55dd47,
+        error: "Reverted",
+        output: <<>>,
+        subtraces: 1,
+        trace_address: [],
+        transaction_hash: nil,
+        type: "call"
+      }
+
+      iex> %{
+      ...>   "action" => %{
+      ...>     "from" => "0x13172ee393713fba9925a9a752341ebd31e8d9a7",
+      ...>     "gas" => "0x1d555c99",
+      ...>     "init" =>
+      ...>       "0x60e03461009157601f6101ec38819003918201601f19168301916001600160401b038311848410176100965780849260609460405283398101031261009157610047816100ac565b906100606040610059602084016100ac565b92016100ac565b9060805260a05260c05260405161012b90816100c18239608051816088015260a051816045015260c0518160c60152f35b600080fd5b634e487b7160e01b600052604160045260246000fd5b51906001600160a01b03821682036100915756fe608060405260043610156013575b3660ba57005b6000803560e01c8063238ac9331460775763c34c08e51460325750600d565b34607457806003193601126074576040517f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03168152602090f35b80fd5b5034607457806003193601126074577f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03166080908152602090f35b600036818037808036817f00000000000000000000000000000000000000000000000000000000000000005af4903d918282803e60f357fd5bf3fea264697066735822122032b5603d6937ceb7a252e16379744d8545670ff4978c8d76c985d051dfcfe46c64736f6c6343000817003300000000000000000000000049e5d261e95f6a02505078bb339fecb210a0b634000000000000000000000000142da9114e5a98e015aa95afca0585e84832a612000000000000000000000000142da9114e5a98e015aa95afca0585e84832a612",
+      ...>     "value" => "0x0"
+      ...>   },
+      ...>   "error" => "contract address collision",
+      ...>   "result" => nil,
+      ...>   "subtraces" => 0,
+      ...>   "traceAddress" => [0],
+      ...>   "type" => "create"
+      ...> }
+      ...> |> Signet.Trace.deserialize()
+      %Signet.Trace{
+        action: %Signet.Trace.Action{
+          from: Signet.Util.decode_hex!("0x13172ee393713fba9925a9a752341ebd31e8d9a7"),
+          gas: 0x1d555c99,
+          init: Signet.Util.decode_hex!("0x60e03461009157601f6101ec38819003918201601f19168301916001600160401b038311848410176100965780849260609460405283398101031261009157610047816100ac565b906100606040610059602084016100ac565b92016100ac565b9060805260a05260c05260405161012b90816100c18239608051816088015260a051816045015260c0518160c60152f35b600080fd5b634e487b7160e01b600052604160045260246000fd5b51906001600160a01b03821682036100915756fe608060405260043610156013575b3660ba57005b6000803560e01c8063238ac9331460775763c34c08e51460325750600d565b34607457806003193601126074576040517f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03168152602090f35b80fd5b5034607457806003193601126074577f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03166080908152602090f35b600036818037808036817f00000000000000000000000000000000000000000000000000000000000000005af4903d918282803e60f357fd5bf3fea264697066735822122032b5603d6937ceb7a252e16379744d8545670ff4978c8d76c985d051dfcfe46c64736f6c6343000817003300000000000000000000000049e5d261e95f6a02505078bb339fecb210a0b634000000000000000000000000142da9114e5a98e015aa95afca0585e84832a612000000000000000000000000142da9114e5a98e015aa95afca0585e84832a612"),
+          value: 0x0,
+        },
+        error: "contract address collision",
+        subtraces: 0,
+        trace_address: [0],
+        type: "create"
+      }
   """
   @spec deserialize(map()) :: t() | no_return()
   def deserialize(
         params = %{
-          "blockNumber" => block_number,
           "subtraces" => subtraces,
-          "transactionPosition" => transaction_position,
-          "type" => type,
-          "result" => %{
-            "output" => output
-          }
+          "type" => type
         }
       )
-      when is_integer(block_number) and is_integer(subtraces) and is_integer(transaction_position) and
-             is_binary(type) do
+      when is_integer(subtraces) and is_binary(type) do
     %__MODULE__{
       action: Action.deserialize(params["action"]),
-      block_hash: Signet.Util.decode_word!(params["blockHash"]),
-      block_number: block_number,
-      gas_used: Signet.Util.decode_hex_number!(params["result"]["gasUsed"]),
+      block_hash: map(get_in(params, ["blockHash"]), &Signet.Util.decode_word!/1),
+      block_number: params["blockNumber"],
+      gas_used: map(get_in(params, ["result", "gasUsed"]), &Signet.Util.decode_hex_number!/1),
       error: if(Map.has_key?(params, "error"), do: params["error"], else: nil),
-      output: Signet.Util.decode_hex!(output),
+      output: map(get_in(params, ["result", "output"]), &Signet.Util.decode_hex!/1),
       subtraces: subtraces,
       trace_address: Enum.map(params["traceAddress"], &decode_address_or_number/1),
-      transaction_hash: Signet.Util.decode_word!(params["transactionHash"]),
-      transaction_position: transaction_position,
-      type: type
-    }
-  end
-
-  def deserialize(
-        params = %{
-          "blockNumber" => block_number,
-          "subtraces" => subtraces,
-          "transactionPosition" => transaction_position,
-          "type" => type,
-          "result" => %{
-            "code" => code
-          }
-        }
-      )
-      when is_integer(block_number) and is_integer(subtraces) and is_integer(transaction_position) and
-             is_binary(type) do
-    %__MODULE__{
-      action: Action.deserialize(params["action"]),
-      block_hash: Signet.Util.decode_word!(params["blockHash"]),
-      block_number: block_number,
-      gas_used: Signet.Util.decode_hex_number!(params["result"]["gasUsed"]),
-      error: if(Map.has_key?(params, "error"), do: params["error"], else: nil),
-      result_code: Signet.Util.decode_hex!(code),
-      result_address: Signet.Util.decode_address!(params["result"]["address"]),
-      subtraces: subtraces,
-      trace_address: Enum.map(params["traceAddress"], &decode_address_or_number/1),
-      transaction_hash: Signet.Util.decode_word!(params["transactionHash"]),
-      transaction_position: transaction_position,
+      transaction_hash: map(get_in(params, ["transactionHash"]), &Signet.Util.decode_word!/1),
+      transaction_position: params["transactionPosition"],
+      result_code: map(get_in(params, ["result", "code"]), &Signet.Util.decode_hex!/1),
+      result_address: map(get_in(params, ["result", "address"]), &Signet.Util.decode_address!/1),
       type: type
     }
   end
@@ -358,4 +409,8 @@ defmodule Signet.Trace do
 
   defp decode_address_or_number(b) when is_binary(b), do: Signet.Util.decode_address!(b)
   defp decode_address_or_number(n) when is_integer(n), do: n
+
+  defp map(x, f) do
+    if is_nil(x), do: nil, else: f.(x)
+  end
 end

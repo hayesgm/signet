@@ -1,4 +1,24 @@
 
+## v1.0.0-beta5
+
+- Add `trace_callMany` support
+
+## v1.0.0-beta4
+
+- Allow custom `id` for RPC calls
+
+## v1.0.0-beta3
+
+- Allow wide EIP-155 signatures
+
+## v1.0.0-beta2
+
+- Support sepolia
+
+## v1.0.0-beta1
+
+- Fix ABI integration
+
 ## v1.0.0-alpha10
 
 - Allow nil rewards from `eth_feeHistory`
