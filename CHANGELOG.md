@@ -1,3 +1,8 @@
+## v1.0.0-charlie1
+
+- Add Sleuth support
+- Fix nilable values in rpc send
+
 ## v1.0.0-beta9
 
 -  Add contract codegen code
