@@ -1236,22 +1236,22 @@ defmodule Signet.RPC do
 
   defp to_call_params(trx = %Signet.Transaction.V1{}, from) do
     %{
-      from: if(is_nil(from), do: nil, else: Hex.encode_big_hex(from)),
-      to: Hex.encode_big_hex(trx.to),
-      gasPrice: Hex.encode_short_hex(trx.gas_price),
-      value: Hex.encode_short_hex(trx.value),
-      data: Hex.encode_short_hex(trx.data)
+      from: nil_map(from, &Hex.encode_big_hex/1),
+      to: nil_map(trx.to, &Hex.encode_big_hex/1),
+      gasPrice: nil_map(trx.gas_price, &Hex.encode_short_hex/1),
+      value: nil_map(trx.value, &Hex.encode_short_hex/1),
+      data: nil_map(trx.data, &Hex.encode_short_hex/1)
     }
   end
 
   defp to_call_params(trx = %Signet.Transaction.V2{}, from) do
     %{
-      from: if(is_nil(from), do: nil, else: Hex.encode_big_hex(from)),
-      to: Hex.encode_big_hex(trx.destination),
-      maxPriorityFeePerGas: Hex.encode_short_hex(trx.max_priority_fee_per_gas),
-      maxFeePerGas: Hex.encode_short_hex(trx.max_fee_per_gas),
-      value: Hex.encode_short_hex(trx.amount),
-      data: Hex.encode_short_hex(trx.data)
+      from: nil_map(from, &Hex.encode_big_hex/1),
+      to: nil_map(trx.destination, &Hex.encode_big_hex/1),
+      maxPriorityFeePerGas: nil_map(trx.max_priority_fee_per_gas, &Hex.encode_short_hex/1),
+      maxFeePerGas: nil_map(trx.max_fee_per_gas, &Hex.encode_short_hex/1),
+      value: nil_map(trx.amount, &Hex.encode_short_hex/1),
+      data: nil_map(trx.data, &Hex.encode_short_hex/1)
     }
   end
 
@@ -1307,4 +1307,7 @@ defmodule Signet.RPC do
         err
     end
   end
+
+  defp nil_map(nil, _), do: nil
+  defp nil_map(x, fun), do: fun.(x)
 end
