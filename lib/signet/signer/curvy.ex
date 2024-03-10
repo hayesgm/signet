@@ -13,8 +13,8 @@ defmodule Signet.Signer.Curvy do
 
       iex> priv_key = "800509fa3e80882ad0be77c27505bdc91380f800d51ed80897d22f9fcc75f4bf" |> Base.decode16!(case: :mixed)
       iex> {:ok, address} = Signet.Signer.Curvy.get_address(priv_key)
-      iex> Base.encode16(address)
-      "63CC7C25E0CDB121ABB0FE477A6B9901889F99A7"
+      iex> Signet.Hex.to_address(address)
+      "0x63Cc7c25e0cdb121aBb0fE477a6b9901889F99A7"
   """
   @spec get_address(binary()) :: {:ok, binary()} | {:error, String.t()}
   def get_address(private_key) do
@@ -30,11 +30,12 @@ defmodule Signet.Signer.Curvy do
 
   ## Examples
 
-      iex> priv_key = Base.decode16!("800509fa3e80882ad0be77c27505bdc91380f800d51ed80897d22f9fcc75f4bf", case: :mixed)
+      iex> use Signet.Hex
+      iex> priv_key = ~h[0x800509fa3e80882ad0be77c27505bdc91380f800d51ed80897d22f9fcc75f4bf]
       iex> {:ok, sig} = Signet.Signer.Curvy.sign("test", priv_key)
-      iex> {:ok, recid} = Signet.Recover.find_recid("test", sig, Base.decode16!("63CC7C25E0CDB121ABB0FE477A6B9901889F99A7"))
-      iex> Signet.Recover.recover_eth("test", %{sig|recid: recid}) |> Base.encode16()
-      "63CC7C25E0CDB121ABB0FE477A6B9901889F99A7"
+      iex> {:ok, recid} = Signet.Recover.find_recid("test", sig, ~h[0x63Cc7c25e0cdb121aBb0fE477a6b9901889F99A7])
+      iex> Signet.Recover.recover_eth("test", %{sig|recid: recid}) |> Signet.Hex.to_address()
+      "0x63Cc7c25e0cdb121aBb0fE477a6b9901889F99A7"
   """
   @spec sign(String.t(), binary()) :: {:ok, Curvy.Signature.t()} | {:error, String.t()}
   def sign(message, private_key) when is_binary(message) do

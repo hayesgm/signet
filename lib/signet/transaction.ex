@@ -98,8 +98,8 @@ defmodule Signet.Transaction do
 
     ## Examples
 
-        iex> "E80185174876E800830186A094000000000000000000000000000000000000000102830102032A8080"
-        ...> |> Base.decode16!()
+        iex> use Signet.Hex
+        iex> ~h[0xE80185174876E800830186A094000000000000000000000000000000000000000102830102032A8080]
         ...> |> Signet.Transaction.V1.decode()
         {:ok, %Signet.Transaction.V1{
           nonce: 1,
@@ -196,8 +196,8 @@ defmodule Signet.Transaction do
         ...> Signet.Transaction.V1.new(1, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>, :kovan)
         ...> |> Signet.Transaction.V1.add_signature(<<1::256, 2::256, 3::8>>)
         ...> |> Signet.Transaction.V1.recover_signer(:kovan)
-        ...> Base.encode16(address)
-        "47643AC1194D7E8C6D04DD631D456137028BBC1F"
+        ...> Signet.Hex.to_address(address)
+        "0x47643AC1194d7e8C6d04dD631D456137028bBc1F"
 
         iex> Signet.Transaction.V1.new(1, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>, :kovan)
         ...> |> Signet.Transaction.V1.recover_signer(:kovan)
@@ -359,13 +359,13 @@ defmodule Signet.Transaction do
 
         iex> Signet.Transaction.V2.new(1, {1, :gwei}, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>, [<<2::160>>, <<3::160>>], :goerli)
         ...> |> Signet.Transaction.V2.encode()
-        ...> |> Base.encode16()
-        "02F8560501843B9ACA0085174876E800830186A09400000000000000000000000000000000000000010283010203EA940000000000000000000000000000000000000002940000000000000000000000000000000000000003"
+        ...> |> Signet.Hex.to_hex()
+        "0x02f8560501843b9aca0085174876e800830186a09400000000000000000000000000000000000000010283010203ea940000000000000000000000000000000000000002940000000000000000000000000000000000000003"
 
         iex> Signet.Transaction.V2.new(1, {1, :gwei}, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>, [<<2::160>>, <<3::160>>], true, <<0x01::256>>, <<0x02::256>>, :goerli)
         ...> |> Signet.Transaction.V2.encode()
-        ...> |> Base.encode16()
-        "02F8990501843B9ACA0085174876E800830186A09400000000000000000000000000000000000000010283010203EA94000000000000000000000000000000000000000294000000000000000000000000000000000000000301A00000000000000000000000000000000000000000000000000000000000000001A00000000000000000000000000000000000000000000000000000000000000002"
+        ...> |> Signet.Hex.to_hex()
+        "0x02f8990501843b9aca0085174876e800830186a09400000000000000000000000000000000000000010283010203ea94000000000000000000000000000000000000000294000000000000000000000000000000000000000301a00000000000000000000000000000000000000000000000000000000000000001a00000000000000000000000000000000000000000000000000000000000000002"
     """
     def encode(%__MODULE__{
           chain_id: chain_id,
@@ -433,7 +433,8 @@ defmodule Signet.Transaction do
 
     ## Examples
 
-        iex> Signet.Transaction.V2.decode(Base.decode16!("02F8990501843B9ACA0085174876E800830186A09400000000000000000000000000000000000000010283010203EA94000000000000000000000000000000000000000294000000000000000000000000000000000000000301A00000000000000000000000000000000000000000000000000000000000000001A00000000000000000000000000000000000000000000000000000000000000002"))
+        iex> use Signet.Hex
+        iex> Signet.Transaction.V2.decode(~h[0x02F8990501843B9ACA0085174876E800830186A09400000000000000000000000000000000000000010283010203EA94000000000000000000000000000000000000000294000000000000000000000000000000000000000301A00000000000000000000000000000000000000000000000000000000000000001A00000000000000000000000000000000000000000000000000000000000000002])
         {:ok, %Signet.Transaction.V2{
           chain_id: 5,
           nonce: 1,
@@ -631,8 +632,8 @@ defmodule Signet.Transaction do
         iex> {:ok, address} =
         ...>   Signet.Transaction.V2.new(1, {1, :gwei}, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>, [<<2::160>>, <<3::160>>], true, <<0x01::256>>, <<0x02::256>>, :goerli)
         ...>   |> Signet.Transaction.V2.recover_signer()
-        ...> Base.encode16(address)
-        "C002CA628F93E1550B5F30ED10902A9E7783364B"
+        ...> Signet.Hex.to_address(address)
+        "0xC002Ca628F93e1550b5f30Ed10902A9e7783364B"
 
         iex> Signet.Transaction.V2.new(1, {1, :gwei}, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>, [<<2::160>>, <<3::160>>], :goerli)
         ...> |> Signet.Transaction.V2.recover_signer()
@@ -653,6 +654,7 @@ defmodule Signet.Transaction do
 
   ## Examples
 
+      iex> use Signet.Hex
       iex> Signet.Transaction.build_trx(<<1::160>>, 5, {"baz(uint,address)", [50, :binary.decode_unsigned(<<1::160>>)]}, {50, :gwei}, 100_000, 0, 5)
       %Signet.Transaction.V1{
         nonce: 5,
@@ -660,13 +662,14 @@ defmodule Signet.Transaction do
         gas_limit: 100000,
         to: <<1::160>>,
         value: 0,
-        data: Base.decode16!("A291ADD600000000000000000000000000000000000000000000000000000000000000320000000000000000000000000000000000000000000000000000000000000001"),
+        data: ~h[0xA291ADD600000000000000000000000000000000000000000000000000000000000000320000000000000000000000000000000000000000000000000000000000000001],
         v: 5,
         r: 0,
         s: 0
       }
 
-      iex> call_data = Base.decode16!("A291ADD600000000000000000000000000000000000000000000000000000000000000320000000000000000000000000000000000000000000000000000000000000001")
+      iex> use Signet.Hex
+      iex> call_data = ~h[0xA291ADD600000000000000000000000000000000000000000000000000000000000000320000000000000000000000000000000000000000000000000000000000000001]
       ...> Signet.Transaction.build_trx(<<1::160>>, 5, call_data, {50, :gwei}, 100_000, 0, 5)
       %Signet.Transaction.V1{
         nonce: 5,
@@ -674,7 +677,7 @@ defmodule Signet.Transaction do
         gas_limit: 100000,
         to: <<1::160>>,
         value: 0,
-        data: Base.decode16!("A291ADD600000000000000000000000000000000000000000000000000000000000000320000000000000000000000000000000000000000000000000000000000000001"),
+        data: ~h[0xA291ADD600000000000000000000000000000000000000000000000000000000000000320000000000000000000000000000000000000000000000000000000000000001],
         v: 5,
         r: 0,
         s: 0
@@ -698,6 +701,7 @@ defmodule Signet.Transaction do
 
   ## Examples
 
+      iex> use Signet.Hex
       iex> Signet.Transaction.build_trx_v2(<<1::160>>, 6, {"baz(uint,address)", [50, :binary.decode_unsigned(<<1::160>>)]}, {50, :gwei}, {10, :gwei}, 100_000, 0, [<<1::160>>], :goerli)
       %Signet.Transaction.V2{
         chain_id: 5,
@@ -707,14 +711,15 @@ defmodule Signet.Transaction do
         gas_limit: 100000,
         destination: <<1::160>>,
         amount: 0,
-        data: Base.decode16!("A291ADD600000000000000000000000000000000000000000000000000000000000000320000000000000000000000000000000000000000000000000000000000000001"),
+        data: ~h[0xA291ADD600000000000000000000000000000000000000000000000000000000000000320000000000000000000000000000000000000000000000000000000000000001],
         access_list: [<<1::160>>],
         signature_y_parity: nil,
         signature_r: nil,
         signature_s: nil
       }
 
-      iex> call_data = Base.decode16!("A291ADD600000000000000000000000000000000000000000000000000000000000000320000000000000000000000000000000000000000000000000000000000000001")
+      iex> use Signet.Hex
+      iex> call_data = ~h[0xA291ADD600000000000000000000000000000000000000000000000000000000000000320000000000000000000000000000000000000000000000000000000000000001]
       ...> Signet.Transaction.build_trx_v2(<<1::160>>, 5, call_data, {50, :gwei}, {10, :gwei}, 100_000, 0, [<<1::160>>], :goerli)
       %Signet.Transaction.V2{
         chain_id: 5,
@@ -724,7 +729,7 @@ defmodule Signet.Transaction do
         gas_limit: 100000,
         destination: <<1::160>>,
         amount: 0,
-        data: Base.decode16!("A291ADD600000000000000000000000000000000000000000000000000000000000000320000000000000000000000000000000000000000000000000000000000000001"),
+        data: ~h[0xA291ADD600000000000000000000000000000000000000000000000000000000000000320000000000000000000000000000000000000000000000000000000000000001],
         access_list: [<<1::160>>],
         signature_y_parity: nil,
         signature_r: nil,
@@ -775,8 +780,8 @@ defmodule Signet.Transaction do
       iex> signer_proc = Signet.Test.Signer.start_signer()
       iex> {:ok, signed_trx} = Signet.Transaction.build_signed_trx(<<1::160>>, 5, {"baz(uint,address)", [50, :binary.decode_unsigned(<<1::160>>)]}, {50, :gwei}, 100_000, 0, signer: signer_proc, chain_id: :goerli)
       iex> {:ok, signer} = Signet.Transaction.V1.recover_signer(signed_trx, 5)
-      iex> Base.encode16(signer)
-      "63CC7C25E0CDB121ABB0FE477A6B9901889F99A7"
+      iex> Signet.Hex.to_address(signer)
+      "0x63Cc7c25e0cdb121aBb0fE477a6b9901889F99A7"
   """
   def build_signed_trx(
         address,
@@ -811,8 +816,8 @@ defmodule Signet.Transaction do
       iex> signer_proc = Signet.Test.Signer.start_signer()
       iex> {:ok, signed_trx} = Signet.Transaction.build_signed_trx_v2(<<1::160>>, 5, {"baz(uint,address)", [50, :binary.decode_unsigned(<<1::160>>)]}, {50, :gwei}, {10, :gwei}, 100_000, 0, [], signer: signer_proc, chain_id: :goerli)
       iex> {:ok, signer} = Signet.Transaction.V2.recover_signer(signed_trx)
-      iex> Base.encode16(signer)
-      "63CC7C25E0CDB121ABB0FE477A6B9901889F99A7"
+      iex> Signet.Hex.to_address(signer)
+      "0x63Cc7c25e0cdb121aBb0fE477a6b9901889F99A7"
   """
   def build_signed_trx_v2(
         address,

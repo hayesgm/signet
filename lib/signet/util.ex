@@ -17,6 +17,7 @@ defmodule Signet.Util do
     :error
   """
   @spec decode_hex(String.t()) :: {:ok, binary()} | :error
+  @deprecated "Use Signet.Hex.decode_hex/1 instead"
   def decode_hex("0x" <> hex) do
     hex_padded =
       if rem(byte_size(hex), 2) == 1 do
@@ -46,6 +47,7 @@ defmodule Signet.Util do
     ** (RuntimeError) invalid hex
   """
   @spec decode_hex!(String.t()) :: binary() | no_return()
+  @deprecated "Use Signet.Hex.decode_hex!/1 instead"
   def decode_hex!(hex) do
     case decode_hex(hex) do
       {:ok, result} ->
@@ -72,6 +74,7 @@ defmodule Signet.Util do
     ** (RuntimeError) invalid hex
   """
   @spec decode_sized_hex!(String.t(), integer()) :: binary() | no_return()
+  @deprecated "Use Signet.Hex.decode_sized!/2 instead"
   def decode_sized_hex!(hex, size) do
     result = decode_hex!(hex)
 
@@ -94,6 +97,7 @@ defmodule Signet.Util do
     ** (RuntimeError) mismatch byte size. expected 32, got: 2
   """
   @spec decode_word!(String.t()) :: <<_::256>> | no_return()
+  @deprecated "Use Signet.Hex.decode_word!/2 instead"
   def decode_word!(hex), do: decode_sized_hex!(hex, 32)
 
   @doc ~S"""
@@ -108,6 +112,7 @@ defmodule Signet.Util do
     ** (RuntimeError) mismatch byte size. expected 20, got: 2
   """
   @spec decode_address!(String.t()) :: <<_::160>> | no_return()
+  @deprecated "Use Signet.Hex.decode_address!/2 instead"
   def decode_address!(hex), do: decode_sized_hex!(hex, 20)
 
   @doc ~S"""
@@ -119,6 +124,7 @@ defmodule Signet.Util do
     0x11223344
   """
   @spec decode_hex_number!(String.t()) :: integer() | no_return()
+  @deprecated "Use Signet.Hex.decode_hex_number!/2 instead"
   def decode_hex_number!(hex), do: decode_hex!(hex) |> :binary.decode_unsigned()
 
   @doc ~S"""
@@ -135,7 +141,7 @@ defmodule Signet.Util do
       iex> Signet.Util.decode_hex_input!(<<0x55>>)
       <<0x55>>
   """
-  def decode_hex_input!(hex = "0x" <> _), do: decode_hex!(hex)
+  def decode_hex_input!(hex = "0x" <> _), do: Signet.Hex.decode_hex!(hex)
   def decode_hex_input!(hex) when is_binary(hex), do: hex
 
   @doc ~S"""
@@ -157,6 +163,7 @@ defmodule Signet.Util do
     iex> Signet.Util.encode_hex(<<0x0>>, true)
     "0x0"
   """
+  @deprecated "Use Signet.Hex.encode_hex_short/1 instead"
   def encode_hex(hex, short \\ false)
   def encode_hex(nil, _short), do: nil
 
@@ -223,9 +230,11 @@ defmodule Signet.Util do
 
   ## Examples
 
-    iex> public_key = Signet.Util.decode_hex!("0x0422")
-    iex> Signet.Util.get_eth_address(public_key) |> Signet.Util.encode_hex()
-    "0x759F1AFDC24ABA433A3E18B683F8C04A6EAA69F0"
+    iex> use Signet.Hex
+    iex> public_key = ~h[0x0422]
+    iex> Signet.Util.get_eth_address(public_key)
+    ...> |> Signet.Hex.encode_hex()
+    "0x759f1afdc24aba433a3e18b683f8c04a6eaa69f0"
   """
   def get_eth_address(public_key) do
     <<4, public_key_raw::binary>> = public_key

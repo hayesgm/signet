@@ -34,7 +34,7 @@ Signet can be installed by adding `signet` to your list of dependencies in `mix.
 ```elixir
 def deps do
   [
-    {:signet, "~> 1.0.0-beta7"}
+    {:signet, "~> 1.0.0-beta8"}
   ]
 end
 ```
@@ -121,11 +121,13 @@ signer_address = Signet.Recover.recover_eth("test", sig)
 You can also sign EIP-712 typed data:
 
 ```elixir
+use Signet.Hex
+
 %Signet.Typed{
   domain: %Signet.Typed.Domain{
     chain_id: 1,
     name: "Ether Mail",
-    verifying_contract: Signet.Util.decode_hex!("0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC"),
+    verifying_contract: ~h[0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC],
     version: "1"
   },
   types: %{
@@ -136,11 +138,11 @@ You can also sign EIP-712 typed data:
     "contents" => "Hello, Bob!",
     "from" => %{
       "name" => "Cow",
-      "wallet" => Signet.Util.decode_hex!("0xCD2a3d9F938E13CD947Ec05AbC7FE734Df8DD826")
+      "wallet" => ~h[0xCD2a3d9F938E13CD947Ec05AbC7FE734Df8DD826]
     },
     "to" => %{
       "name" => "Bob",
-      "wallet" => Signet.Util.decode_hex!("0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB")
+      "wallet" => ~h[0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB]
     }
   }
 }

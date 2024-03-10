@@ -5,6 +5,7 @@ defmodule Signet.Filter do
   """
 
   use GenServer
+  use Signet.Hex
 
   require Logger
 
@@ -37,15 +38,15 @@ defmodule Signet.Filter do
           "transactionIndex" => transaction_index
         }) do
       %__MODULE__{
-        address: Signet.Util.decode_hex!(address),
-        block_hash: Signet.Util.decode_hex!(block_hash),
-        block_number: Signet.Util.decode_hex!(block_number) |> :binary.decode_unsigned(),
-        data: Signet.Util.decode_hex!(data),
-        log_index: Signet.Util.decode_hex!(log_index) |> :binary.decode_unsigned(),
+        address: Hex.decode_address!(address),
+        block_hash: Hex.decode_word!(block_hash),
+        block_number: Hex.decode_hex_number!(block_number),
+        data: from_hex!(data),
+        log_index: Hex.decode_hex_number!(log_index),
         removed: removed,
-        topics: Enum.map(topics, &Signet.Util.decode_hex!/1),
-        transaction_hash: Signet.Util.decode_hex!(transaction_hash),
-        transaction_index: Signet.Util.decode_hex!(transaction_index) |> :binary.decode_unsigned()
+        topics: Enum.map(topics, &Hex.decode_word!/1),
+        transaction_hash: from_hex!(transaction_hash),
+        transaction_index: Hex.decode_hex_number!(transaction_index)
       }
     end
   end
@@ -85,8 +86,8 @@ defmodule Signet.Filter do
     {:ok, filter_id} =
       RPC.send_rpc("eth_newFilter", [
         %{
-          "address" => Signet.Util.encode_hex(address),
-          "topics" => Enum.map(topics, &Signet.Util.encode_hex/1)
+          "address" => Signet.Hex.encode_hex(address),
+          "topics" => Enum.map(topics, &Signet.Hex.encode_hex/1)
         }
       ])
 

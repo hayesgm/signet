@@ -95,8 +95,8 @@ defmodule Signet.FeeHistory do
         }
       ) do
     %__MODULE__{
-      oldest_block: Signet.Util.decode_hex_number!(oldest_block),
-      base_fee_per_gas: Enum.map(base_fee_per_gas, &Signet.Util.decode_hex_number!/1),
+      oldest_block: Signet.Hex.decode_hex_number!(oldest_block),
+      base_fee_per_gas: Enum.map(base_fee_per_gas, &Signet.Hex.decode_hex_number!/1),
       gas_used_ratio: gas_used_ratio,
       reward:
         case params["reward"] do
@@ -104,7 +104,7 @@ defmodule Signet.FeeHistory do
             nil
 
           reward ->
-            Enum.map(reward, fn r -> Enum.map(r, &Signet.Util.decode_hex_number!/1) end)
+            Enum.map(reward, fn r -> Enum.map(r, &Signet.Hex.decode_hex_number!/1) end)
         end
     }
   end
