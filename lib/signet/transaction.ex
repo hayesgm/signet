@@ -592,6 +592,7 @@ defmodule Signet.Transaction do
           <<r::binary-size(32), s::binary-size(32), v_bin::binary>>
         ) do
       v = :binary.decode_unsigned(v_bin)
+
       y_parity =
         if v < 2 do
           v == 1

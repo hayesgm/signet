@@ -34,7 +34,8 @@ defmodule Signet.RPC do
   end
 
   # See https://blog.soliditylang.org/2021/04/21/custom-errors/
-  defp decode_error(<<error_hash::binary-size(4), error_data::binary>>, errors) when is_list(errors) do
+  defp decode_error(<<error_hash::binary-size(4), error_data::binary>>, errors)
+       when is_list(errors) do
     all_errors = ["Panic(uint256)" | errors]
 
     case Enum.find(all_errors, fn error ->

@@ -1,3 +1,10 @@
+## v1.0.0-beta9
+
+-  Add contract codegen code
+
+## v1.0.0-beta8
+
+- Add Signet.Hex to replace Signet.Util's hex libraries
 
 ## v1.0.0-beta7
 
