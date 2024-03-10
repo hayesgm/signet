@@ -14,10 +14,11 @@ defmodule Signet.Sleuth do
   def query(bytecode, query, selector, opts \\ []) when is_binary(bytecode) and is_list(opts) do
     {sleuth_address, rpc_opts} = Keyword.pop(opts, :sleuth_address, @sleuth_address)
 
-    with {:ok, query_res} <-
+    with {:ok, query_res_bytes} <-
            Signet.Contract.Sleuth.call_query(sleuth_address, bytecode, query, rpc_opts),
+         {:ok, query_res} <- try_decode_bytes(query_res_bytes),
          {:ok, res} <- try_decode(query_res, selector) do
-      {:ok, encode_map(res, selector.returns)}
+      {:ok, unwrap_outer_tuple(encode_map(res, selector.returns, ""))}
     end
   end
 
@@ -57,6 +58,16 @@ defmodule Signet.Sleuth do
     query(bytecode, query_val, selector, opts)
   end
 
+  defp try_decode_bytes(bytes) do
+    try do
+      [decoded] = ABI.decode("(bytes)", bytes)
+      {:ok, decoded}
+    rescue
+      e ->
+        {:error, "error decoding bytes: #{inspect(e)}"}
+    end
+  end
+
   defp try_decode(query_res, selector) do
     try do
       {:ok, ABI.decode(%ABI.FunctionSelector{types: selector.returns}, query_res)}
@@ -66,14 +77,14 @@ defmodule Signet.Sleuth do
     end
   end
 
-  defp encode_map(res, types) do
+  defp encode_map(res, types, prefix) do
     Enum.map(Enum.zip(res, Enum.with_index(types)), fn {res, {type, i}} ->
-      encode_item(res, type, i)
+      encode_item(res, type, i, prefix)
     end)
     |> Enum.into(%{})
   end
 
-  defp encode_item(res, type, i) do
+  defp encode_item(res, type, i, prefix) do
     var_name =
       if is_nil(type.name) or type.name == "" do
         "var#{i}"
@@ -81,12 +92,39 @@ defmodule Signet.Sleuth do
         type.name
       end
 
-    case type.type do
+    res_enc = encode_value(res, type.type, i, prefix)
+
+    {var_name, res_enc}
+  end
+
+  defp encode_value(res, type, i, prefix) do
+    sub_prefix = prefix <> "#{i}_"
+
+    encode_array = fn sub_type ->
+      Enum.map(Enum.with_index(res), fn {r, j} -> encode_value(r, sub_type, j, sub_prefix) end)
+    end
+
+    case type do
+      {:bytes, _} ->
+        to_hex(res)
+
+      x when x in [:bytes, :address] ->
+        to_hex(res)
+
       {:tuple, sub_types} ->
-        {var_name, encode_map(Tuple.to_list(res), sub_types)}
+        encode_map(Tuple.to_list(res), sub_types, sub_prefix)
+
+      {:array, sub_type} ->
+        encode_array.(sub_type)
+
+      {:array, sub_type, _} ->
+        encode_array.(sub_type)
 
       _ ->
-        {var_name, res}
+        res
     end
   end
+
+  defp unwrap_outer_tuple(%{"var0" => x}), do: x
+  defp unwrap_outer_tuple(els), do: els
 end

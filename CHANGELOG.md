@@ -1,3 +1,7 @@
+## v1.0.0-charlie3
+
+- Make sure Sleuth handles bytes decoding and improve responses
+
 ## v1.0.0-charlie2
 
 - Escape macro expands

@@ -36,7 +36,7 @@ defmodule SleuthTest do
     end
 
     test "queryThree()" do
-      assert {:ok, %{"var0" => 2}} ==
+      assert {:ok, 2} ==
                Signet.Sleuth.query(
                  Signet.Contract.BlockNumber.bytecode(),
                  Signet.Contract.BlockNumber.encode_query_three(),
