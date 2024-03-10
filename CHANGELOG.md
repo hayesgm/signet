@@ -1,3 +1,7 @@
+## v1.0.0-charlie2
+
+- Escape macro expands
+
 ## v1.0.0-charlie1
 
 - Add Sleuth support
