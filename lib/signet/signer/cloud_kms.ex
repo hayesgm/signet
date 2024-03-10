@@ -13,8 +13,8 @@ if Code.ensure_loaded?(GoogleApi.CloudKMS.V1.Api.Projects) do
     ## Examples
 
         iex> {:ok, address} = Signet.Signer.CloudKMS.get_address("token", "project", "location", "keychain", "key", "version")
-        iex> Base.encode16(address)
-        "DDA641B2A76A4A7C3617815BB13281DD207B74D5"
+        iex> Signet.Hex.to_hex(address)
+        "0xdda641b2a76a4a7c3617815bb13281dd207b74d5"
     """
     @spec get_address(term(), String.t(), String.t(), String.t(), String.t(), String.t()) ::
             {:ok, binary()} | {:error, String.t()}
@@ -45,10 +45,11 @@ if Code.ensure_loaded?(GoogleApi.CloudKMS.V1.Api.Projects) do
 
     ## Examples
 
+        iex> use Signet.Hex
         iex> {:ok, sig} = Signet.Signer.CloudKMS.sign("test", "token", "project", "location", "keychain", "key", "version")
-        iex> {:ok, recid} = Signet.Recover.find_recid("test", sig, Base.decode16!("DDA641B2A76A4A7C3617815BB13281DD207B74D5"))
-        iex> Signet.Recover.recover_eth("test", %{sig|recid: recid}) |> Base.encode16()
-        "DDA641B2A76A4A7C3617815BB13281DD207B74D5"
+        iex> {:ok, recid} = Signet.Recover.find_recid("test", sig, ~h[0xDDA641B2A76A4A7C3617815BB13281DD207B74D5])
+        iex> Signet.Recover.recover_eth("test", %{sig|recid: recid}) |> Hex.to_address()
+        "0xDDa641B2A76a4A7c3617815bb13281DD207b74d5"
     """
     @spec sign(String.t(), term(), String.t(), String.t(), String.t(), String.t(), String.t()) ::
             {:ok, Curvy.Signature.t()} | {:error, String.t()}

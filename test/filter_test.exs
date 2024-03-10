@@ -2,6 +2,8 @@ defmodule Signet.FilterTest do
   use ExUnit.Case, async: true
   doctest Signet.Filter
 
+  use Signet.Hex
+
   test "add a filter and get events" do
     {:ok, _filter_pid} =
       Signet.Filter.start_link(
@@ -36,12 +38,8 @@ defmodule Signet.FilterTest do
                      {"Transfer",
                       %{
                         "amount" => 20_000_000_000,
-                        "from" =>
-                          <<178, 183, 193, 121, 95, 25, 251, 194, 143, 218, 119, 169, 94, 89, 237,
-                            187, 139, 55, 9, 200>>,
-                        "to" =>
-                          <<119, 149, 18, 107, 58, 228, 104, 244, 76, 144, 18, 135, 222, 152, 89,
-                            65, 152, 206, 56, 234>>
+                        "from" => ~h[b2b7c1795f19fbc28fda77a95e59edbb8b3709c8],
+                        "to" => ~h[7795126b3ae468f44c901287de98594198ce38ea]
                       }}, ^log}
 
     assert_received {:log, ^log}

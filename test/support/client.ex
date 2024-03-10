@@ -3,6 +3,7 @@ defmodule Signet.Test.Client do
   A module for helping tests by providing responses without
   needing to connect to a real Etheruem node.
   """
+  use Signet.Hex
 
   defp parse_request(body) do
     %{
@@ -692,7 +693,7 @@ defmodule Signet.Test.Client do
   def eth_sendRawTransaction(trx_enc = "0x02" <> _rest) do
     {:ok, trx} =
       trx_enc
-      |> Signet.Util.decode_hex!()
+      |> from_hex!()
       |> Signet.Transaction.V2.decode()
 
     %Signet.Transaction.V2{
@@ -705,7 +706,7 @@ defmodule Signet.Test.Client do
       data: _data
     } = trx
 
-    Signet.Util.encode_hex(
+    to_hex(
       <<nonce::integer-size(8), max_priority_fee_per_gas::integer-size(64),
         max_fee_per_gas::integer-size(64), gas_limit::integer-size(24), destination::binary>>
     )
@@ -714,7 +715,7 @@ defmodule Signet.Test.Client do
   def eth_sendRawTransaction(trx_enc) do
     {:ok, trx} =
       trx_enc
-      |> Signet.Util.decode_hex!()
+      |> from_hex!()
       |> Signet.Transaction.V1.decode()
 
     %Signet.Transaction.V1{
@@ -729,7 +730,7 @@ defmodule Signet.Test.Client do
       s: _s
     } = trx
 
-    Signet.Util.encode_hex(
+    to_hex(
       <<nonce::integer-size(8), gas_price::integer-size(64), gas_limit::integer-size(24),
         to::binary>>
     )
@@ -750,7 +751,7 @@ defmodule Signet.Test.Client do
     {:error,
      %{
        "code" => 3,
-       "data" => Signet.Util.encode_hex(ABI.encode("Cool(uint256,string)", [1, "cat"])),
+       "data" => to_hex(ABI.encode("Cool(uint256,string)", [1, "cat"])),
        "message" => "execution reverted"
      }}
   end
@@ -789,11 +790,11 @@ defmodule Signet.Test.Client do
   def eth_call(trx = %{"to" => "0x00000000000000000000000000000000000000CC"}, _block) do
     case trx["data"] do
       "0x8035F0CE" ->
-        # String.slice(Signet.Util.encode_hex(Signet.Hash.keccak("push()")), 0, 10) ->
+        # String.slice(to_hex(Signet.Hash.keccak("push()")), 0, 10) ->
         "0x"
 
       "0x8D4D94A6" <> _ ->
-        # String.slice(Signet.Util.encode_hex(Signet.Hash.keccak("withdraw(uint256,address,uint256,bytes32,bytes[])")), 0, 10)
+        # String.slice(to_hex(Signet.Hash.keccak("withdraw(uint256,address,uint256,bytes32,bytes[])")), 0, 10)
         "0x"
 
       _ ->

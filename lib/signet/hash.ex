@@ -4,8 +4,9 @@ defmodule Signet.Hash do
 
   ## Examples
 
+    iex> use Signet.Hex
     iex> Signet.Hash.keccak("test")
-    <<156, 34, 255, 95, 33, 240, 184, 27, 17, 62, 99, 247, 219, 109, 169, 79, 237, 239, 17, 178, 17, 155, 64, 136, 184, 150, 100, 251, 154, 60, 182, 88>>
+    ~h[0x9C22FF5F21F0B81B113E63F7DB6DA94FEDEF11B2119B4088B89664FB9A3CB658]
   """
   def keccak(message), do: ExSha3.keccak_256(message)
 

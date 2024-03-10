@@ -18,8 +18,11 @@ defmodule Signet.Signer do
   Additionally, chain_id is used to return EIP-155 compliant signatures.
   """
   use GenServer
+  use Signet.Hex
+
   require Logger
-  import Signet.Util, only: [encode_bytes: 2, encode_hex: 1]
+
+  import Signet.Util, only: [encode_bytes: 2]
 
   @doc """
   Starts a new Signet.Signer process.
@@ -50,8 +53,9 @@ defmodule Signet.Signer do
 
       iex> signer_proc = Signet.Test.Signer.start_signer()
       iex> {:ok, sig} = Signet.Signer.sign("test", signer_proc)
-      iex> Signet.Recover.recover_eth("test", sig) |> Base.encode16()
-      "63CC7C25E0CDB121ABB0FE477A6B9901889F99A7"
+      iex> Signet.Recover.recover_eth("test", sig)
+      ...> |> Signet.Hex.to_address()
+      "0x63Cc7c25e0cdb121aBb0fE477a6b9901889F99A7"
 
       iex> signer_proc = Signet.Test.Signer.start_signer()
       iex> {:ok, <<_r::256, _s::256, v::binary>>} = Signet.Signer.sign("test", signer_proc, chain_id: 0x05f5e0ff)
@@ -69,8 +73,8 @@ defmodule Signet.Signer do
   ## Examples
 
       iex> signer_proc = Signet.Test.Signer.start_signer()
-      iex> Signet.Signer.address(signer_proc) |> Base.encode16()
-      "63CC7C25E0CDB121ABB0FE477A6B9901889F99A7"
+      iex> Signet.Signer.address(signer_proc) |> Signet.Hex.to_address()
+      "0x63Cc7c25e0cdb121aBb0fE477a6b9901889F99A7"
   """
   def address(name \\ Signet.Signer.Default) do
     GenServer.call(name, :get_address)
@@ -109,7 +113,7 @@ defmodule Signet.Signer do
         state = %{name: name, mfa: {mod, _fn, args} = mfa}
       ) do
     {:ok, address} = apply(mod, :get_address, args)
-    Logger.info("Signet.Signer #{name} signing with address #{encode_hex(address)}")
+    Logger.info("Signet.Signer #{name} signing with address #{to_address(address)}")
 
     {:reply, sign_direct(message, address, mfa, chain_id), Map.put(state, :address, address)}
   end
@@ -121,7 +125,7 @@ defmodule Signet.Signer do
 
   def handle_call(:get_address, _from, state = %{name: name, mfa: {mod, _fn, args}}) do
     {:ok, address} = apply(mod, :get_address, args)
-    Logger.info("Signet.Signer #{name} signing with address #{encode_hex(address)}")
+    Logger.info("Signet.Signer #{name} signing with address #{to_address(address)}")
     {:reply, address, Map.put(state, :address, address)}
   end
 

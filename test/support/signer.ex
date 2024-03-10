@@ -4,6 +4,8 @@ defmodule Signet.Test.Signer do
   unique name, to prevent name overlap in tests.
   """
 
+  use Signet.Hex
+
   def start_signer(name \\ nil) do
     name =
       case name do
@@ -14,10 +16,10 @@ defmodule Signet.Test.Signer do
           els
       end
 
-    priv_key = "800509fa3e80882ad0be77c27505bdc91380f800d51ed80897d22f9fcc75f4bf"
+    priv_key = ~h[0x800509fa3e80882ad0be77c27505bdc91380f800d51ed80897d22f9fcc75f4bf]
 
     Signet.Signer.start_link(
-      mfa: {Signet.Signer.Curvy, :sign, [Base.decode16!(priv_key, case: :mixed)]},
+      mfa: {Signet.Signer.Curvy, :sign, [priv_key]},
       name: name
     )
 

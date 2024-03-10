@@ -2,6 +2,7 @@ defmodule Signet.Typed do
   @moduledoc """
   Module to build EIP-712 typed data, which can then be signed or recovered from.
   """
+  use Signet.Hex
 
   defstruct [:domain, :types, :value]
 
@@ -192,13 +193,13 @@ defmodule Signet.Typed do
         [<<0xCC, 0xDD>>, <<0xEE>>]
     """
     @spec deserialize_value!(term(), primitive()) :: term()
-    def deserialize_value!(value, :address), do: Signet.Util.decode_hex!(value)
+    def deserialize_value!(value, :address), do: from_hex!(value)
     def deserialize_value!(value, :string), do: value
-    def deserialize_value!(value, :bytes), do: Signet.Util.decode_hex!(value)
+    def deserialize_value!(value, :bytes), do: from_hex!(value)
     def deserialize_value!(value, {:uint, _}), do: value
 
     def deserialize_value!(value, {:bytes, sz}),
-      do: Signet.Util.pad(Signet.Util.decode_hex!(value), sz)
+      do: Signet.Util.pad(from_hex!(value), sz)
 
     def deserialize_value!(value, {:array, ty}) when is_list(value),
       do: Enum.map(value, &deserialize_value!(&1, ty))
@@ -215,30 +216,30 @@ defmodule Signet.Typed do
         55
 
         iex> Signet.Typed.Type.serialize_value(<<0xCC::256>>, {:bytes, 32})
-        "0x00000000000000000000000000000000000000000000000000000000000000CC"
+        "0x00000000000000000000000000000000000000000000000000000000000000cc"
 
         iex> Signet.Typed.Type.serialize_value(<<0xCC>>, {:bytes, 32})
-        "0x00000000000000000000000000000000000000000000000000000000000000CC"
+        "0x00000000000000000000000000000000000000000000000000000000000000cc"
 
         iex> Signet.Typed.Type.serialize_value("Cow", :string)
         "Cow"
 
         iex> Signet.Typed.Type.serialize_value(<<0xCC, 0xDD>>, :bytes)
-        "0xCCDD"
+        "0xccdd"
 
         iex> Signet.Typed.Type.serialize_value([<<0xCC, 0xDD>>, <<0xEE>>], {:array, :bytes})
-        ["0xCCDD", "0xEE"]
+        ["0xccdd", "0xee"]
     """
     @spec serialize_value(term(), primitive()) :: term()
     def serialize_value(value, :address), do: serialize_value(value, {:bytes, 20})
     def serialize_value(value, :string), do: value
-    def serialize_value(value, :bytes), do: Signet.Util.encode_hex(value)
+    def serialize_value(value, :bytes), do: to_hex(value)
     def serialize_value(value, {:uint, _}), do: value
 
     def serialize_value(value, {:bytes, sz}) do
       value
       |> Signet.Util.pad(sz)
-      |> Signet.Util.encode_hex()
+      |> to_hex()
     end
 
     def serialize_value(value, {:array, ty}) when is_list(value),
@@ -259,27 +260,30 @@ defmodule Signet.Typed do
         iex> Signet.Typed.Type.encode_data_value(<<0xCC>>, {:bytes, 32})
         <<0::248, 0xCC>>
 
+        iex> use Signet.Hex
         iex> Signet.Typed.Type.encode_data_value(<<0xCC, 0xDD>>, :bytes)
-        Base.decode16!("9014B850703629D30F5C8C6C86A6AD981AB9319997490629D7DA37E8CAE985A1")
+        ~h[9014B850703629D30F5C8C6C86A6AD981AB9319997490629D7DA37E8CAE985A1]
 
+        iex> use Signet.Hex
         iex> Signet.Typed.Type.encode_data_value("Cow", :string)
-        Base.decode16!("8C1D2BD5348394761719DA11EC67EEDAE9502D137E8940FEE8ECD6F641EE1648")
+        ~h[8C1D2BD5348394761719DA11EC67EEDAE9502D137E8940FEE8ECD6F641EE1648]
 
+        iex> use Signet.Hex
         iex> Signet.Typed.Type.encode_data_value([<<0xCC, 0xDD>>, <<0xEE>>], {:array, :bytes})
-        Base.decode16!("134619415A3C9FE841D99F7CFD5C0BCCFC7CF0DAE90743A3D717C748A3961CF5")
+        ~h[134619415A3C9FE841D99F7CFD5C0BCCFC7CF0DAE90743A3D717C748A3961CF5]
     """
     @spec encode_data_value(term(), primitive()) :: term()
     def encode_data_value(value, :address), do: Signet.Util.pad(value, 32)
     def encode_data_value(value, {:uint, _}), do: Signet.Util.encode_bytes(value, 32)
-    def encode_data_value(value, :string), do: Signet.Util.keccak(value)
-    def encode_data_value(value, :bytes), do: Signet.Util.keccak(value)
+    def encode_data_value(value, :string), do: Signet.Hash.keccak(value)
+    def encode_data_value(value, :bytes), do: Signet.Hash.keccak(value)
     def encode_data_value(value, {:bytes, _}), do: Signet.Util.pad(value, 32)
 
     def encode_data_value(value, {:array, ty}) do
       value
       |> Enum.map(&encode_data_value(&1, ty))
       |> Enum.join()
-      |> Signet.Util.keccak()
+      |> Signet.Hash.keccak()
     end
   end
 
@@ -369,7 +373,7 @@ defmodule Signet.Typed do
           "name" => "Ether Mail",
           "version" => "1",
           "chainId" => 1,
-          "verifyingContract" => "0xCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+          "verifyingContract" => "0xcccccccccccccccccccccccccccccccccccccccc",
         }
     """
     def serialize(%__MODULE__{
@@ -620,7 +624,7 @@ defmodule Signet.Typed do
           "name" => "Ether Mail",
           "version" => "1",
           "chainId" => 1,
-          "verifyingContract" => "0xCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"
+          "verifyingContract" => "0xcccccccccccccccccccccccccccccccccccccccc"
         },
         "types" => %{
           "Person" => [
@@ -649,8 +653,8 @@ defmodule Signet.Typed do
           ]
         },
         "value" => %{
-          "from" => %{ "name" => "Cow", "wallet" => "0xCD2A3D9F938E13CD947EC05ABC7FE734DF8DD826" },
-          "to" => %{ "name" => "Bob", "wallet" => "0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB" },
+          "from" => %{ "name" => "Cow", "wallet" => "0xcd2a3d9f938e13cd947ec05abc7fe734df8dd826" },
+          "to" => %{ "name" => "Bob", "wallet" => "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" },
           "contents" => "Hello, Bob!"
         }
       }
@@ -725,6 +729,7 @@ defmodule Signet.Typed do
 
   ## Examples
 
+      iex> use Signet.Hex
       iex> types = %{
       ...>   "Mail" => %Signet.Typed.Type{fields: [{"from", "Person"}, {"to", "Person"}, {"contents", :string}]},
       ...>   "Person" => %Signet.Typed.Type{fields: [{"name", :string}, {"wallet", :address}]}
@@ -733,25 +738,24 @@ defmodule Signet.Typed do
       ...>   "contents" => "Hello, Bob!",
       ...>   "from" => %{
       ...>     "name" => "Cow",
-      ...>     "wallet" => Signet.Util.decode_hex!("0xCD2a3d9F938E13CD947Ec05AbC7FE734Df8DD826")
+      ...>     "wallet" => ~h[0xCD2a3d9F938E13CD947Ec05AbC7FE734Df8DD826]
       ...>   },
       ...>   "to" => %{
       ...>     "name" => "Bob",
-      ...>     "wallet" => Signet.Util.decode_hex!("0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB")
+      ...>     "wallet" => ~h[0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB]
       ...>   }
       ...> }
-      ...> Signet.Typed.hash_struct("Mail", value, types)
-      ...> |> Signet.Util.encode_hex()
-      "0xC52C0EE5D84264471806290A3F2C4CECFC5490626BF912D01F240D7A274B371E"
+      iex> to_hex(Signet.Typed.hash_struct("Mail", value, types))
+      "0xc52c0ee5d84264471806290a3f2c4cecfc5490626bf912d01f240d7a274b371e"
   """
   @spec hash_struct(String.t(), value_map(), type_map()) :: binary()
   def hash_struct(name, value, types) do
     type = Map.fetch!(types, name)
     encoded_type = encode_type(name, types)
-    type_hash = Signet.Util.keccak(encoded_type)
+    type_hash = Signet.Hash.keccak(encoded_type)
     encode_data = encode_value_map(value, type.fields, types)
 
-    Signet.Util.keccak(type_hash <> encode_data)
+    Signet.Hash.keccak(type_hash <> encode_data)
   end
 
   @doc """
@@ -759,11 +763,12 @@ defmodule Signet.Typed do
 
   ## Examples
 
+      iex> use Signet.Hex
       iex> %Signet.Typed{
       ...>   domain: %Signet.Typed.Domain{
       ...>     chain_id: 1,
       ...>     name: "Ether Mail",
-      ...>     verifying_contract: Signet.Util.decode_hex!("0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC"),
+      ...>     verifying_contract: ~h[0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC],
       ...>     version: "1"
       ...>   },
       ...>   types: %{
@@ -774,17 +779,17 @@ defmodule Signet.Typed do
       ...>     "contents" => "Hello, Bob!",
       ...>     "from" => %{
       ...>       "name" => "Cow",
-      ...>       "wallet" => Signet.Util.decode_hex!("0xCD2a3d9F938E13CD947Ec05AbC7FE734Df8DD826")
+      ...>       "wallet" => ~h[0xCD2a3d9F938E13CD947Ec05AbC7FE734Df8DD826]
       ...>     },
       ...>     "to" => %{
       ...>       "name" => "Bob",
-      ...>       "wallet" => Signet.Util.decode_hex!("0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB")
+      ...>       "wallet" => ~h[0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB]
       ...>     }
       ...>   }
       ...> }
       ...> |> Signet.Typed.domain_seperator()
-      ...> |> Signet.Util.encode_hex()
-      "0xF2CEE375FA42B42143804025FC449DEAFD50CC031CA257E0B194A650A912090F"
+      ...> |> to_hex()
+      "0xf2cee375fa42b42143804025fc449deafd50cc031ca257e0b194a650a912090f"
   """
   @spec domain_seperator(t()) :: binary()
   def domain_seperator(%__MODULE__{domain: domain}) do
@@ -796,11 +801,12 @@ defmodule Signet.Typed do
 
   ## Examples
 
+      iex> use Signet.Hex
       iex> %Signet.Typed{
       ...>   domain: %Signet.Typed.Domain{
       ...>     chain_id: 1,
       ...>     name: "Ether Mail",
-      ...>     verifying_contract: Signet.Util.decode_hex!("0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC"),
+      ...>     verifying_contract: ~h[0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC],
       ...>     version: "1"
       ...>   },
       ...>   types: %{
@@ -811,23 +817,24 @@ defmodule Signet.Typed do
       ...>     "contents" => "Hello, Bob!",
       ...>     "from" => %{
       ...>       "name" => "Cow",
-      ...>       "wallet" => Signet.Util.decode_hex!("0xCD2a3d9F938E13CD947Ec05AbC7FE734Df8DD826")
+      ...>       "wallet" => ~h[0xCD2a3d9F938E13CD947Ec05AbC7FE734Df8DD826]
       ...>     },
       ...>     "to" => %{
       ...>       "name" => "Bob",
-      ...>       "wallet" => Signet.Util.decode_hex!("0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB")
+      ...>       "wallet" => ~h[0xbBbBBBBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB]
       ...>     }
       ...>   }
       ...> }
       ...> |> Signet.Typed.encode()
-      ...> |> Signet.Util.encode_hex()
-      "0x1901F2CEE375FA42B42143804025FC449DEAFD50CC031CA257E0B194A650A912090FC52C0EE5D84264471806290A3F2C4CECFC5490626BF912D01F240D7A274B371E"
+      ...> |> to_hex()
+      "0x1901f2cee375fa42b42143804025fc449deafd50cc031ca257e0b194a650a912090fc52c0ee5d84264471806290a3f2c4cecfc5490626bf912d01f240d7a274b371e"
 
+      iex> use Signet.Hex
       iex> %Signet.Typed{
       ...>   domain: %Signet.Typed.Domain{
       ...>     chain_id: 1,
       ...>     name: "Complex Array",
-      ...>     verifying_contract: Signet.Util.decode_hex!("0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC"),
+      ...>     verifying_contract: ~h[0xCcCCccccCCCCcCCCCCCcCcCccCcCCCcCcccccccC],
       ...>     version: "1"
       ...>   },
       ...>   types: %{
@@ -841,8 +848,8 @@ defmodule Signet.Typed do
       ...>   }
       ...> }
       ...> |> Signet.Typed.encode()
-      ...> |> Signet.Util.encode_hex()
-      "0x190103BD1627B4C5F7540C63D7EE347524DCEF247EED29C833DD3B1455B8DEC4009FCC95538BFC3F979CA59D9EF7DE5ED402A4E403857B3DE87D1FC8ED4A2A7CDDD9"
+      ...> |> to_hex()
+      "0x190103bd1627b4c5f7540c63d7ee347524dcef247eed29c833dd3b1455b8dec4009fcc95538bfc3f979ca59d9ef7de5ed402a4e403857b3de87d1fc8ed4a2a7cddd9"
   """
   @spec encode(t()) :: binary()
   def encode(typed = %__MODULE__{types: types, value: value}) do

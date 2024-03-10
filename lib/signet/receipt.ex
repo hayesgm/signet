@@ -8,6 +8,8 @@ defmodule Signet.Receipt do
   an Ethereum JSON-RPC host.
   """
 
+  use Signet.Hex
+
   defmodule Log do
     @type t() :: %__MODULE__{
             # QUANTITY - integer of the log index position in the block. null when its pending log.
@@ -46,6 +48,7 @@ defmodule Signet.Receipt do
 
     ## Examples
 
+        iex> use Signet.Hex
         iex> %{
         ...>   "logIndex" => "0x1",
         ...>   "blockNumber" => "0x1b4",
@@ -62,27 +65,27 @@ defmodule Signet.Receipt do
         %Signet.Receipt.Log{
           log_index: 1,
           block_number: 0x01b4,
-          block_hash: Signet.Util.decode_hex!("0xa957d47df264a31badc3ae823e10ac1d444b098d9b73d204c40426e57f47e8c3"),
-          transaction_hash: Signet.Util.decode_hex!("0xaadf829c5a142f1fccd7d8216c5785ac562ff41e2dcfdf5785ac562ff41e2dcf"),
+          block_hash: ~h[0xa957d47df264a31badc3ae823e10ac1d444b098d9b73d204c40426e57f47e8c3],
+          transaction_hash: ~h[0xaadf829c5a142f1fccd7d8216c5785ac562ff41e2dcfdf5785ac562ff41e2dcf],
           transaction_index: 0,
-          address: Signet.Util.decode_hex!("0x16c5785ac562ff41e2dcfdf829c5a142f1fccd7d"),
-          data: Signet.Util.decode_hex!("0x0000000000000000000000000000000000000000000000000000000000000000"),
+          address: ~h[0x16c5785ac562ff41e2dcfdf829c5a142f1fccd7d],
+          data: ~h[0x0000000000000000000000000000000000000000000000000000000000000000],
           topics: [
-            Signet.Util.decode_hex!("0x59ebeb90bc63057b6515673c3ecf9438e5058bca0f92585014eced636878c9a5")
+            ~h[0x59ebeb90bc63057b6515673c3ecf9438e5058bca0f92585014eced636878c9a5]
           ]
         }
     """
     @spec deserialize(map()) :: t() | no_return()
     def deserialize(params = %{}) do
       %__MODULE__{
-        log_index: Signet.Util.decode_hex_number!(params["logIndex"]),
-        block_number: Signet.Util.decode_hex_number!(params["blockNumber"]),
-        block_hash: Signet.Util.decode_word!(params["blockHash"]),
-        transaction_hash: Signet.Util.decode_word!(params["transactionHash"]),
-        transaction_index: Signet.Util.decode_hex_number!(params["transactionIndex"]),
-        address: Signet.Util.decode_address!(params["address"]),
-        data: Signet.Util.decode_hex!(params["data"]),
-        topics: Enum.map(params["topics"], &Signet.Util.decode_word!/1)
+        log_index: Hex.decode_hex_number!(params["logIndex"]),
+        block_number: Hex.decode_hex_number!(params["blockNumber"]),
+        block_hash: Hex.decode_word!(params["blockHash"]),
+        transaction_hash: Hex.decode_word!(params["transactionHash"]),
+        transaction_index: Hex.decode_hex_number!(params["transactionIndex"]),
+        address: Hex.decode_address!(params["address"]),
+        data: Hex.decode_hex!(params["data"]),
+        topics: Enum.map(params["topics"], &Hex.decode_word!/1)
       }
     end
   end
@@ -142,6 +145,7 @@ defmodule Signet.Receipt do
 
   ## Examples
 
+      iex> use Signet.Hex
       iex> %{
       ...>   "blockHash" => "0xa957d47df264a31badc3ae823e10ac1d444b098d9b73d204c40426e57f47e8c3",
       ...>   "blockNumber" => "0xeff35f",
@@ -172,12 +176,12 @@ defmodule Signet.Receipt do
       ...> }
       ...> |> Signet.Receipt.deserialize()
       %Signet.Receipt{
-        transaction_hash: Signet.Util.decode_hex!("0x85d995eba9763907fdf35cd2034144dd9d53ce32cbec21349d4b12823c6860c5"),
+        transaction_hash: ~h[0x85d995eba9763907fdf35cd2034144dd9d53ce32cbec21349d4b12823c6860c5],
         transaction_index: 0x66,
-        block_hash: Signet.Util.decode_hex!("0xa957d47df264a31badc3ae823e10ac1d444b098d9b73d204c40426e57f47e8c3"),
+        block_hash: ~h[0xa957d47df264a31badc3ae823e10ac1d444b098d9b73d204c40426e57f47e8c3],
         block_number: 0xeff35f,
-        from: Signet.Util.decode_hex!("0x6221a9c005f6e47eb398fd867784cacfdcfff4e7"),
-        to: Signet.Util.decode_hex!("0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"),
+        from: ~h[0x6221a9c005f6e47eb398fd867784cacfdcfff4e7],
+        to: ~h[0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2],
         cumulative_gas_used: 0xa12515,
         effective_gas_price: 0x5a9c688d4,
         gas_used: 0xb4c8,
@@ -186,21 +190,22 @@ defmodule Signet.Receipt do
           %Signet.Receipt.Log{
             log_index: 1,
             block_number: 0x01b4,
-            block_hash: Signet.Util.decode_hex!("0xaa8216c5785ac562ff41e2dcfdf5785ac562ff41e2dcfdf829c5a142f1fccd7d"),
-            transaction_hash: Signet.Util.decode_hex!("0xaadf829c5a142f1fccd7d8216c5785ac562ff41e2dcfdf5785ac562ff41e2dcf"),
+            block_hash: ~h[0xaa8216c5785ac562ff41e2dcfdf5785ac562ff41e2dcfdf829c5a142f1fccd7d],
+            transaction_hash: ~h[0xaadf829c5a142f1fccd7d8216c5785ac562ff41e2dcfdf5785ac562ff41e2dcf],
             transaction_index: 0,
-            address: Signet.Util.decode_hex!("0x16c5785ac562ff41e2dcfdf829c5a142f1fccd7d"),
-            data: Signet.Util.decode_hex!("0x0000000000000000000000000000000000000000000000000000000000000000"),
+            address: ~h[0x16c5785ac562ff41e2dcfdf829c5a142f1fccd7d],
+            data: ~h[0x0000000000000000000000000000000000000000000000000000000000000000],
             topics: [
-              Signet.Util.decode_hex!("0x59ebeb90bc63057b6515673c3ecf9438e5058bca0f92585014eced636878c9a5")
+              ~h[0x59ebeb90bc63057b6515673c3ecf9438e5058bca0f92585014eced636878c9a5]
             ]
           }
         ],
-        logs_bloom: Signet.Util.decode_hex!("0x00000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001"),
+        logs_bloom: ~h[0x00000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000001],
         type: 0x02,
         status: 0x01,
       }
 
+      iex> use Signet.Hex
       iex> %{
       ...>   "transactionHash" => "0xf9e69be4f1ae524854e14dc820c519d8f2b86e52c60e54448abf920d22fb6fe2",
       ...>   "transactionIndex" => "0x0",
@@ -268,12 +273,12 @@ defmodule Signet.Receipt do
       ...> }
       ...> |> Signet.Receipt.deserialize()
       %Signet.Receipt{
-        transaction_hash: Signet.Util.decode_hex!("0xf9e69be4f1ae524854e14dc820c519d8f2b86e52c60e54448abf920d22fb6fe2"),
+        transaction_hash: ~h[0xf9e69be4f1ae524854e14dc820c519d8f2b86e52c60e54448abf920d22fb6fe2],
         transaction_index: 0,
-        block_hash: Signet.Util.decode_hex!("0x4bc3c26b1a599ced9876d9bf9a17c9bd58ec8b71a68e75335de7f2820e9336ca"),
+        block_hash: ~h[0x4bc3c26b1a599ced9876d9bf9a17c9bd58ec8b71a68e75335de7f2820e9336ca],
         block_number: 10493428,
-        from: Signet.Util.decode_hex!("0xb03d1100c68e58aa1895f8c1f230c0851ff41851"),
-        to: Signet.Util.decode_hex!("0x9d8ec03e9ddb71f04da9db1e38837aaac1782a97"),
+        from: ~h[0xb03d1100c68e58aa1895f8c1f230c0851ff41851],
+        to: ~h[0x9d8ec03e9ddb71f04da9db1e38837aaac1782a97],
         cumulative_gas_used: 222642,
         effective_gas_price: 1200000010,
         gas_used: 222642,
@@ -282,46 +287,46 @@ defmodule Signet.Receipt do
           %Signet.Receipt.Log{
             log_index: 0,
             block_number: 10493428,
-            block_hash: Signet.Util.decode_hex!("0x4bc3c26b1a599ced9876d9bf9a17c9bd58ec8b71a68e75335de7f2820e9336ca"),
-            transaction_hash: Signet.Util.decode_hex!("0xf9e69be4f1ae524854e14dc820c519d8f2b86e52c60e54448abf920d22fb6fe2"),
+            block_hash: ~h[0x4bc3c26b1a599ced9876d9bf9a17c9bd58ec8b71a68e75335de7f2820e9336ca],
+            transaction_hash: ~h[0xf9e69be4f1ae524854e14dc820c519d8f2b86e52c60e54448abf920d22fb6fe2],
             transaction_index: 0,
-            address: Signet.Util.decode_hex!("0x9d8ec03e9ddb71f04da9db1e38837aaac1782a97"),
-            data: Signet.Util.decode_hex!("0x000000000000000000000000cb372382aa9a9e6f926714f4305afac4566f75380000000000000000000000000000000000000000000000000000000000000000"),
+            address: ~h[0x9d8ec03e9ddb71f04da9db1e38837aaac1782a97],
+            data: ~h[0x000000000000000000000000cb372382aa9a9e6f926714f4305afac4566f75380000000000000000000000000000000000000000000000000000000000000000],
             topics: [
-              Signet.Util.decode_hex!("0x3ffe5de331422c5ec98e2d9ced07156f640bb51e235ef956e50263d4b28d3ae4"),
-              Signet.Util.decode_hex!("0x0000000000000000000000002326aba712500ae3114b664aeb51dba2c2fb416d"),
-              Signet.Util.decode_hex!("0x0000000000000000000000002326aba712500ae3114b664aeb51dba2c2fb416d")
+              ~h[0x3ffe5de331422c5ec98e2d9ced07156f640bb51e235ef956e50263d4b28d3ae4],
+              ~h[0x0000000000000000000000002326aba712500ae3114b664aeb51dba2c2fb416d],
+              ~h[0x0000000000000000000000002326aba712500ae3114b664aeb51dba2c2fb416d]
             ]
           },
           %Signet.Receipt.Log{
             log_index: 1,
             block_number: 10493428,
-            block_hash: Signet.Util.decode_hex!("0x4bc3c26b1a599ced9876d9bf9a17c9bd58ec8b71a68e75335de7f2820e9336ca"),
-            transaction_hash: Signet.Util.decode_hex!("0xf9e69be4f1ae524854e14dc820c519d8f2b86e52c60e54448abf920d22fb6fe2"),
+            block_hash: ~h[0x4bc3c26b1a599ced9876d9bf9a17c9bd58ec8b71a68e75335de7f2820e9336ca],
+            transaction_hash: ~h[0xf9e69be4f1ae524854e14dc820c519d8f2b86e52c60e54448abf920d22fb6fe2],
             transaction_index: 0,
-            address: Signet.Util.decode_hex!("0xcb372382aa9a9e6f926714f4305afac4566f7538"),
-            data: Signet.Util.decode_hex!("0x0000000000000000000000000000000000000000000000000000000000000000"),
+            address: ~h[0xcb372382aa9a9e6f926714f4305afac4566f7538],
+            data: ~h[0x0000000000000000000000000000000000000000000000000000000000000000],
             topics: [
-              Signet.Util.decode_hex!("0xe0d20d95fbbe7375f6edead77b5ce5c5b096e7dac85848c45c37a95eaf17fe62"),
-              Signet.Util.decode_hex!("0x0000000000000000000000009d8ec03e9ddb71f04da9db1e38837aaac1782a97"),
-              Signet.Util.decode_hex!("0x00000000000000000000000054f0a87eb5c8c8ba70243de1ac19e735b41b10a2"),
-              Signet.Util.decode_hex!("0x0000000000000000000000000000000000000000000000000000000000000000")
+              ~h[0xe0d20d95fbbe7375f6edead77b5ce5c5b096e7dac85848c45c37a95eaf17fe62],
+              ~h[0x0000000000000000000000009d8ec03e9ddb71f04da9db1e38837aaac1782a97],
+              ~h[0x00000000000000000000000054f0a87eb5c8c8ba70243de1ac19e735b41b10a2],
+              ~h[0x0000000000000000000000000000000000000000000000000000000000000000]
             ]
           },
           %Signet.Receipt.Log{
             log_index: 2,
             block_number: 10493428,
-            block_hash: Signet.Util.decode_hex!("0x4bc3c26b1a599ced9876d9bf9a17c9bd58ec8b71a68e75335de7f2820e9336ca"),
-            transaction_hash: Signet.Util.decode_hex!("0xf9e69be4f1ae524854e14dc820c519d8f2b86e52c60e54448abf920d22fb6fe2"),
+            block_hash: ~h[0x4bc3c26b1a599ced9876d9bf9a17c9bd58ec8b71a68e75335de7f2820e9336ca],
+            transaction_hash: ~h[0xf9e69be4f1ae524854e14dc820c519d8f2b86e52c60e54448abf920d22fb6fe2],
             transaction_index: 0,
-            address: Signet.Util.decode_hex!("0xcb372382aa9a9e6f926714f4305afac4566f7538"),
+            address: ~h[0xcb372382aa9a9e6f926714f4305afac4566f7538],
             data: <<>>,
             topics: [
-              Signet.Util.decode_hex!("0x0000000000000000000000000000000000000000000000000000000000000055")
+              ~h[0x0000000000000000000000000000000000000000000000000000000000000055]
             ]
           }
         ],
-        logs_bloom: Signet.Util.decode_hex!("0x00800000000000000000000400000000000000000000000000000000000000000000000000000000000000000000002000200040000000000000000200001000000000000000000000000000000000000000000000000000000000000010000000008000020000004000000200000800000000000000000000220000000000000000000000000800000000000400000000000000000000000000000000000000000000040000000000008000008000000000000000000000000000000004000000800000000000004000000000000000000000000000000004080000000020000000000000000080000000000000000000000000000000000000000000000000"),
+        logs_bloom: ~h[0x00800000000000000000000400000000000000000000000000000000000000000000000000000000000000000000002000200040000000000000000200001000000000000000000000000000000000000000000000000000000000000010000000008000020000004000000200000800000000000000000000220000000000000000000000000800000000000400000000000000000000000000000000000000000000040000000000008000008000000000000000000000000000000004000000800000000000004000000000000000000000000000000004080000000020000000000000000080000000000000000000000000000000000000000000000000],
         type: 0,
         status: 1
       }
@@ -329,24 +334,24 @@ defmodule Signet.Receipt do
   @spec deserialize(map()) :: t() | no_return()
   def deserialize(params = %{}) do
     %__MODULE__{
-      transaction_hash: Signet.Util.decode_word!(params["transactionHash"]),
-      transaction_index: Signet.Util.decode_hex_number!(params["transactionIndex"]),
-      block_hash: Signet.Util.decode_word!(params["blockHash"]),
-      block_number: Signet.Util.decode_hex_number!(params["blockNumber"]),
-      from: Signet.Util.decode_address!(params["from"]),
-      to: Signet.Util.decode_address!(params["to"]),
-      cumulative_gas_used: Signet.Util.decode_hex_number!(params["cumulativeGasUsed"]),
-      effective_gas_price: Signet.Util.decode_hex_number!(params["effectiveGasPrice"]),
-      gas_used: Signet.Util.decode_hex_number!(params["gasUsed"]),
+      transaction_hash: Hex.decode_word!(params["transactionHash"]),
+      transaction_index: Hex.decode_hex_number!(params["transactionIndex"]),
+      block_hash: Hex.decode_word!(params["blockHash"]),
+      block_number: Hex.decode_hex_number!(params["blockNumber"]),
+      from: Hex.decode_address!(params["from"]),
+      to: Hex.decode_address!(params["to"]),
+      cumulative_gas_used: Hex.decode_hex_number!(params["cumulativeGasUsed"]),
+      effective_gas_price: Hex.decode_hex_number!(params["effectiveGasPrice"]),
+      gas_used: Hex.decode_hex_number!(params["gasUsed"]),
       contract_address:
         if(is_nil(params["contractAddress"]),
           do: nil,
-          else: Signet.Util.decode_address!(params["contractAddress"])
+          else: Hex.decode_address!(params["contractAddress"])
         ),
       logs: Enum.map(params["logs"], &Log.deserialize/1),
-      logs_bloom: Signet.Util.decode_sized_hex!(params["logsBloom"], 256),
-      type: Signet.Util.decode_hex_number!(params["type"]),
-      status: Signet.Util.decode_hex_number!(params["status"])
+      logs_bloom: Hex.decode_sized!(params["logsBloom"], 256),
+      type: Hex.decode_hex_number!(params["type"]),
+      status: Hex.decode_hex_number!(params["status"])
     }
   end
 end
