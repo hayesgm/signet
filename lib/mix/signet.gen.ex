@@ -490,14 +490,14 @@ defmodule Mix.Tasks.Signet.Gen do
       selector_fn =
         quote do
           def unquote(selector_fun_name)() do
-            unquote(selector)
+            unquote(Macro.escape(selector))
           end
         end
 
       event_selector_fn =
         quote do
           def unquote(event_selector_fun_name)() do
-            unquote(event_selector)
+            unquote(Macro.escape(event_selector))
           end
         end
 
