@@ -34,7 +34,7 @@ Signet can be installed by adding `signet` to your list of dependencies in `mix.
 ```elixir
 def deps do
   [
-    {:signet, "~> 1.0.0-beta8"}
+    {:signet, "~> 1.0.0-beta9"}
   ]
 end
 ```
@@ -289,6 +289,25 @@ You can create Ethereum keys using Signet. These libraries are built on top of e
 "0x2EADD3966648553096523C38BB464E7DFDDD30293D02909FA2200FF571A90E85"
 ```
 
+## Contract Codegen
+
+Signet can automatically generate wrappers for contracts from ABI files or Solidity build output. You can run:
+
+```
+mix signet.gen my_abi.json
+
+17:13:31.659 [info] Generated lib/my_abi.ex
+```
+
+See `mix help signet.gen` for more details.
+
+## Tests
+
+You may want to re-build the test auto-gen case to make sure the generator is working:
+
+```
+mix test
+```
 ## Contributing
 
 Create a PR to contribute to Signet. All contributors agree to accept the license specified in this repository for all contributions to this project. See [LICENSE.md](/LICENSE.md).
