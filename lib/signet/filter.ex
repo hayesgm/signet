@@ -77,14 +77,11 @@ defmodule Signet.Filter do
 
         {ABI.Event.event_topic(function_selector),
          fn event_topics, event_data ->
-           dbg(event_topics)
-           IO.puts("event_data: " <> Base.encode16(event_data))
-
-           ABI.Event.decode_event(event_data, event_topics, dbg(function_selector))
+           ABI.Event.decode_event(event_data, event_topics, function_selector)
          end}
       end
 
-    all_topics = dbg(Enum.map(decoders, fn {topic, _} -> topic end) ++ topics)
+    all_topics = Enum.map(decoders, fn {topic, _} -> topic end) ++ topics
 
     GenServer.start_link(
       __MODULE__,
