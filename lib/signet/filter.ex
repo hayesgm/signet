@@ -56,40 +56,63 @@ defmodule Signet.Filter do
     address = Keyword.fetch!(opts, :address)
     topics = Keyword.get(opts, :topics, [])
     events = Keyword.get(opts, :events, [])
+    rpc_opts = Keyword.get(opts, :rpc_opts, [])
     check_delay = Keyword.get(opts, :check_delay, @check_delay)
 
     decoders =
-      for event_abi <- events, into: %{} do
-        function_selector = ABI.FunctionSelector.decode(event_abi)
+      for event <- events, into: %{} do
+        function_selector =
+          case event do
+            %ABI.FunctionSelector{
+              types: [%{name: "_topic", type: {:uint, 256}, indexed: true} | rest_types]
+            } ->
+              %{event | types: rest_types}
+
+            %ABI.FunctionSelector{} ->
+              event
+
+            event_abi when is_binary(event_abi) ->
+              ABI.FunctionSelector.decode(event_abi)
+          end
 
         {ABI.Event.event_topic(function_selector),
          fn event_topics, event_data ->
-           ABI.Event.decode_event(event_data, event_topics, function_selector)
+           dbg(event_topics)
+           IO.puts("event_data: " <> Base.encode16(event_data))
+
+           ABI.Event.decode_event(event_data, event_topics, dbg(function_selector))
          end}
       end
+
+    all_topics = dbg(Enum.map(decoders, fn {topic, _} -> topic end) ++ topics)
 
     GenServer.start_link(
       __MODULE__,
       %{
         address: address,
-        topics: topics,
+        topics: all_topics,
         name: name,
         listeners: [],
         decoders: decoders,
-        check_delay: check_delay
+        check_delay: check_delay,
+        rpc_opts: rpc_opts
       },
       name: name
     )
   end
 
-  defp set_filter(state = %{address: address, topics: topics}) do
+  defp set_filter(state = %{address: address, topics: topics, rpc_opts: rpc_opts}) do
     {:ok, filter_id} =
-      RPC.send_rpc("eth_newFilter", [
-        %{
-          "address" => Signet.Hex.encode_hex(address),
-          "topics" => Enum.map(topics, &Signet.Hex.encode_hex/1)
-        }
-      ])
+      RPC.send_rpc(
+        "eth_newFilter",
+        [
+          %{
+            "address" => Signet.Hex.encode_hex(address),
+            "topics" => Enum.map(topics, &Signet.Hex.encode_hex/1)
+          }
+        ],
+        rpc_opts
+      )
 
     Map.put(state, :filter_id, filter_id)
   end
@@ -117,13 +140,14 @@ defmodule Signet.Filter do
           listeners: listeners,
           decoders: decoders,
           name: name,
-          check_delay: check_delay
+          check_delay: check_delay,
+          rpc_opts: rpc_opts
         }
       ) do
     Process.send_after(self(), :check_filter, check_delay)
 
     state =
-      case RPC.send_rpc("eth_getFilterChanges", [filter_id]) do
+      case RPC.send_rpc("eth_getFilterChanges", [filter_id], rpc_opts) do
         {:ok, raw_logs} ->
           {logs, events} =
             raw_logs
