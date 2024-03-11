@@ -11,12 +11,13 @@ defmodule Signet.Contract.IERC20 do
   end
 
   def allowance_selector() do
-    %ABI.FunctionSelector{
+    %{
+      __struct__: ABI.FunctionSelector,
       function: "allowance",
       function_type: :function,
+      returns: [%{name: "", type: {:uint, 256}}],
       state_mutability: :view,
-      types: [%{name: "owner", type: :address}, %{name: "spender", type: :address}],
-      returns: [%{name: "", type: {:uint, 256}}]
+      types: [%{name: "owner", type: :address}, %{name: "spender", type: :address}]
     }
   end
 
@@ -49,12 +50,13 @@ defmodule Signet.Contract.IERC20 do
   end
 
   def approve_selector() do
-    %ABI.FunctionSelector{
+    %{
+      __struct__: ABI.FunctionSelector,
       function: "approve",
       function_type: :function,
+      returns: [%{name: "", type: :bool}],
       state_mutability: :nonpayable,
-      types: [%{name: "spender", type: :address}, %{name: "amount", type: {:uint, 256}}],
-      returns: [%{name: "", type: :bool}]
+      types: [%{name: "spender", type: :address}, %{name: "amount", type: {:uint, 256}}]
     }
   end
 
@@ -87,12 +89,13 @@ defmodule Signet.Contract.IERC20 do
   end
 
   def balance_of_selector() do
-    %ABI.FunctionSelector{
+    %{
+      __struct__: ABI.FunctionSelector,
       function: "balanceOf",
       function_type: :function,
+      returns: [%{name: "", type: {:uint, 256}}],
       state_mutability: :view,
-      types: [%{name: "account", type: :address}],
-      returns: [%{name: "", type: {:uint, 256}}]
+      types: [%{name: "account", type: :address}]
     }
   end
 
@@ -125,12 +128,13 @@ defmodule Signet.Contract.IERC20 do
   end
 
   def decimals_selector() do
-    %ABI.FunctionSelector{
+    %{
+      __struct__: ABI.FunctionSelector,
       function: "decimals",
       function_type: :function,
+      returns: [%{name: "", type: {:uint, 8}}],
       state_mutability: :view,
-      types: [],
-      returns: [%{name: "", type: {:uint, 8}}]
+      types: []
     }
   end
 
@@ -163,12 +167,13 @@ defmodule Signet.Contract.IERC20 do
   end
 
   def name_selector() do
-    %ABI.FunctionSelector{
+    %{
+      __struct__: ABI.FunctionSelector,
       function: "name",
       function_type: :function,
+      returns: [%{name: "", type: :string}],
       state_mutability: :view,
-      types: [],
-      returns: [%{name: "", type: :string}]
+      types: []
     }
   end
 
@@ -201,12 +206,13 @@ defmodule Signet.Contract.IERC20 do
   end
 
   def symbol_selector() do
-    %ABI.FunctionSelector{
+    %{
+      __struct__: ABI.FunctionSelector,
       function: "symbol",
       function_type: :function,
+      returns: [%{name: "", type: :string}],
       state_mutability: :view,
-      types: [],
-      returns: [%{name: "", type: :string}]
+      types: []
     }
   end
 
@@ -239,12 +245,13 @@ defmodule Signet.Contract.IERC20 do
   end
 
   def total_supply_selector() do
-    %ABI.FunctionSelector{
+    %{
+      __struct__: ABI.FunctionSelector,
       function: "totalSupply",
       function_type: :function,
+      returns: [%{name: "", type: {:uint, 256}}],
       state_mutability: :view,
-      types: [],
-      returns: [%{name: "", type: {:uint, 256}}]
+      types: []
     }
   end
 
@@ -277,12 +284,13 @@ defmodule Signet.Contract.IERC20 do
   end
 
   def transfer_selector() do
-    %ABI.FunctionSelector{
+    %{
+      __struct__: ABI.FunctionSelector,
       function: "transfer",
       function_type: :function,
+      returns: [%{name: "", type: :bool}],
       state_mutability: :nonpayable,
-      types: [%{name: "to", type: :address}, %{name: "amount", type: {:uint, 256}}],
-      returns: [%{name: "", type: :bool}]
+      types: [%{name: "to", type: :address}, %{name: "amount", type: {:uint, 256}}]
     }
   end
 
@@ -315,16 +323,17 @@ defmodule Signet.Contract.IERC20 do
   end
 
   def transfer_from_selector() do
-    %ABI.FunctionSelector{
+    %{
+      __struct__: ABI.FunctionSelector,
       function: "transferFrom",
       function_type: :function,
+      returns: [%{name: "", type: :bool}],
       state_mutability: :nonpayable,
       types: [
         %{name: "from", type: :address},
         %{name: "to", type: :address},
         %{name: "amount", type: {:uint, 256}}
-      ],
-      returns: [%{name: "", type: :bool}]
+      ]
     }
   end
 
@@ -357,17 +366,18 @@ defmodule Signet.Contract.IERC20 do
   end
 
   def approval_event_selector() do
-    %ABI.FunctionSelector{
+    %{
+      __struct__: ABI.FunctionSelector,
       function: "Approval",
       function_type: :event,
+      returns: nil,
       state_mutability: nil,
       types: [
-        %{name: "_topic", type: {:uint, 256}, indexed: true},
+        %{indexed: true, name: "_topic", type: {:uint, 256}},
         %{name: "owner", type: :address},
         %{name: "spender", type: :address},
         %{name: "value", type: {:uint, 256}}
-      ],
-      returns: nil
+      ]
     }
   end
 
@@ -379,27 +389,28 @@ defmodule Signet.Contract.IERC20 do
     ABI.Event.decode_event(data, topics, approval_event_selector())
   end
 
-  def transfer_event_selector() do
-    %ABI.FunctionSelector{
+  def transfer_ddf252ad_event_selector() do
+    %{
+      __struct__: ABI.FunctionSelector,
       function: "Transfer",
       function_type: :event,
+      returns: nil,
       state_mutability: nil,
       types: [
-        %{name: "_topic", type: {:uint, 256}, indexed: true},
+        %{indexed: true, name: "_topic", type: {:uint, 256}},
         %{name: "from", type: :address},
         %{name: "to", type: :address},
         %{name: "value", type: {:uint, 256}}
-      ],
-      returns: nil
+      ]
     }
   end
 
-  def encode_transfer_event(from, to, value) do
-    ABI.encode(transfer_event_selector(), [from, to, value])
+  def encode_transfer_ddf252ad_event(from, to, value) do
+    ABI.encode(transfer_ddf252ad_event_selector(), [from, to, value])
   end
 
-  def decode_transfer_event(topics, data) when is_list(topics) do
-    ABI.Event.decode_event(data, topics, transfer_event_selector())
+  def decode_transfer_ddf252ad_event(topics, data) when is_list(topics) do
+    ABI.Event.decode_event(data, topics, transfer_ddf252ad_event_selector())
   end
 
   def decode_call(calldata = <<221, 98, 237, 62>> <> _) do
@@ -461,7 +472,7 @@ defmodule Signet.Contract.IERC20 do
         ],
         data
       ) do
-    {:ok, decode_transfer_event(topics, data)}
+    {:ok, decode_transfer_ddf252ad_event(topics, data)}
   end
 
   def decode_event(_) do

@@ -11,12 +11,13 @@ defmodule Signet.Contract.BlockNumber do
   end
 
   def query_selector() do
-    %ABI.FunctionSelector{
+    %{
+      __struct__: ABI.FunctionSelector,
       function: "query",
       function_type: :function,
+      returns: [%{name: "blockNumber", type: {:uint, 256}}],
       state_mutability: :view,
-      types: [],
-      returns: [%{name: "blockNumber", type: {:uint, 256}}]
+      types: []
     }
   end
 
@@ -49,11 +50,10 @@ defmodule Signet.Contract.BlockNumber do
   end
 
   def query_cool_selector() do
-    %ABI.FunctionSelector{
+    %{
+      __struct__: ABI.FunctionSelector,
       function: "queryCool",
       function_type: :function,
-      state_mutability: :pure,
-      types: [],
       returns: [
         %{
           name: "cool",
@@ -65,7 +65,9 @@ defmodule Signet.Contract.BlockNumber do
                %{name: "fun", type: {:tuple, [%{name: "cat", type: :string}]}}
              ]}
         }
-      ]
+      ],
+      state_mutability: :pure,
+      types: []
     }
   end
 
@@ -98,12 +100,13 @@ defmodule Signet.Contract.BlockNumber do
   end
 
   def query_three_selector() do
-    %ABI.FunctionSelector{
+    %{
+      __struct__: ABI.FunctionSelector,
       function: "queryThree",
       function_type: :function,
+      returns: [%{name: "", type: {:uint, 256}}],
       state_mutability: :view,
-      types: [],
-      returns: [%{name: "", type: {:uint, 256}}]
+      types: []
     }
   end
 
@@ -136,12 +139,13 @@ defmodule Signet.Contract.BlockNumber do
   end
 
   def query_two_selector() do
-    %ABI.FunctionSelector{
+    %{
+      __struct__: ABI.FunctionSelector,
       function: "queryTwo",
       function_type: :function,
+      returns: [%{name: "x", type: {:uint, 256}}, %{name: "y", type: {:uint, 256}}],
       state_mutability: :view,
-      types: [],
-      returns: [%{name: "x", type: {:uint, 256}}, %{name: "y", type: {:uint, 256}}]
+      types: []
     }
   end
 
