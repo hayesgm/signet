@@ -1234,7 +1234,8 @@ defmodule Signet.RPC do
     end
   end
 
-  defp to_call_params(trx = %Signet.Transaction.V1{}, from) do
+  @doc false
+  def to_call_params(trx = %Signet.Transaction.V1{}, from) do
     %{
       from: nil_map(from, &Hex.encode_big_hex/1),
       to: nil_map(trx.to, &Hex.encode_big_hex/1),
@@ -1244,14 +1245,14 @@ defmodule Signet.RPC do
     }
   end
 
-  defp to_call_params(trx = %Signet.Transaction.V2{}, from) do
+  def to_call_params(trx = %Signet.Transaction.V2{}, from) do
     %{
       from: nil_map(from, &Hex.encode_big_hex/1),
       to: nil_map(trx.destination, &Hex.encode_big_hex/1),
       maxPriorityFeePerGas: nil_map(trx.max_priority_fee_per_gas, &Hex.encode_short_hex/1),
       maxFeePerGas: nil_map(trx.max_fee_per_gas, &Hex.encode_short_hex/1),
       value: nil_map(trx.amount, &Hex.encode_short_hex/1),
-      data: nil_map(trx.data, &Hex.encode_short_hex/1)
+      data: nil_map(trx.data, &Hex.encode_big_hex/1)
     }
   end
 
