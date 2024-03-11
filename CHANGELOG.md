@@ -1,3 +1,9 @@
+## v1.0.0-charlie4
+
+- Bump ABI dependency
+- [Filter Improvements](https://github.com/hayesgm/signet/pull/51)
+- [Fix ABI-only Encoding](https://github.com/hayesgm/signet/pull/50)
+
 ## v1.0.0-charlie3
 
 - Make sure Sleuth handles bytes decoding and improve responses

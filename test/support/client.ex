@@ -789,7 +789,7 @@ defmodule Signet.Test.Client do
       String.starts_with?(data, "6BBC9C14") ->
         to_hex(
           ABI.encode("(bytes)", [
-            {ABI.encode("(string,uint256[],(string))", [{"hi", [1, 2, 3], {"meow"}}])}
+            {ABI.encode("((string,uint256[],(string)))", [{{"hi", [1, 2, 3], {"meow"}}}])}
           ])
         )
 
