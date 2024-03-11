@@ -109,15 +109,29 @@ defmodule Mix.Tasks.Signet.Gen do
   defp rename_dups(abis) do
     {abis, _} =
       Enum.reduce(abis, {[], []}, fn abi, {acc, seen} ->
-        try do
-          fn_sel = ABI.FunctionSelector.parse_specification_item(abi)
-          name = abi["name"]
+        fn_sel =
+          try do
+            ABI.FunctionSelector.parse_specification_item(abi)
+          rescue
+            e ->
+              Logger.warning("Ignoring due to failed parse: #{inspect(abi)}")
+              Logger.error(e)
+
+              {acc, seen}
+          end
+
+        name = abi["name"]
+
+        if is_nil(name) do
+          {[abi | acc], seen}
+        else
+          lower_name = String.downcase(name)
 
           <<abi_enc_signature::binary-size(4), _::binary>> =
             Signet.Hash.keccak(ABI.FunctionSelector.encode(fn_sel))
 
           abi_new =
-            if Enum.member?(seen, name) do
+            if Enum.member?(seen, lower_name) do
               "0x" <> abi_sig = Signet.Hex.encode_hex(abi_enc_signature)
 
               Map.put(abi, "fn_name", "#{name}_#{abi_sig}")
@@ -125,13 +139,7 @@ defmodule Mix.Tasks.Signet.Gen do
               abi
             end
 
-          {[abi_new | acc], [name | seen]}
-        rescue
-          e ->
-            Logger.warning("Ignoring due to failed parse: #{inspect(abi)}")
-            Logger.error(e)
-
-            {acc, seen}
+          {[abi_new | acc], [lower_name | seen]}
         end
       end)
 
@@ -139,12 +147,12 @@ defmodule Mix.Tasks.Signet.Gen do
   end
 
   # Function to take the abi from the output-json and output function defs (e.g. encode and execute)
-  defp get_encode_calls(full_abi) do
+  defp get_encode_calls(full_abi, has_bytecode) do
     {fns, decoders, events, errors} =
       (full_abi["abi"] || [])
       |> rename_dups()
       |> Enum.reduce({[], [], [], []}, fn abi, {acc_fns, acc_decoders, acc_events, acc_errors} ->
-        case get_encode_call(abi) do
+        case get_encode_call(abi, has_bytecode) do
           {functions, generic_call_decoder, nil, nil} ->
             {acc_fns ++ functions, [generic_call_decoder | acc_decoders], acc_events, acc_errors}
 
@@ -186,7 +194,7 @@ defmodule Mix.Tasks.Signet.Gen do
   # Parses the ABI spec and generates the functions (encode and execute) if we can parse
   # the ABI spec. We've recently updated our ABI parsing library that this doesn't fail
   # nearly as often as it used to (e.g. it can handle tuples)
-  defp get_encode_call(abi) do
+  defp get_encode_call(abi, has_bytecode) do
     fn_selector =
       try do
         ABI.FunctionSelector.parse_specification_item(abi)
@@ -198,10 +206,10 @@ defmodule Mix.Tasks.Signet.Gen do
 
     case fn_selector do
       fs = %ABI.FunctionSelector{function: name} when not is_nil(name) ->
-        encode_function_call(fs, abi["fn_name"] || name)
+        encode_function_call(fs, abi["fn_name"] || name, has_bytecode)
 
       fs = %ABI.FunctionSelector{function_type: function_type} ->
-        encode_function_call(fs, to_string(function_type))
+        encode_function_call(fs, to_string(function_type), has_bytecode)
 
       _ ->
         Logger.warning("Ignoring function due to missing name")
@@ -210,7 +218,7 @@ defmodule Mix.Tasks.Signet.Gen do
   end
 
   # Generate the encode and execute functions. This is ... complex (read: hacky)
-  defp encode_function_call(selector, fn_name) do
+  defp encode_function_call(selector, fn_name, has_bytecode) do
     # These are the function names we'll define
     encode_fun_name = String.to_atom("encode_#{Macro.underscore(fn_name)}")
     encode_event_fun_name = String.to_atom("encode_#{Macro.underscore(fn_name)}_event")
@@ -356,8 +364,12 @@ defmodule Mix.Tasks.Signet.Gen do
     signature_list = :erlang.binary_to_list(signature)
     error_name = selector.function
 
+    no_bytecode_constructor =
+      selector.function_type == :constructor and
+        not has_bytecode
+
     # check if we bailed on any argument and bail generally, if so.
-    if Enum.member?(execute_arguments, nil) do
+    if Enum.member?(execute_arguments, nil) or no_bytecode_constructor do
       Logger.warning("Ignoring function #{selector.function} due to unknown argument")
       nil
     else
@@ -630,7 +642,7 @@ defmodule Mix.Tasks.Signet.Gen do
 
     bytecode_decl = get_bytecode(abi_map)
     deployed_bytecode_decl = get_deployed_bytecode(abi_map)
-    encode_call_decl = get_encode_calls(abi_map)
+    encode_call_decl = get_encode_calls(abi_map, Enum.count(bytecode_decl) > 0)
 
     contents =
       quote do
