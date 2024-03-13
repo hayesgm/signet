@@ -1,3 +1,8 @@
+## v1.0.0-charlie5
+
+- [Fix Call Params](https://github.com/hayesgm/signet/pull/52)
+- [Add Sleuth Annotations](https://github.com/hayesgm/signet/pull/54)
+
 ## v1.0.0-charlie4
 
 - Bump ABI dependency

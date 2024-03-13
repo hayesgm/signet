@@ -9,53 +9,34 @@ defmodule Signet.Sleuth do
 
   @sleuth_address ~h[0xc6a613fdac3465d250df7ff3cc21bec86eb8a372]
 
-  # Note: this is the only real function, the rest are helpers
-  #       to make calling into Sleuth easier.
-  def query(bytecode, query, selector, opts \\ []) when is_binary(bytecode) and is_list(opts) do
+  def query(bytecode, query, selector, opts \\ []),
+    do: query_internal(bytecode, query, selector, false, opts)
+
+  def query_annotated(bytecode, query, selector, opts \\ []),
+    do: query_internal(bytecode, query, selector, true, opts)
+
+  def query_by(mod, fun) when is_atom(mod) and is_atom(fun), do: query_by(mod, fun, [])
+  def query_by(mod, opts) when is_atom(mod) and is_list(opts), do: query_by(mod, :query, opts)
+  def query_by(mod), do: query_by(mod, :query, [])
+
+  def query_by(mod, fun, opts) when is_atom(mod) and is_atom(fun) and is_list(opts) do
+    bytecode = try_apply(mod, :bytecode, [])
+    query_val = try_apply(mod, String.to_atom("encode_" <> to_string(fun)), [])
+    selector = try_apply(mod, String.to_atom(to_string(fun) <> "_selector"), [])
+
+    query_internal(bytecode, query_val, selector, false, opts)
+  end
+
+  defp query_internal(bytecode, query, selector, annotated, opts)
+       when is_binary(bytecode) and is_list(opts) do
     {sleuth_address, rpc_opts} = Keyword.pop(opts, :sleuth_address, @sleuth_address)
 
     with {:ok, query_res_bytes} <-
            Signet.Contract.Sleuth.call_query(sleuth_address, bytecode, query, rpc_opts),
          {:ok, query_res} <- try_decode_bytes(query_res_bytes),
          {:ok, res} <- try_decode(query_res, selector) do
-      {:ok, unwrap_outer_tuple(encode_map(res, selector.returns, ""))}
+      {:ok, unwrap_outer_tuple(encode_map(res, selector.returns, annotated))}
     end
-  end
-
-  # Helpers to allow simple querying when query doesn't take arguments
-  def query_by(mod, fun) when is_atom(mod) and is_atom(fun), do: query_by(mod, fun, [])
-  def query_by(mod, opts) when is_atom(mod) and is_list(opts), do: query_by(mod, :query, opts)
-  def query_by(mod), do: query_by(mod, :query, [])
-
-  def query_by(mod, fun, opts) when is_atom(mod) and is_atom(fun) and is_list(opts) do
-    encode_fn = String.to_atom("encode_" <> to_string(fun))
-    selector_fn = String.to_atom(to_string(fun) <> "_selector")
-
-    bytecode =
-      try do
-        apply(mod, :bytecode, [])
-      rescue
-        _ ->
-          raise "Sleuth module #{mod} does not define required \"bytecode/0\" function"
-      end
-
-    query_val =
-      try do
-        apply(mod, encode_fn, [])
-      rescue
-        _ ->
-          raise "Sleuth module #{mod} does not define required \"#{encode_fn}/0\" function"
-      end
-
-    selector =
-      try do
-        apply(mod, selector_fn, [])
-      rescue
-        _ ->
-          raise "Sleuth module #{mod} does not define required \"#{selector_fn}/0\" function"
-      end
-
-    query(bytecode, query_val, selector, opts)
   end
 
   defp try_decode_bytes(bytes) do
@@ -77,14 +58,14 @@ defmodule Signet.Sleuth do
     end
   end
 
-  defp encode_map(res, types, prefix) do
+  defp encode_map(res, types, annotated) do
     Enum.map(Enum.zip(res, Enum.with_index(types)), fn {res, {type, i}} ->
-      encode_item(res, type, i, prefix)
+      encode_item(res, type, i, annotated)
     end)
     |> Enum.into(%{})
   end
 
-  defp encode_item(res, type, i, prefix) do
+  defp encode_item(res, type, i, annotated) do
     var_name =
       if is_nil(type.name) or type.name == "" do
         "var#{i}"
@@ -92,27 +73,19 @@ defmodule Signet.Sleuth do
         type.name
       end
 
-    res_enc = encode_value(res, type.type, i, prefix)
+    res_enc = encode_value(res, type.type, annotated)
 
     {var_name, res_enc}
   end
 
-  defp encode_value(res, type, i, prefix) do
-    sub_prefix = prefix <> "#{i}_"
-
+  defp encode_value(res, type, annotated) do
     encode_array = fn sub_type ->
-      Enum.map(Enum.with_index(res), fn {r, j} -> encode_value(r, sub_type, j, sub_prefix) end)
+      Enum.map(res, fn r -> encode_value(r, sub_type, annotated) end)
     end
 
     case type do
-      {:bytes, _} ->
-        to_hex(res)
-
-      x when x in [:bytes, :address] ->
-        to_hex(res)
-
       {:tuple, sub_types} ->
-        encode_map(Tuple.to_list(res), sub_types, sub_prefix)
+        encode_map(Tuple.to_list(res), sub_types, annotated)
 
       {:array, sub_type} ->
         encode_array.(sub_type)
@@ -121,10 +94,23 @@ defmodule Signet.Sleuth do
         encode_array.(sub_type)
 
       _ ->
-        res
+        if annotated do
+          {type, res}
+        else
+          res
+        end
     end
   end
 
   defp unwrap_outer_tuple(%{"var0" => x}), do: x
   defp unwrap_outer_tuple(els), do: els
+
+  defp try_apply(mod, fun, args) do
+    try do
+      apply(mod, fun, args)
+    rescue
+      _ ->
+        raise "Sleuth module #{mod} does not define required \"#{fun}/#{Enum.count(args)}\" function"
+    end
+  end
 end
