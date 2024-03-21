@@ -260,15 +260,12 @@ defmodule Signet.Typed do
         iex> Signet.Typed.Type.encode_data_value(<<0xCC>>, {:bytes, 32})
         <<0::248, 0xCC>>
 
-        iex> use Signet.Hex
         iex> Signet.Typed.Type.encode_data_value(<<0xCC, 0xDD>>, :bytes)
         ~h[9014B850703629D30F5C8C6C86A6AD981AB9319997490629D7DA37E8CAE985A1]
 
-        iex> use Signet.Hex
         iex> Signet.Typed.Type.encode_data_value("Cow", :string)
         ~h[8C1D2BD5348394761719DA11EC67EEDAE9502D137E8940FEE8ECD6F641EE1648]
 
-        iex> use Signet.Hex
         iex> Signet.Typed.Type.encode_data_value([<<0xCC, 0xDD>>, <<0xEE>>], {:array, :bytes})
         ~h[134619415A3C9FE841D99F7CFD5C0BCCFC7CF0DAE90743A3D717C748A3961CF5]
     """
@@ -288,25 +285,55 @@ defmodule Signet.Typed do
   end
 
   defmodule Domain do
-    defstruct [:name, :version, :chain_id, :verifying_contract]
+    defstruct [:name, :version, :chain_id, :verifying_contract, :salt]
 
     @type t() :: %__MODULE__{
-            name: String.t(),
-            version: String.t(),
-            chain_id: number(),
-            verifying_contract: <<_::160>>
+            name: nil | String.t(),
+            version: nil | String.t(),
+            chain_id: nil | number(),
+            verifying_contract: nil | <<_::160>>,
+            salt: nil | <<_::256>>
           }
 
-    def domain_type(),
+    @domain_key_map %{
+      name: {"name", :string},
+      version: {"version", :string},
+      chain_id: {"chainId", {:uint, 256}},
+      verifying_contract: {"verifyingContract", :address},
+      salt: {"salt", {:bytes, 32}}
+    }
+
+    @inverted_key_map for {k, {v, _type}} <- @domain_key_map, into: %{}, do: {v, k}
+
+    @doc ~S"""
+    Builds the EIP-712 domain type based on a given domain.
+
+    ## Examples
+
+        iex> %Signet.Typed.Domain{
+        ...>   name: "Ether Mail",
+        ...>   version: "1",
+        ...>   chain_id: 1,
+        ...>   verifying_contract: ~h[CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC]
+        ...> }
+        ...> |> Signet.Typed.Domain.domain_type()
+        %{"EIP712Domain" => %Signet.Typed.Type{fields: [{"name", :string}, {"version", :string}, {"chainId", {:uint, 256}}, {"verifyingContract", :address}]}}
+
+        iex> %Signet.Typed.Domain{
+        ...>   name: "Ether Mail",
+        ...>   version: "1",
+        ...> }
+        ...> |> Signet.Typed.Domain.domain_type()
+        %{"EIP712Domain" => %Signet.Typed.Type{fields: [{"name", :string}, {"version", :string}]}}
+    """
+    def domain_type(domain),
       do: %{
         "EIP712Domain" => %Type{
-          fields: [
-            {"name", :string},
-            {"version", :string},
-            {"chainId", {:uint, 256}},
-            {"verifyingContract", :address}
-            # {"salt", {:bytes, 32}}
-          ]
+          fields:
+            @domain_key_map
+            |> Map.to_list()
+            |> Enum.filter(fn {key, _} -> not is_nil(Map.get(domain, key)) end)
+            |> Enum.map(fn {_, v} -> v end)
         }
       }
 
@@ -326,35 +353,47 @@ defmodule Signet.Typed do
           name: "Ether Mail",
           version: "1",
           chain_id: 1,
-          verifying_contract: Base.decode16!("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC")
+          verifying_contract: ~h[CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC]
+        }
+
+        iex> %{
+        ...>   "name" => "Ether Mail",
+        ...>   "version" => "1"
+        ...> }
+        ...> |> Signet.Typed.Domain.deserialize()
+        %Signet.Typed.Domain{
+          name: "Ether Mail",
+          version: "1"
         }
     """
-    def deserialize(%{
-          name: name,
-          version: version,
-          chainId: chain_id,
-          verifyingContract: verifying_contract
-        }),
-        do:
-          deserialize(%{
-            "name" => name,
-            "version" => version,
-            "chainId" => chain_id,
-            "verifyingContract" => verifying_contract
-          })
+    def deserialize(params) do
+      mod_params =
+        for {key, value} <- params, into: %{} do
+          atom_key =
+            cond do
+              is_atom(key) ->
+                key
 
-    def deserialize(%{
-          "name" => name,
-          "version" => version,
-          "chainId" => chain_id,
-          "verifyingContract" => verifying_contract
-        }) do
-      %__MODULE__{
-        name: name,
-        version: version,
-        chain_id: chain_id,
-        verifying_contract: Type.deserialize_value!(verifying_contract, :address)
-      }
+              is_binary(key) ->
+                Map.fetch!(@inverted_key_map, key)
+            end
+
+          deserialized_value =
+            case atom_key do
+              :verifying_contract ->
+                Type.deserialize_value!(value, :address)
+
+              :salt ->
+                Type.deserialize_value!(value, {:bytes, 32})
+
+              _ ->
+                value
+            end
+
+          {atom_key, deserialized_value}
+        end
+
+      struct(%__MODULE__{}, mod_params)
     end
 
     @doc ~S"""
@@ -366,7 +405,7 @@ defmodule Signet.Typed do
         ...>   name: "Ether Mail",
         ...>   version: "1",
         ...>   chain_id: 1,
-        ...>   verifying_contract: Base.decode16!("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC")
+        ...>   verifying_contract: ~h[CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC]
         ...> }
         ...> |> Signet.Typed.Domain.serialize()
         %{
@@ -375,19 +414,37 @@ defmodule Signet.Typed do
           "chainId" => 1,
           "verifyingContract" => "0xcccccccccccccccccccccccccccccccccccccccc",
         }
+
+        iex> %Signet.Typed.Domain{
+        ...>   name: "Ether Mail",
+        ...>   version: "1"
+        ...> }
+        ...> |> Signet.Typed.Domain.serialize()
+        %{
+          "name" => "Ether Mail",
+          "version" => "1"
+        }
     """
     def serialize(%__MODULE__{
           name: name,
           version: version,
           chain_id: chain_id,
-          verifying_contract: verifying_contract
+          verifying_contract: verifying_contract,
+          salt: salt
         }) do
-      %{
+      values = %{
         "name" => name,
         "version" => version,
         "chainId" => chain_id,
-        "verifyingContract" => Type.serialize_value(verifying_contract, :address)
+        "verifyingContract" =>
+          if(is_nil(verifying_contract),
+            do: nil,
+            else: Type.serialize_value(verifying_contract, :address)
+          ),
+        "salt" => if(is_nil(salt), do: nil, else: Type.serialize_value(salt, {:bytes, 32}))
       }
+
+      filter_nils(values)
     end
 
     @doc ~S"""
@@ -396,32 +453,55 @@ defmodule Signet.Typed do
 
     ## Examples
 
+        iex> use Signet.Hex
         iex> %Signet.Typed.Domain{
         ...>   name: "Ether Mail",
         ...>   version: "1",
         ...>   chain_id: 1,
-        ...>   verifying_contract: Base.decode16!("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC")
+        ...>   verifying_contract: ~h[CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC]
         ...> }
         ...> |> Signet.Typed.Domain.serialize_keys()
         %{
           "name" => "Ether Mail",
           "version" => "1",
           "chainId" => 1,
-          "verifyingContract" => Base.decode16!("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC")
+          "verifyingContract" => ~h[CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC]
+        }
+
+        iex> use Signet.Hex
+        iex> %Signet.Typed.Domain{
+        ...>   name: "Ether Mail",
+        ...>   version: "1",
+        ...> }
+        ...> |> Signet.Typed.Domain.serialize_keys()
+        %{
+          "name" => "Ether Mail",
+          "version" => "1"
         }
     """
     def serialize_keys(%__MODULE__{
           name: name,
           version: version,
           chain_id: chain_id,
-          verifying_contract: verifying_contract
+          verifying_contract: verifying_contract,
+          salt: salt
         }) do
-      %{
+      values = %{
         "name" => name,
         "version" => version,
         "chainId" => chain_id,
-        "verifyingContract" => verifying_contract
+        "verifyingContract" => verifying_contract,
+        "salt" => salt
       }
+
+      filter_nils(values)
+    end
+
+    defp filter_nils(map) do
+      map
+      |> Map.to_list()
+      |> Enum.filter(fn {_, v} -> not is_nil(v) end)
+      |> Enum.into(%{})
     end
   end
 
@@ -552,7 +632,7 @@ defmodule Signet.Typed do
         domain: %Signet.Typed.Domain{
           chain_id: 1,
           name: "Ether Mail",
-          verifying_contract: Base.decode16!("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"),
+          verifying_contract: ~h[CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC],
           version: "1"
         },
         types: %{
@@ -563,11 +643,11 @@ defmodule Signet.Typed do
           "contents" => "Hello, Bob!",
           "from" => %{
             "name" => "Cow",
-            "wallet" => Base.decode16!("CD2A3D9F938E13CD947EC05ABC7FE734DF8DD826")
+            "wallet" => ~h[CD2A3D9F938E13CD947EC05ABC7FE734DF8DD826]
           },
           "to" => %{
             "name" => "Bob",
-            "wallet" => Base.decode16!("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB")
+            "wallet" => ~h[BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB]
           }
         }
       }
@@ -599,7 +679,7 @@ defmodule Signet.Typed do
       ...>   domain: %Signet.Typed.Domain{
       ...>     chain_id: 1,
       ...>     name: "Ether Mail",
-      ...>     verifying_contract: Base.decode16!("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"),
+      ...>     verifying_contract: ~h[CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC],
       ...>     version: "1"
       ...>   },
       ...>   types: %{
@@ -610,11 +690,11 @@ defmodule Signet.Typed do
       ...>     "contents" => "Hello, Bob!",
       ...>     "from" => %{
       ...>       "name" => "Cow",
-      ...>       "wallet" => Base.decode16!("CD2A3D9F938E13CD947EC05ABC7FE734DF8DD826")
+      ...>       "wallet" => ~h[CD2A3D9F938E13CD947EC05ABC7FE734DF8DD826]
       ...>     },
       ...>     "to" => %{
       ...>       "name" => "Bob",
-      ...>       "wallet" => Base.decode16!("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB")
+      ...>       "wallet" => ~h[BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB]
       ...>     }
       ...>   }
       ...> }
@@ -729,7 +809,6 @@ defmodule Signet.Typed do
 
   ## Examples
 
-      iex> use Signet.Hex
       iex> types = %{
       ...>   "Mail" => %Signet.Typed.Type{fields: [{"from", "Person"}, {"to", "Person"}, {"contents", :string}]},
       ...>   "Person" => %Signet.Typed.Type{fields: [{"name", :string}, {"wallet", :address}]}
@@ -763,7 +842,6 @@ defmodule Signet.Typed do
 
   ## Examples
 
-      iex> use Signet.Hex
       iex> %Signet.Typed{
       ...>   domain: %Signet.Typed.Domain{
       ...>     chain_id: 1,
@@ -793,7 +871,7 @@ defmodule Signet.Typed do
   """
   @spec domain_seperator(t()) :: binary()
   def domain_seperator(%__MODULE__{domain: domain}) do
-    hash_struct("EIP712Domain", Domain.serialize_keys(domain), Domain.domain_type())
+    hash_struct("EIP712Domain", Domain.serialize_keys(domain), Domain.domain_type(domain))
   end
 
   @doc """
@@ -801,7 +879,6 @@ defmodule Signet.Typed do
 
   ## Examples
 
-      iex> use Signet.Hex
       iex> %Signet.Typed{
       ...>   domain: %Signet.Typed.Domain{
       ...>     chain_id: 1,
@@ -829,7 +906,6 @@ defmodule Signet.Typed do
       ...> |> to_hex()
       "0x1901f2cee375fa42b42143804025fc449deafd50cc031ca257e0b194a650a912090fc52c0ee5d84264471806290a3f2c4cecfc5490626bf912d01f240d7a274b371e"
 
-      iex> use Signet.Hex
       iex> %Signet.Typed{
       ...>   domain: %Signet.Typed.Domain{
       ...>     chain_id: 1,
@@ -850,6 +926,25 @@ defmodule Signet.Typed do
       ...> |> Signet.Typed.encode()
       ...> |> to_hex()
       "0x190103bd1627b4c5f7540c63d7ee347524dcef247eed29c833dd3b1455b8dec4009fcc95538bfc3f979ca59d9ef7de5ed402a4e403857b3de87d1fc8ed4a2a7cddd9"
+
+      iex> %Signet.Typed{
+      ...>   domain: %Signet.Typed.Domain{
+      ...>     name: "Complex Array",
+      ...>     version: "1"
+      ...>   },
+      ...>   types: %{
+      ...>     "Array" => %Signet.Typed.Type{fields: [{"a", {:uint, 256}}, {"b", {:uint, 256}}, {"c", :string}, {"d", {:array, :bytes}}]}
+      ...>   },
+      ...>   value: %{
+      ...>     "a" => 55,
+      ...>     "b" => 66,
+      ...>     "c" => "Hello",
+      ...>     "d" => [<<0x11, 0x22>>, <<0x33, 0x44>>]
+      ...>   }
+      ...> }
+      ...> |> Signet.Typed.encode()
+      ...> |> to_hex()
+      "0x1901f4806c1a9dae718712eca4906bfca239a3a4a6dea2e9b9a1284fee5ff4df4b1ccc95538bfc3f979ca59d9ef7de5ed402a4e403857b3de87d1fc8ed4a2a7cddd9"
   """
   @spec encode(t()) :: binary()
   def encode(typed = %__MODULE__{types: types, value: value}) do

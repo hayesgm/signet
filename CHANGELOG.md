@@ -1,3 +1,7 @@
+## v1.0.0-charlie6
+
+- [Partial EIP-712 Domains](https://github.com/hayesgm/signet/pull/55)
+
 ## v1.0.0-charlie5
 
 - [Fix Call Params](https://github.com/hayesgm/signet/pull/52)
