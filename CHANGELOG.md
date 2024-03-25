@@ -1,3 +1,7 @@
+## v1.0.0-charlie7
+
+- [Improve ABI Event Decoding](https://github.com/hayesgm/signet/pull/56)
+
 ## v1.0.0-charlie6
 
 - [Partial EIP-712 Domains](https://github.com/hayesgm/signet/pull/55)

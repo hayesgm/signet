@@ -75,7 +75,7 @@ defmodule Signet.Filter do
               ABI.FunctionSelector.decode(event_abi)
           end
 
-        {ABI.Event.event_topic(function_selector),
+        {ABI.Event.event_signature(function_selector),
          fn event_topics, event_data ->
            ABI.Event.decode_event(event_data, event_topics, function_selector)
          end}
@@ -184,16 +184,22 @@ defmodule Signet.Filter do
 
   defp do_parse_events([], _, events), do: events
 
-  defp do_parse_events([log | logs], decoders, events) do
-    [topic_0 | topic_rest] = log.topics
+  defp do_parse_events([log | rest_logs], decoders, acc_events) do
+    [topic_0 | _topic_rest] = log.topics
 
-    case decoders[topic_0] do
+    case Map.get(decoders, topic_0) do
       nil ->
-        do_parse_events(logs, decoders, events)
+        do_parse_events(rest_logs, decoders, acc_events)
 
       decoder_fn ->
-        event = decoder_fn.(topic_rest, log.data)
-        do_parse_events(logs, decoders, [{event, log} | events])
+        case decoder_fn.(log.topics, log.data) do
+          {:ok, event_name, event_params} ->
+            do_parse_events(rest_logs, decoders, [{{event_name, event_params}, log} | acc_events])
+
+          {:error, error} ->
+            Logger.error("Error decoding log: #{error}")
+            do_parse_events(rest_logs, decoders, acc_events)
+        end
     end
   end
 end

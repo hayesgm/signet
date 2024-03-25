@@ -178,19 +178,19 @@ defmodule Signet.Contract.BlockNumber do
   end
 
   def decode_call(calldata = <<44, 70, 178, 5>> <> _) do
-    {:ok, {"query", decode_query_call(calldata)}}
+    {:ok, "query", decode_query_call(calldata)}
   end
 
   def decode_call(calldata = <<107, 188, 156, 20>> <> _) do
-    {:ok, {"queryCool", decode_query_cool_call(calldata)}}
+    {:ok, "queryCool", decode_query_cool_call(calldata)}
   end
 
   def decode_call(calldata = <<219, 127, 37, 93>> <> _) do
-    {:ok, {"queryThree", decode_query_three_call(calldata)}}
+    {:ok, "queryThree", decode_query_three_call(calldata)}
   end
 
   def decode_call(calldata = <<53, 0, 122, 122>> <> _) do
-    {:ok, {"queryTwo", decode_query_two_call(calldata)}}
+    {:ok, "queryTwo", decode_query_two_call(calldata)}
   end
 
   def decode_call(_) do
