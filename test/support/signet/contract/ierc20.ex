@@ -373,10 +373,9 @@ defmodule Signet.Contract.IERC20 do
       returns: nil,
       state_mutability: nil,
       types: [
-        %{indexed: true, name: "_topic", type: {:uint, 256}},
-        %{name: "owner", type: :address},
-        %{name: "spender", type: :address},
-        %{name: "value", type: {:uint, 256}}
+        %{indexed: true, name: "owner", type: :address},
+        %{indexed: true, name: "spender", type: :address},
+        %{indexed: false, name: "value", type: {:uint, 256}}
       ]
     }
   end
@@ -397,10 +396,9 @@ defmodule Signet.Contract.IERC20 do
       returns: nil,
       state_mutability: nil,
       types: [
-        %{indexed: true, name: "_topic", type: {:uint, 256}},
-        %{name: "from", type: :address},
-        %{name: "to", type: :address},
-        %{name: "value", type: {:uint, 256}}
+        %{indexed: true, name: "from", type: :address},
+        %{indexed: true, name: "to", type: :address},
+        %{indexed: false, name: "value", type: {:uint, 256}}
       ]
     }
   end
@@ -414,39 +412,39 @@ defmodule Signet.Contract.IERC20 do
   end
 
   def decode_call(calldata = <<221, 98, 237, 62>> <> _) do
-    {:ok, {"allowance", decode_allowance_call(calldata)}}
+    {:ok, "allowance", decode_allowance_call(calldata)}
   end
 
   def decode_call(calldata = <<9, 94, 167, 179>> <> _) do
-    {:ok, {"approve", decode_approve_call(calldata)}}
+    {:ok, "approve", decode_approve_call(calldata)}
   end
 
   def decode_call(calldata = <<112, 160, 130, 49>> <> _) do
-    {:ok, {"balanceOf", decode_balance_of_call(calldata)}}
+    {:ok, "balanceOf", decode_balance_of_call(calldata)}
   end
 
   def decode_call(calldata = <<49, 60, 229, 103>> <> _) do
-    {:ok, {"decimals", decode_decimals_call(calldata)}}
+    {:ok, "decimals", decode_decimals_call(calldata)}
   end
 
   def decode_call(calldata = <<6, 253, 222, 3>> <> _) do
-    {:ok, {"name", decode_name_call(calldata)}}
+    {:ok, "name", decode_name_call(calldata)}
   end
 
   def decode_call(calldata = <<149, 216, 155, 65>> <> _) do
-    {:ok, {"symbol", decode_symbol_call(calldata)}}
+    {:ok, "symbol", decode_symbol_call(calldata)}
   end
 
   def decode_call(calldata = <<24, 22, 13, 221>> <> _) do
-    {:ok, {"totalSupply", decode_total_supply_call(calldata)}}
+    {:ok, "totalSupply", decode_total_supply_call(calldata)}
   end
 
   def decode_call(calldata = <<169, 5, 156, 187>> <> _) do
-    {:ok, {"transfer", decode_transfer_call(calldata)}}
+    {:ok, "transfer", decode_transfer_call(calldata)}
   end
 
   def decode_call(calldata = <<35, 184, 114, 221>> <> _) do
-    {:ok, {"transferFrom", decode_transfer_from_call(calldata)}}
+    {:ok, "transferFrom", decode_transfer_from_call(calldata)}
   end
 
   def decode_call(_) do
@@ -461,7 +459,7 @@ defmodule Signet.Contract.IERC20 do
         ],
         data
       ) do
-    {:ok, decode_approval_event(topics, data)}
+    decode_approval_event(topics, data)
   end
 
   def decode_event(
@@ -472,7 +470,7 @@ defmodule Signet.Contract.IERC20 do
         ],
         data
       ) do
-    {:ok, decode_transfer_ddf252ad_event(topics, data)}
+    decode_transfer_ddf252ad_event(topics, data)
   end
 
   def decode_event(_) do

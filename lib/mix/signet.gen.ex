@@ -233,10 +233,7 @@ defmodule Mix.Tasks.Signet.Gen do
     decode_error_fun_name = String.to_atom("decode_#{Macro.underscore(fn_name)}_error")
     decode_call_fun_name = String.to_atom("decode_#{Macro.underscore(fn_name)}_call")
 
-    event_selector = %{
-      selector
-      | types: [%{name: "_topic", type: {:uint, 256}, indexed: true} | selector.types]
-    }
+    event_selector = selector
 
     argument_types =
       case selector.function_type do
@@ -541,21 +538,21 @@ defmodule Mix.Tasks.Signet.Gen do
       generic_decode_call_fn =
         quote do
           def decode_call(calldata = <<unquote_splicing(abi_enc_signature_list)>> <> _) do
-            {:ok, {unquote(error_name), unquote(decode_call_fun_name)(calldata)}}
+            {:ok, unquote(error_name), unquote(decode_call_fun_name)(calldata)}
           end
         end
 
       generic_error_fn =
         quote do
           def decode_error(error = <<unquote_splicing(abi_enc_signature_list)>> <> _) do
-            {:ok, {unquote(error_name), unquote(decode_error_fun_name)(error)}}
+            {:ok, unquote(error_name), unquote(decode_error_fun_name)(error)}
           end
         end
 
       generic_event_fn =
         quote do
           def decode_event(topics = [<<unquote_splicing(signature_list)>> | _], data) do
-            {:ok, unquote(decode_event_fun_name)(topics, data)}
+            unquote(decode_event_fun_name)(topics, data)
           end
         end
 
