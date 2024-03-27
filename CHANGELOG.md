@@ -1,3 +1,7 @@
+## v1.0.0-charlie8
+
+- [Trace Call Many Froms](https://github.com/hayesgm/signet/pull/57)
+
 ## v1.0.0-charlie7
 
 - [Improve ABI Event Decoding](https://github.com/hayesgm/signet/pull/56)

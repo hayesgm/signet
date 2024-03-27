@@ -860,7 +860,16 @@ defmodule Signet.RPC do
 
     send_rpc(
       "trace_callMany",
-      [Enum.map(trxs, fn trx -> [to_call_params(trx, from), ["trace"]] end), block_number],
+      [
+        Enum.map(
+          trxs,
+          fn
+            {trx, from} -> [to_call_params(trx, from), ["trace"]]
+            trx -> [to_call_params(trx, from), ["trace"]]
+          end
+        ),
+        block_number
+      ],
       Keyword.merge(opts, decode: &Signet.TraceCall.deserialize_many/1)
     )
   end
