@@ -1,3 +1,7 @@
+## v1.0.0-charlie9
+
+- [Bump ABI Version](https://github.com/hayesgm/signet/pull/58)
+
 ## v1.0.0-charlie8
 
 - [Trace Call Many Froms](https://github.com/hayesgm/signet/pull/57)
