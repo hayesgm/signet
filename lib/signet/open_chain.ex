@@ -61,6 +61,8 @@ defmodule Signet.OpenChain do
   defmodule API do
     def http_client(), do: Application.get_env(:signet, :open_chain_client, HTTPoison)
 
+    @base_url Application.compile_env(:signet, :open_chain_base_url, "https://api.openchain.xyz")
+
     @spec get(String.t(), Keyword.t()) :: {:ok, term()} | {:error, String.t()}
     def get(url, opts) do
       headers = Keyword.get(opts, :headers, [])
@@ -117,7 +119,7 @@ defmodule Signet.OpenChain do
 
       with {:ok, resp} <-
              get(
-               "signature-database/v1/lookup?#{URI.encode_query(events: events, functions: functions, filter: filter)}",
+               "#{@base_url}/signature-database/v1/lookup?#{URI.encode_query(events: events, functions: functions, filter: filter)}",
                opts
              ) do
         {:ok, Signatures.deserialize(resp)}

@@ -26,7 +26,7 @@ defmodule Signet.OpenChainTest do
     }
     """
 
-    def get("signature-database/v1/lookup?" <> _params, _headers, _opts) do
+    def get("https://example.com/open-chain/signature-database/v1/lookup?" <> _params, _headers, _opts) do
       {:ok, %HTTPoison.Response{status_code: 200, body: @lookup_success}}
     end
   end
