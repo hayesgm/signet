@@ -1,3 +1,7 @@
+## v1.0.0-delta1
+
+- [Add OpenChain API](https://github.com/hayesgm/signet/pull/59)
+
 ## v1.0.0-charlie9
 
 - [Bump ABI Version](https://github.com/hayesgm/signet/pull/58)
