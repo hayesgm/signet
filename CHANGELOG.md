@@ -1,3 +1,7 @@
+## v1.0.0-delta3
+
+- [Fix OpenChain API Params](https://github.com/hayesgm/signet/pull/61)
+
 ## v1.0.0-delta2
 
 - [Add OpenChain Base URL](https://github.com/hayesgm/signet/pull/60)

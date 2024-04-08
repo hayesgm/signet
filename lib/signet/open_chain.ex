@@ -119,7 +119,7 @@ defmodule Signet.OpenChain do
 
       with {:ok, resp} <-
              get(
-               "#{@base_url}/signature-database/v1/lookup?#{URI.encode_query(events: events, functions: functions, filter: filter)}",
+               "#{@base_url}/signature-database/v1/lookup?#{URI.encode_query(event: events, function: functions, filter: filter)}",
                opts
              ) do
         {:ok, Signatures.deserialize(resp)}
