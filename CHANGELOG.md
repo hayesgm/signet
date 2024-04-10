@@ -1,3 +1,7 @@
+## v1.0.0-delta4
+
+- [Add More RPCs](https://github.com/hayesgm/signet/pull/62)
+
 ## v1.0.0-delta3
 
 - [Fix OpenChain API Params](https://github.com/hayesgm/signet/pull/61)
