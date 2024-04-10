@@ -330,6 +330,20 @@ defmodule Signet.RPC do
     )
   end
 
+  @doc ~S"""
+  RPC to get the current chain id.
+
+  Docs: https://ethereum.org/en/developers/docs/apis/json-rpc/#eth_chainid
+
+  ## Examples
+
+      iex> Signet.RPC.eth_chain_id()
+      {:ok, 0x22}
+  """
+  def eth_chain_id(opts \\ []) do
+    Signet.RPC.send_rpc("eth_chainId", [], Keyword.merge(opts, decode: :hex_unsigned))
+  end
+
   @doc """
   RPC call to get code for a contract at an address.
 
@@ -348,13 +362,142 @@ defmodule Signet.RPC do
     )
   end
 
+  @doc ~S"""
+  RPC to get an account's eth balance.
+
+  Docs: https://ethereum.org/en/developers/docs/apis/json-rpc/#eth_getbalance
+
+  ## Examples
+
+      iex> Signet.RPC.get_balance(~h[0x0000000000000000000000000000000000000001])
+      {:ok, 0x55}
+  """
+  def get_balance(address = <<_::160>>, opts \\ []) do
+    block_number = Keyword.get(opts, :block_number, "latest")
+
+    Signet.RPC.send_rpc(
+      "eth_getBalance",
+      [to_hex(address), block_number],
+      Keyword.merge(opts, decode: :hex_unsigned)
+    )
+  end
+
+  @doc ~S"""
+  RPC to get an account's transaction count (i.e. nonce)
+
+  Docs: https://ethereum.org/en/developers/docs/apis/json-rpc/#eth_gettransactioncount
+
+  ## Examples
+
+      iex> Signet.RPC.get_transaction_count(~h[0x0000000000000000000000000000000000000001])
+      {:ok, 0x4}
+  """
+  def get_transaction_count(address = <<_::160>>, opts \\ []) do
+    block_number = Keyword.get(opts, :block_number, "latest")
+
+    Signet.RPC.send_rpc(
+      "eth_getTransactionCount",
+      [to_hex(address), block_number],
+      Keyword.merge(opts, decode: :hex_unsigned)
+    )
+  end
+
+  @doc ~S"""
+  RPC to get the current block number.
+
+  Docs: https://ethereum.org/en/developers/docs/apis/json-rpc/#eth_blocknumber
+
+  ## Examples
+
+      iex> Signet.RPC.eth_block_number()
+      {:ok, 0x44}
+  """
+  def eth_block_number(opts \\ []) do
+    Signet.RPC.send_rpc("eth_blockNumber", [], Keyword.merge(opts, decode: :hex_unsigned))
+  end
+
+  @doc ~S"""
+  RPC to get a block by its block number.
+
+  Docs: https://ethereum.org/en/developers/docs/apis/json-rpc/#eth_getblockbynumber
+
+  ## Examples
+
+      iex> Signet.RPC.get_block_by_number(55)
+      {:ok, %Signet.Block{
+        difficulty: 0x4ea3f27bc,
+        extra_data: ~h[0x476574682f4c5649562f76312e302e302f6c696e75782f676f312e342e32],
+        gas_limit: 0x1388,
+        gas_used: 0x0,
+        hash: ~h[0xdc0818cf78f21a8e70579cb46a43643f78291264dda342ae31049421c82d21ae],
+        logs_bloom: ~h[0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000],
+        miner: ~h[0xbb7b8287f3f0a933474a79eae42cbca977791171],
+        nonce: 0x689056015818adbe,
+        number: 0x1b4,
+        parent_hash: ~h[0xe99e022112df268087ea7eafaf4790497fd21dbeeb6bd7a1721df161a6657a54],
+        receipts_root: ~h[0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421],
+        sha3_uncles: ~h[0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347],
+        size: 0x220,
+        state_root: ~h[0xddc8b0234c2e0cad087c8b389aa7ef01f7d79b2570bccb77ce48648aa61c904d],
+        timestamp: 0x55ba467c,
+        total_difficulty: 0x78ed983323d,
+        transactions: [],
+        transactions_root: ~h[0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421],
+        uncles: []
+      }}
+  """
+  def get_block_by_number(block_number, opts \\ []) do
+    send_rpc(
+      "eth_getBlockByNumber",
+      [block_number],
+      Keyword.merge(opts, decode: &Signet.Block.deserialize/1)
+    )
+  end
+
+  @doc ~S"""
+  RPC to get a block by its block hash.
+
+  Docs: https://ethereum.org/en/developers/docs/apis/json-rpc/#eth_getblockbyhash
+
+  ## Examples
+
+      iex> Signet.RPC.get_block_by_hash(~h[0xdc0818cf78f21a8e70579cb46a43643f78291264dda342ae31049421c82d21ae])
+      {:ok, %Signet.Block{
+        difficulty: 0x4ea3f27bc,
+        extra_data: ~h[0x476574682f4c5649562f76312e302e302f6c696e75782f676f312e342e32],
+        gas_limit: 0x1388,
+        gas_used: 0x0,
+        hash: ~h[0xdc0818cf78f21a8e70579cb46a43643f78291264dda342ae31049421c82d21ae],
+        logs_bloom: ~h[0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000],
+        miner: ~h[0xbb7b8287f3f0a933474a79eae42cbca977791171],
+        nonce: 0x689056015818adbe,
+        number: 0x1b4,
+        parent_hash: ~h[0xe99e022112df268087ea7eafaf4790497fd21dbeeb6bd7a1721df161a6657a54],
+        receipts_root: ~h[0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421],
+        sha3_uncles: ~h[0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347],
+        size: 0x220,
+        state_root: ~h[0xddc8b0234c2e0cad087c8b389aa7ef01f7d79b2570bccb77ce48648aa61c904d],
+        timestamp: 0x55ba467c,
+        total_difficulty: 0x78ed983323d,
+        transactions: [],
+        transactions_root: ~h[0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421],
+        uncles: []
+      }}
+  """
+  def get_block_by_hash(block_hash, opts \\ []) do
+    send_rpc(
+      "eth_getBlockByHash",
+      [to_hex(block_hash)],
+      Keyword.merge(opts, decode: &Signet.Block.deserialize/1)
+    )
+  end
+
   @doc """
   RPC call to get a transaction receipt. Note, this will return {:ok, %Signet.Receipt{}} or {:ok, nil} if the
   receipt is not yet available.
 
   ## Examples
 
-      iex> use Signet.Hex
       iex> Signet.RPC.get_trx_receipt(~h[0x85d995eba9763907fdf35cd2034144dd9d53ce32cbec21349d4b12823c6860c5])
       {:ok,
         %Signet.Receipt{
@@ -388,7 +531,6 @@ defmodule Signet.RPC do
         }
       }
 
-      iex> use Signet.Hex
       iex> Signet.RPC.get_trx_receipt("0x85d995eba9763907fdf35cd2034144dd9d53ce32cbec21349d4b12823c6860c5")
       {:ok,
         %Signet.Receipt{
@@ -422,7 +564,6 @@ defmodule Signet.RPC do
         }
       }
 
-      iex> use Signet.Hex
       iex> Signet.RPC.get_trx_receipt("0xf9e69be4f1ae524854e14dc820c519d8f2b86e52c60e54448abf920d22fb6fe2")
       {:ok, %Signet.Receipt{
         transaction_hash: ~h[0xf9e69be4f1ae524854e14dc820c519d8f2b86e52c60e54448abf920d22fb6fe2],
@@ -520,7 +661,6 @@ defmodule Signet.RPC do
 
   ## Examples
 
-      iex> use Signet.Hex
       iex> Signet.RPC.trace_trx("0x85d995eba9763907fdf35cd2034144dd9d53ce32cbec21349d4b12823c6860c5")
       {:ok,
         [
@@ -582,7 +722,6 @@ defmodule Signet.RPC do
 
   ## Examples
 
-      iex> use Signet.Hex
       iex> Signet.Transaction.V1.new(1, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>)
       ...> |> Signet.RPC.trace_call()
       {:ok,
@@ -627,7 +766,6 @@ defmodule Signet.RPC do
         }
       ]}
 
-      iex> use Signet.Hex
       iex> Signet.Transaction.V2.new(1, {1, :gwei}, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>, [<<2::160>>, <<3::160>>], :goerli)
       ...> |> Signet.RPC.trace_call()
       {:ok,
@@ -688,7 +826,6 @@ defmodule Signet.RPC do
 
   ## Examples
 
-      iex> use Signet.Hex
       iex> t1 = Signet.Transaction.V1.new(1, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>)
       iex> t2 = Signet.Transaction.V2.new(1, {1, :gwei}, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>, [<<2::160>>, <<3::160>>], :goerli)
       iex> Signet.RPC.trace_call_many([t1, t2])
