@@ -1,5 +1,6 @@
 defmodule SleuthTest do
   use ExUnit.Case
+  use Signet.Hex
   alias Signet.Sleuth
   doctest Sleuth
 
@@ -59,6 +60,25 @@ defmodule SleuthTest do
                  Signet.Contract.BlockNumber.bytecode(),
                  Signet.Contract.BlockNumber.encode_query_three(),
                  Signet.Contract.BlockNumber.query_three_selector()
+               )
+    end
+
+    test "queryFour()" do
+      assert {:ok, %{"var0" => ~h[0x010203], "var1" => <<1::160>>}} ==
+               Signet.Sleuth.query(
+                 Signet.Contract.BlockNumber.bytecode(),
+                 Signet.Contract.BlockNumber.encode_query_four(),
+                 Signet.Contract.BlockNumber.query_four_selector()
+               )
+    end
+
+    test "queryFour() - no decode binaries" do
+      assert {:ok, %{"var0" => "0x010203", "var1" => "0x0000000000000000000000000000000000000001"}} ==
+               Signet.Sleuth.query(
+                 Signet.Contract.BlockNumber.bytecode(),
+                 Signet.Contract.BlockNumber.encode_query_four(),
+                 Signet.Contract.BlockNumber.query_four_selector(),
+                 decode_binaries: false
                )
     end
 

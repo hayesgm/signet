@@ -7,7 +7,7 @@ defmodule Signet.Sleuth do
   """
   use Signet.Hex
 
-  @sleuth_address ~h[0xc6a613fdac3465d250df7ff3cc21bec86eb8a372]
+  @sleuth_address ~h[0xFd946Bf25C47A1Bff567B28bA78a961bf78FF9d2]
 
   def query(bytecode, query, selector, opts \\ []),
     do: query_internal(bytecode, query, selector, false, opts)
@@ -29,13 +29,14 @@ defmodule Signet.Sleuth do
 
   defp query_internal(bytecode, query, selector, annotated, opts)
        when is_binary(bytecode) and is_list(opts) do
-    {sleuth_address, rpc_opts} = Keyword.pop(opts, :sleuth_address, @sleuth_address)
+    {sleuth_address, opts} = Keyword.pop(opts, :sleuth_address, @sleuth_address)
+    {decode_binaries, rpc_opts} = Keyword.pop(opts, :decode_binaries, true)
 
     with {:ok, query_res_bytes} <-
            Signet.Contract.Sleuth.call_query(sleuth_address, bytecode, query, rpc_opts),
          {:ok, query_res} <- try_decode_bytes(query_res_bytes),
          {:ok, res} <- try_decode(query_res, selector) do
-      {:ok, unwrap_outer_tuple(encode_map(res, selector.returns, annotated))}
+      {:ok, unwrap_outer_tuple(encode_map(res, selector.returns, annotated, decode_binaries))}
     end
   end
 
@@ -58,14 +59,14 @@ defmodule Signet.Sleuth do
     end
   end
 
-  defp encode_map(res, types, annotated) do
+  defp encode_map(res, types, annotated, decode_binaries) do
     Enum.map(Enum.zip(res, Enum.with_index(types)), fn {res, {type, i}} ->
-      encode_item(res, type, i, annotated)
+      encode_item(res, type, i, annotated, decode_binaries)
     end)
     |> Enum.into(%{})
   end
 
-  defp encode_item(res, type, i, annotated) do
+  defp encode_item(res, type, i, annotated, decode_binaries) do
     var_name =
       if is_nil(type.name) or type.name == "" do
         "var#{i}"
@@ -73,19 +74,19 @@ defmodule Signet.Sleuth do
         type.name
       end
 
-    res_enc = encode_value(res, type.type, annotated)
+    res_enc = encode_value(res, type.type, annotated, decode_binaries)
 
     {var_name, res_enc}
   end
 
-  defp encode_value(res, type, annotated) do
+  defp encode_value(res, type, annotated, decode_binaries) do
     encode_array = fn sub_type ->
-      Enum.map(res, fn r -> encode_value(r, sub_type, annotated) end)
+      Enum.map(res, fn r -> encode_value(r, sub_type, annotated, decode_binaries) end)
     end
 
     case type do
       {:tuple, sub_types} ->
-        encode_map(Tuple.to_list(res), sub_types, annotated)
+        encode_map(Tuple.to_list(res), sub_types, annotated, decode_binaries)
 
       {:array, sub_type} ->
         encode_array.(sub_type)
@@ -94,15 +95,27 @@ defmodule Signet.Sleuth do
         encode_array.(sub_type)
 
       _ ->
+        res_enc =
+          case {type, decode_binaries} do
+            {:address, false} ->
+              to_hex(res)
+
+            {:bytes, false} ->
+              to_hex(res)
+
+            _ ->
+              res
+          end
+
         if annotated do
-          {type, res}
+          {type, res_enc}
         else
-          res
+          res_enc
         end
     end
   end
 
-  defp unwrap_outer_tuple(%{"var0" => x}), do: x
+  defp unwrap_outer_tuple(xs=%{"var0" => x}) when map_size(xs) == 1, do: x
   defp unwrap_outer_tuple(els), do: els
 
   defp try_apply(mod, fun, args) do
