@@ -53,7 +53,7 @@ defmodule Signet.Filter do
 
   def start_link(opts \\ []) do
     name = Keyword.get(opts, :name, __MODULE__)
-    address = Keyword.fetch!(opts, :address)
+    address = Keyword.get(opts, :address, nil)
     topics = Keyword.get(opts, :topics, [])
     events = Keyword.get(opts, :events, [])
     rpc_opts = Keyword.get(opts, :rpc_opts, [])
@@ -96,6 +96,21 @@ defmodule Signet.Filter do
       },
       name: name
     )
+  end
+
+  defp set_filter(state = %{address: nil, topics: topics, rpc_opts: rpc_opts}) do
+    {:ok, filter_id} =
+      RPC.send_rpc(
+        "eth_newFilter",
+        [
+          %{
+            "topics" => Enum.map(topics, &Signet.Hex.encode_hex/1)
+          }
+        ],
+        rpc_opts
+      )
+
+    Map.put(state, :filter_id, filter_id)
   end
 
   defp set_filter(state = %{address: address, topics: topics, rpc_opts: rpc_opts}) do

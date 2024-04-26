@@ -1,3 +1,7 @@
+## v1.0.0-delta6
+
+- [Filter No Address](https://github.com/hayesgm/signet/pull/64)
+
 ## v1.0.0-delta5
 
 - [Sleuth Binaries](https://github.com/hayesgm/signet/pull/63)
