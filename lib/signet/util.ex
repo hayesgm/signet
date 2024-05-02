@@ -163,7 +163,7 @@ defmodule Signet.Util do
     iex> Signet.Util.encode_hex(<<0x0>>, true)
     "0x0"
   """
-  @deprecated "Use Signet.Hex.encode_hex_short/1 instead"
+  @deprecated "Use Signet.Hex.encode_short_hex/1 instead"
   def encode_hex(hex, short \\ false)
   def encode_hex(nil, _short), do: nil
 
