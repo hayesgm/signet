@@ -14,6 +14,21 @@ defmodule SleuthTest do
                )
     end
 
+    test "query() failure with trace" do
+      assert {:error,
+              %{
+                code: 3,
+                message: "execution reverted",
+                trace: _
+              }} =
+               Signet.Sleuth.query(
+                 ~h[],
+                 ~h[0xDEADBEEFDEADBEEFDEADBEEFDEADBEEF00000001],
+                 Signet.Contract.BlockNumber.query_selector(),
+                 trace_reverts: true
+               )
+    end
+
     test "query_by() via mod/fun" do
       assert {:ok, %{"blockNumber" => 2}} ==
                Signet.Sleuth.query_by(
@@ -73,7 +88,8 @@ defmodule SleuthTest do
     end
 
     test "queryFour() - no decode binaries" do
-      assert {:ok, %{"var0" => "0x010203", "var1" => "0x0000000000000000000000000000000000000001"}} ==
+      assert {:ok,
+              %{"var0" => "0x010203", "var1" => "0x0000000000000000000000000000000000000001"}} ==
                Signet.Sleuth.query(
                  Signet.Contract.BlockNumber.bytecode(),
                  Signet.Contract.BlockNumber.encode_query_four(),

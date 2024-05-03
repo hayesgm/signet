@@ -15,19 +15,25 @@ defmodule Signet.Test.SleuthHandler do
         encode_sleuth(Signet.Contract.BlockNumber.query_selector(), {2})
 
       {:ok, "queryTwo", _} ->
-      encode_sleuth(Signet.Contract.BlockNumber.query_two_selector(), {2, 3})
+        encode_sleuth(Signet.Contract.BlockNumber.query_two_selector(), {2, 3})
 
       {:ok, "queryThree", _} ->
         encode_sleuth(Signet.Contract.BlockNumber.query_three_selector(), {2})
 
       {:ok, "queryFour", _} ->
-        encode_sleuth(Signet.Contract.BlockNumber.query_four_selector(), {~h[0x010203], ~h[0x0000000000000000000000000000000000000001]})
+        encode_sleuth(
+          Signet.Contract.BlockNumber.query_four_selector(),
+          {~h[0x010203], ~h[0x0000000000000000000000000000000000000001]}
+        )
 
       {:ok, "queryCool", _} ->
-        encode_sleuth(Signet.Contract.BlockNumber.query_cool_selector(), {{"hi", [1, 2, 3], {"meow"}}})
-      
+        encode_sleuth(
+          Signet.Contract.BlockNumber.query_cool_selector(),
+          {{"hi", [1, 2, 3], {"meow"}}}
+        )
+
       _ ->
-        raise "Unknown Sleuth query call" 
+        raise "Unknown Sleuth query call"
     end
   end
 
@@ -46,7 +52,7 @@ defmodule Signet.Test.SleuthHandler do
         {:error,
          %{
            "code" => 3,
-           "message" => "unexpected"
+           "message" => "execution reverted"
          }}
 
       true ->
