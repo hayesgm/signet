@@ -291,14 +291,30 @@ defmodule Signet.RPC do
     from = Keyword.get(opts, :from)
     block_number = Keyword.get(opts, :block_number, "latest")
     errors = Keyword.get(opts, :errors, [])
+    trace_reverts = Keyword.get(opts, :trace_reverts, false)
 
-    send_rpc(
-      "eth_call",
-      [to_call_params(trx, from), block_number],
-      opts
-      |> Keyword.put_new(:decode, :hex)
-      |> Keyword.put_new(:errors, errors)
-    )
+    trx_res =
+      send_rpc(
+        "eth_call",
+        [to_call_params(trx, from), block_number],
+        opts
+        |> Keyword.put_new(:decode, :hex)
+        |> Keyword.put_new(:errors, errors)
+      )
+
+    if trace_reverts do
+      with {:error, error = %{code: 3, message: "execution reverted"}} <- trx_res do
+        case trace_call(trx, opts) do
+          {:ok, trace} ->
+            {:error, Map.put(error, :trace, trace)}
+
+          _ ->
+            trx_res
+        end
+      end
+    else
+      trx_res
+    end
   end
 
   @doc """

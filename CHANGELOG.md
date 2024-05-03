@@ -1,3 +1,9 @@
+## v1.0.0-delta7
+
+- [Fix Test Runner](https://github.com/hayesgm/signet/pull/67)
+- [Trace Reverts](https://github.com/hayesgm/signet/pull/66)
+- [Fix Typo](https://github.com/hayesgm/signet/pull/65)
+
 ## v1.0.0-delta6
 
 - [Filter No Address](https://github.com/hayesgm/signet/pull/64)

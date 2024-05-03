@@ -115,7 +115,7 @@ defmodule Signet.Sleuth do
     end
   end
 
-  defp unwrap_outer_tuple(xs=%{"var0" => x}) when map_size(xs) == 1, do: x
+  defp unwrap_outer_tuple(xs = %{"var0" => x}) when map_size(xs) == 1, do: x
   defp unwrap_outer_tuple(els), do: els
 
   defp try_apply(mod, fun, args) do
