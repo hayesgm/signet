@@ -183,7 +183,7 @@ defmodule Mix.Tasks.Signet.Gen do
 
     events = [
       quote do
-        def decode_event(_), do: :not_found
+        def decode_event(_, _), do: :not_found
       end
       | events
     ]
