@@ -240,7 +240,7 @@ defmodule Signet.Contract.BlockNumber do
     :not_found
   end
 
-  def decode_event(_) do
+  def decode_event(_, _) do
     :not_found
   end
 

@@ -473,7 +473,7 @@ defmodule Signet.Contract.IERC20 do
     decode_transfer_ddf252ad_event(topics, data)
   end
 
-  def decode_event(_) do
+  def decode_event(_, _) do
     :not_found
   end
 
