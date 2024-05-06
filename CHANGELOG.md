@@ -1,3 +1,7 @@
+## v1.0.0-delta8
+
+- [Fix Decode Event Codegen](https://github.com/hayesgm/signet/pull/68)
+
 ## v1.0.0-delta7
 
 - [Fix Test Runner](https://github.com/hayesgm/signet/pull/67)
