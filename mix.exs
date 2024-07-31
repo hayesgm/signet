@@ -4,7 +4,7 @@ defmodule Signet.MixProject do
   def project do
     [
       app: :signet,
-      version: "1.0.0-delta8",
+      version: "1.0.0-echo1",
       elixir: "~> 1.13",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,

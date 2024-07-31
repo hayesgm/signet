@@ -99,6 +99,10 @@ defmodule Signet.Contract.BlockNumber do
     ABI.decode(query_cool_selector(), calldata)
   end
 
+  def exec_vm_query_cool(callvalue \\ 0) do
+    Signet.VM.exec_call(deployed_bytecode(), encode_query_cool(), callvalue)
+  end
+
   def query_four_selector() do
     %{
       __struct__: ABI.FunctionSelector,
@@ -136,6 +140,10 @@ defmodule Signet.Contract.BlockNumber do
 
   def decode_query_four_call(<<160, 180, 62, 214>> <> calldata) do
     ABI.decode(query_four_selector(), calldata)
+  end
+
+  def exec_vm_query_four(callvalue \\ 0) do
+    Signet.VM.exec_call(deployed_bytecode(), encode_query_four(), callvalue)
   end
 
   def query_three_selector() do

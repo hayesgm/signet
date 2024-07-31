@@ -232,6 +232,7 @@ defmodule Mix.Tasks.Signet.Gen do
     decode_event_fun_name = String.to_atom("decode_#{Macro.underscore(fn_name)}_event")
     decode_error_fun_name = String.to_atom("decode_#{Macro.underscore(fn_name)}_error")
     decode_call_fun_name = String.to_atom("decode_#{Macro.underscore(fn_name)}_call")
+    exec_vm_fun_name = String.to_atom("exec_vm_#{Macro.underscore(fn_name)}")
 
     event_selector = selector
 
@@ -496,6 +497,20 @@ defmodule Mix.Tasks.Signet.Gen do
             end
         end
 
+      exec_vm_fn =
+        quote do
+          def unquote(exec_vm_fun_name)(
+                unquote_splicing(execute_arguments),
+                callvalue \\ 0
+              ) do
+            Signet.VM.exec_call(
+              deployed_bytecode(),
+              unquote(encode_fun_name)(unquote_splicing(execute_values)),
+              callvalue
+            )
+          end
+        end
+
       selector_fn =
         quote do
           def unquote(selector_fun_name)() do
@@ -565,6 +580,19 @@ defmodule Mix.Tasks.Signet.Gen do
 
         {x, _} when x in [:constructor, :fallback, :receive] ->
           {[encode_fn, prepare_fn, execute_fn], nil, nil, nil}
+
+        {_, :pure} ->
+          {[
+             selector_fn,
+             encode_fn,
+             prepare_fn,
+             build_trx_fn,
+             call_fn,
+             estimate_gas_fn,
+             execute_fn,
+             decode_call_fn,
+             exec_vm_fn
+           ], generic_decode_call_fn, nil, nil}
 
         _ ->
           {[

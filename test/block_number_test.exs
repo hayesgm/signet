@@ -11,8 +11,18 @@ defmodule Signet.Contract.BlockNumberTest do
   use ExUnit.Case, async: true
   doctest Signet.Contract.BlockNumber
   alias Signet.Contract.BlockNumber
+  use Signet.Hex
 
   test "returns correct contract name" do
     assert BlockNumber.contract_name() == "BlockNumber"
+  end
+
+  test "exec_vm" do
+    assert {:ok, res} = BlockNumber.exec_vm_query_four()
+    assert to_hex(res) == "0x" <>
+      "0000000000000000000000000000000000000000000000000000000000000040" <>
+      "0000000000000000000000000000000000000000000000000000000000000001" <>
+      "0000000000000000000000000000000000000000000000000000000000000003" <>
+      "0102030000000000000000000000000000000000000000000000000000000000"
   end
 end
