@@ -65,7 +65,19 @@ defmodule Mix.Tasks.Signet.Gen do
   # The contract name isn't obvious from the output-json file, thus we look either by
   # trying to find it in the metadata settings or AST [below]
   defp get_contract_name_by_metadata(abi) do
-    case get_in(abi, ["metadata", "settings", "compilationTarget"]) do
+    metadata =
+      case get_in(abi, ["metadata"]) do
+        nil ->
+          nil
+
+        m when is_binary(m) ->
+          Jason.decode!(m)
+
+        els ->
+          els
+      end
+
+    case get_in(metadata, ["settings", "compilationTarget"]) do
       nil ->
         nil
 
@@ -232,6 +244,8 @@ defmodule Mix.Tasks.Signet.Gen do
     decode_event_fun_name = String.to_atom("decode_#{Macro.underscore(fn_name)}_event")
     decode_error_fun_name = String.to_atom("decode_#{Macro.underscore(fn_name)}_error")
     decode_call_fun_name = String.to_atom("decode_#{Macro.underscore(fn_name)}_call")
+    exec_vm_fun_name = String.to_atom("exec_vm_#{Macro.underscore(fn_name)}")
+    exec_vm_raw_fun_name = String.to_atom("exec_vm_#{Macro.underscore(fn_name)}_raw")
 
     event_selector = selector
 
@@ -358,6 +372,13 @@ defmodule Mix.Tasks.Signet.Gen do
       Signet.Hash.keccak(ABI.FunctionSelector.encode(selector))
 
     abi_enc_signature_list = :erlang.binary_to_list(abi_enc_signature)
+    abi_enc_signature_hex_base = Signet.Hex.encode_hex(abi_enc_signature)
+
+    abi_enc_signature_hex =
+      quote do
+        _signature = hex!(unquote(abi_enc_signature_hex_base))
+      end
+
     signature_list = :erlang.binary_to_list(signature)
     error_name = selector.function
 
@@ -496,6 +517,52 @@ defmodule Mix.Tasks.Signet.Gen do
             end
         end
 
+      exec_vm_fn =
+        quote do
+          def unquote(exec_vm_fun_name)(
+                unquote_splicing(execute_arguments),
+                callvalue \\ 0
+              ) do
+            case Signet.VM.exec_call(
+                   deployed_bytecode(),
+                   unquote(encode_fun_name)(unquote_splicing(execute_values)),
+                   callvalue
+                 ) do
+              {:ok, return_data} ->
+                [decoded] =
+                  ABI.decode(
+                    %ABI.FunctionSelector{types: unquote(selector_fun_name)().returns},
+                    return_data
+                  )
+
+                {:ok, decoded}
+
+              {:revert, revert_data} ->
+                case decode_error(revert_data) do
+                  {:ok, error, data} ->
+                    {:revert, error, data}
+
+                  :not_found ->
+                    {:revert, "Unknown", revert_data}
+                end
+            end
+          end
+        end
+
+      exec_vm_raw_fn =
+        quote do
+          def unquote(exec_vm_raw_fun_name)(
+                unquote_splicing(execute_arguments),
+                callvalue \\ 0
+              ) do
+            Signet.VM.exec_call(
+              deployed_bytecode(),
+              unquote(encode_fun_name)(unquote_splicing(execute_values)),
+              callvalue
+            )
+          end
+        end
+
       selector_fn =
         quote do
           def unquote(selector_fun_name)() do
@@ -513,6 +580,7 @@ defmodule Mix.Tasks.Signet.Gen do
       decode_event_fn =
         quote do
           def unquote(decode_event_fun_name)(topics, data) when is_list(topics) do
+            unquote(abi_enc_signature_hex)
             ABI.Event.decode_event(data, topics, unquote(event_selector_fun_name)())
           end
         end
@@ -522,6 +590,7 @@ defmodule Mix.Tasks.Signet.Gen do
           def unquote(decode_call_fun_name)(
                 <<unquote_splicing(abi_enc_signature_list)>> <> calldata
               ) do
+            unquote(abi_enc_signature_hex)
             ABI.decode(unquote(selector_fun_name)(), calldata)
           end
         end
@@ -531,6 +600,7 @@ defmodule Mix.Tasks.Signet.Gen do
           def unquote(decode_error_fun_name)(
                 <<unquote_splicing(abi_enc_signature_list)>> <> error
               ) do
+            unquote(abi_enc_signature_hex)
             ABI.decode(unquote(selector_fun_name)(), error)
           end
         end
@@ -538,6 +608,7 @@ defmodule Mix.Tasks.Signet.Gen do
       generic_decode_call_fn =
         quote do
           def decode_call(calldata = <<unquote_splicing(abi_enc_signature_list)>> <> _) do
+            unquote(abi_enc_signature_hex)
             {:ok, unquote(error_name), unquote(decode_call_fun_name)(calldata)}
           end
         end
@@ -545,6 +616,7 @@ defmodule Mix.Tasks.Signet.Gen do
       generic_error_fn =
         quote do
           def decode_error(error = <<unquote_splicing(abi_enc_signature_list)>> <> _) do
+            unquote(abi_enc_signature_hex)
             {:ok, unquote(error_name), unquote(decode_error_fun_name)(error)}
           end
         end
@@ -566,6 +638,20 @@ defmodule Mix.Tasks.Signet.Gen do
         {x, _} when x in [:constructor, :fallback, :receive] ->
           {[encode_fn, prepare_fn, execute_fn], nil, nil, nil}
 
+        {_, :pure} ->
+          {[
+             selector_fn,
+             encode_fn,
+             prepare_fn,
+             build_trx_fn,
+             call_fn,
+             estimate_gas_fn,
+             execute_fn,
+             decode_call_fn,
+             exec_vm_fn,
+             exec_vm_raw_fn
+           ], generic_decode_call_fn, nil, nil}
+
         _ ->
           {[
              selector_fn,
@@ -584,31 +670,32 @@ defmodule Mix.Tasks.Signet.Gen do
   # Generate the bytecode function
   # Note: I wanted to use ~h[] syntax, but generating that was being weird.
   defp get_bytecode(abi) do
-    case abi["bytecode"] do
-      %{"object" => bytecode} ->
-        [
-          quote do
-            def bytecode(), do: hex!(unquote(bytecode))
-          end
-        ]
+    bytecode = get_in(abi, ["bytecode", "object"]) || get_in(abi, ["bin"])
 
-      _ ->
-        []
+    if is_nil(bytecode) do
+      []
+    else
+      [
+        quote do
+          def bytecode(), do: hex!(unquote(bytecode))
+        end
+      ]
     end
   end
 
   # Generate the deployed bytecode function
   defp get_deployed_bytecode(abi) do
-    case abi["deployedBytecode"] do
-      %{"object" => bytecode} ->
-        [
-          quote do
-            def deployed_bytecode(), do: hex!(unquote(bytecode))
-          end
-        ]
+    deployed_bytecode =
+      get_in(abi, ["deployedBytecode", "object"]) || get_in(abi, ["bin-runtime"])
 
-      _ ->
-        []
+    if is_nil(deployed_bytecode) do
+      []
+    else
+      [
+        quote do
+          def deployed_bytecode(), do: hex!(unquote(deployed_bytecode))
+        end
+      ]
     end
   end
 
