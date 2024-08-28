@@ -48,11 +48,12 @@ defmodule Signet.OpenChain do
 
     defp decode_entries(entries) when is_map(entries) do
       entries
-      |> Enum.into([])
-      |> Enum.map(fn {k, vs} ->
-        vs
-        |> Enum.filter(fn v -> not v["filtered"] end)
-        |> Enum.map(fn v -> {from_hex!(k), v["name"]} end)
+      |> Enum.reject(fn {_k, v} -> is_nil(v) end)
+      |> Enum.map(fn
+        {k, vs} ->
+          vs
+          |> Enum.filter(fn v -> not v["filtered"] end)
+          |> Enum.map(fn v -> {from_hex!(k), v["name"]} end)
       end)
       |> List.flatten()
     end
@@ -186,4 +187,24 @@ defmodule Signet.OpenChain do
   end
 
   def lookup_error(_, _opts), do: {:error, "Error must include 4-byte signature"}
+
+  @doc """
+    Looks up an error and decodes its values, returning both.
+
+      ## Examples
+
+          iex> Signet.OpenChain.lookup_error_and_values(~h[0x08c379a00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000001b43616c6c6572206e6f74206174746573746572206d616e616765720000000000])
+          {:ok, "Error(string)", ["Caller not attester manager"]}
+  """
+  def lookup_error_and_values(_, opts \\ [])
+
+  def lookup_error_and_values(<<signature::binary-size(4), data::binary>>, opts) do
+    with {:ok, signature} <- lookup(signature, :function, opts),
+         function_selector <- ABI.FunctionSelector.decode(signature),
+         result <- ABI.decode(function_selector, data) do
+      {:ok, signature, result}
+    end
+  end
+
+  def lookup_error_and_values(_, _opts), do: {:error, "Error must include 4-byte signature"}
 end
