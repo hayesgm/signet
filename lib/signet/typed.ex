@@ -24,6 +24,7 @@ defmodule Signet.Typed do
             | :string
             | :bytes
             | {:array, primitive()}
+            | :bool
     @type field_type() :: primitive() | String.t()
     @type type_list() :: [{String.t(), field_type()}]
     @type t() :: %__MODULE__{fields: type_list()}
@@ -104,6 +105,9 @@ defmodule Signet.Typed do
         iex> Signet.Typed.Type.serialize_type(:bytes)
         "bytes"
 
+        iex> Signet.Typed.Type.serialize_type(:bool)
+        "bool"
+
         iex> Signet.Typed.Type.serialize_type({:array, :bytes})
         "bytes[]"
 
@@ -116,6 +120,7 @@ defmodule Signet.Typed do
     def serialize_type({:bytes, sz}), do: "bytes#{sz}"
     def serialize_type(:string), do: "string"
     def serialize_type(:bytes), do: "bytes"
+    def serialize_type(:bool), do: "bool"
     def serialize_type({:array, ty}), do: "#{serialize_type(ty)}[]"
     def serialize_type(custom_type) when is_binary(custom_type), do: custom_type
 
@@ -137,6 +142,9 @@ defmodule Signet.Typed do
         iex> Signet.Typed.Type.deserialize_type("bytes32")
         {:bytes, 32}
 
+        iex> Signet.Typed.Type.deserialize_type("bool")
+        :bool
+
         iex> Signet.Typed.Type.deserialize_type("bytes32[]")
         {:array, {:bytes, 32}}
 
@@ -151,6 +159,7 @@ defmodule Signet.Typed do
     def deserialize_type("uint256"), do: {:uint, 256}
     def deserialize_type("bytes32"), do: {:bytes, 32}
     def deserialize_type("string"), do: :string
+    def deserialize_type("bool"), do: :bool
     def deserialize_type("bytes"), do: :bytes
 
     def deserialize_type(ty) when is_binary(ty) do
@@ -177,6 +186,9 @@ defmodule Signet.Typed do
         iex> Signet.Typed.Type.deserialize_value!(55, {:uint, 256})
         55
 
+        iex> Signet.Typed.Type.deserialize_value!(true, :bool)
+        true
+
         iex> Signet.Typed.Type.deserialize_value!("0x00000000000000000000000000000000000000000000000000000000000000CC", {:bytes, 32})
         <<0xCC::256>>
 
@@ -197,6 +209,7 @@ defmodule Signet.Typed do
     def deserialize_value!(value, :string), do: value
     def deserialize_value!(value, :bytes), do: from_hex!(value)
     def deserialize_value!(value, {:uint, _}), do: value
+    def deserialize_value!(value, :bool), do: value
 
     def deserialize_value!(value, {:bytes, sz}),
       do: Signet.Util.pad(from_hex!(value), sz)
@@ -214,6 +227,9 @@ defmodule Signet.Typed do
 
         iex> Signet.Typed.Type.serialize_value(55, {:uint, 256})
         55
+
+        iex> Signet.Typed.Type.serialize_value(true, :bool)
+        true
 
         iex> Signet.Typed.Type.serialize_value(<<0xCC::256>>, {:bytes, 32})
         "0x00000000000000000000000000000000000000000000000000000000000000cc"
@@ -234,6 +250,7 @@ defmodule Signet.Typed do
     def serialize_value(value, :address), do: serialize_value(value, {:bytes, 20})
     def serialize_value(value, :string), do: value
     def serialize_value(value, :bytes), do: to_hex(value)
+    def serialize_value(value, :bool), do: value
     def serialize_value(value, {:uint, _}), do: value
 
     def serialize_value(value, {:bytes, sz}) do
@@ -275,6 +292,7 @@ defmodule Signet.Typed do
     def encode_data_value(value, :string), do: Signet.Hash.keccak(value)
     def encode_data_value(value, :bytes), do: Signet.Hash.keccak(value)
     def encode_data_value(value, {:bytes, _}), do: Signet.Util.pad(value, 32)
+    def encode_data_value(value, :bool), do: encode_data_value((if value, do: 1, else: 0), {:uint, 256})
 
     def encode_data_value(value, {:array, ty}) do
       value
@@ -945,6 +963,25 @@ defmodule Signet.Typed do
       ...> |> Signet.Typed.encode()
       ...> |> to_hex()
       "0x1901f4806c1a9dae718712eca4906bfca239a3a4a6dea2e9b9a1284fee5ff4df4b1ccc95538bfc3f979ca59d9ef7de5ed402a4e403857b3de87d1fc8ed4a2a7cddd9"
+
+      iex> %Signet.Typed{
+      ...>   domain: %Signet.Typed.Domain{
+      ...>     name: "Complex Array",
+      ...>     version: "1"
+      ...>   },
+      ...>   types: %{
+      ...>     "Array" => %Signet.Typed.Type{fields: [{"a", {:uint, 256}}, {"b", {:uint, 256}}, {"c", :string}, {"d", :bool}]}
+      ...>   },
+      ...>   value: %{
+      ...>     "a" => 55,
+      ...>     "b" => 66,
+      ...>     "c" => "Hello",
+      ...>     "d" => true
+      ...>   }
+      ...> }
+      ...> |> Signet.Typed.encode()
+      ...> |> to_hex()
+      "0x1901f4806c1a9dae718712eca4906bfca239a3a4a6dea2e9b9a1284fee5ff4df4b1c8c56315a01fe3937526fe8c2b472b7e9e1c21728f6c14d5ffb0e0c156f74aca0"
   """
   @spec encode(t()) :: binary()
   def encode(typed = %__MODULE__{types: types, value: value}) do
