@@ -1318,6 +1318,27 @@ defmodule Signet.VmTest do
       ]
     },
     %{
+      name: "MCopy",
+      code: [
+        {:push, 32, word("0x112233445566778899aabbccddeeff112233445566778899aabbccddeeff1122")},
+        {:push, 32, word(100)},
+        :mstore,
+        # size
+        {:push, 32, word(10)},
+        # offset
+        {:push, 32, word(105)},
+        # dest_offset
+        {:push, 32, word(90)},
+        :mcopy,
+        {:push, 32, word(85)},
+        :mload,
+        :stop
+      ],
+      exp_stack: [
+        ~h[0x000000000066778899aabbccddeeff112233445566778899aabbccddeeff1122]
+      ]
+    },
+    %{
       name: "Dup1",
       code: [
         {:push, 32, word(0x100)},

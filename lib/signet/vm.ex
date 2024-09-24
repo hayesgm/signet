@@ -646,6 +646,12 @@ defmodule Signet.VM do
             {:ok, %{context | tstorage: Map.put(context.tstorage, key, value)}}
           end
 
+        :mcopy ->
+          with {:ok, context, dest_offset, offset, size} <- pop3_unsigned(context),
+               {:ok, memory_expanded, value} <- Memory.read_memory(context.memory, offset, size) do
+              Memory.write_memory(%{context | memory: memory_expanded}, dest_offset, value)
+          end
+
         {:push, n, v} ->
           push_n(context, n, v)
 
