@@ -292,7 +292,9 @@ defmodule Signet.Typed do
     def encode_data_value(value, :string), do: Signet.Hash.keccak(value)
     def encode_data_value(value, :bytes), do: Signet.Hash.keccak(value)
     def encode_data_value(value, {:bytes, _}), do: Signet.Util.pad(value, 32)
-    def encode_data_value(value, :bool), do: encode_data_value((if value, do: 1, else: 0), {:uint, 256})
+
+    def encode_data_value(value, :bool),
+      do: encode_data_value(if(value, do: 1, else: 0), {:uint, 256})
 
     def encode_data_value(value, {:array, ty}) do
       value

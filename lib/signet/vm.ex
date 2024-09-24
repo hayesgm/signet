@@ -47,6 +47,7 @@ defmodule Signet.VM do
       :halted,
       :stack,
       :memory,
+      :tstorage,
       :reverted,
       :return_data
     ]
@@ -60,6 +61,7 @@ defmodule Signet.VM do
             halted: binary(),
             stack: [binary()],
             memory: binary(),
+            tstorage: %{binary() => binary()},
             reverted: boolean(),
             return_data: binary()
           }
@@ -76,6 +78,7 @@ defmodule Signet.VM do
         halted: false,
         stack: [],
         memory: <<>>,
+        tstorage: %{},
         reverted: false,
         return_data: <<>>
       }
@@ -632,6 +635,16 @@ defmodule Signet.VM do
 
         :jumpdest ->
           {:ok, context}
+
+        :tload ->
+          with {:ok, context, res} <- pop_unsigned(context) do
+            push_word(context, Map.get(context.tstorage, res, <<0::256>>))
+          end
+
+        :tstore ->
+          with {:ok, context, key, value} <- pop2_unsigned_word(context) do
+            {:ok, %{context | tstorage: Map.put(context.tstorage, key, value)}}
+          end
 
         {:push, n, v} ->
           push_n(context, n, v)
