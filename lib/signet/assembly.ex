@@ -117,6 +117,8 @@ defmodule Signet.Assembly do
     msize: {<<0x59>>, 0, 1},
     gas: {<<0x5A>>, 0, 1},
     jumpdest: {<<0x5B>>, 0, 0},
+    tload: {<<0x5C>>, 1, 1},
+    tstore: {<<0x5D>>, 2, 0},
     # push 0x5f-7f
     # dup 0x80-8f
     # swap 0x90-9f

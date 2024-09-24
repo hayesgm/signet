@@ -1290,6 +1290,34 @@ defmodule Signet.VmTest do
       ]
     },
     %{
+      name: "TStore -> TLoad",
+      code: [
+        {:push, 32, word("0x112233445566778899aabbccddeeff112233445566778899aabbccddeeff1122")},
+        {:push, 32, word(100)},
+        :tstore,
+        {:push, 32, word(110)},
+        :tload,
+        :stop
+      ],
+      exp_stack: [
+        ~h[0x0000000000000000000000000000000000000000000000000000000000000000]
+      ]
+    },
+    %{
+      name: "TStore -> TLoad Match",
+      code: [
+        {:push, 32, word("0x112233445566778899aabbccddeeff112233445566778899aabbccddeeff1122")},
+        {:push, 32, word(100)},
+        :tstore,
+        {:push, 32, word(100)},
+        :tload,
+        :stop
+      ],
+      exp_stack: [
+        ~h[0x112233445566778899aabbccddeeff112233445566778899aabbccddeeff1122]
+      ]
+    },
+    %{
       name: "Dup1",
       code: [
         {:push, 32, word(0x100)},
