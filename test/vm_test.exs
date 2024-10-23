@@ -7,6 +7,57 @@ defmodule Signet.VmTest do
 
   import Signet.VmTestHelpers
 
+  defmodule FFI do
+    def simple_ffi(args) do
+      if byte_size(args) != 4 do
+        {:revert, ABI.encode("(string)", [{"invalid ABI input"}])}
+      else
+        case args do
+          ~h[0x11223344] ->
+            {:return, ABI.encode("(bool)", [{true}])}
+
+          ~h[0xdeadbeef] ->
+            {:revert, ~h[0xdeadbeef]}
+
+          _ ->
+            {:revert, ABI.encode("(string)", [{"unknown function call"}])}
+        end
+      end
+    end
+
+    def add_ffi(args) do
+      if byte_size(args) != 0x44 do
+        {:revert, ABI.encode("(string)", [{"invalid ABI input"}])}
+      else
+        <<f::binary-size(4), a::256, b::256>> = args
+
+        case f do
+          # "add(uint256,uint256)"
+          ~h[0x771602f7] ->
+            {:return, ABI.encode("(uint256)", [{a + b}])}
+
+          _ ->
+            {:revert, ABI.encode("(string)", [{"unknown function call"}])}
+        end
+      end
+    end
+
+    def long_ffi(args) do
+      if byte_size(args) != 4 do
+        {:revert, ABI.encode("(string)", [{"invalid ABI input"}])}
+      else
+        case args do
+          ~h[0x11223344] ->
+            {:return,
+             ~h[0x112233445566778899aabbccddeeff112233445566778899aabbccddeeff112233445566778899aabbccddeeff112233445566778899aabbccddeeff112233445566778899aabbccddeeff112233445566778899aabbccddeeff]}
+
+          _ ->
+            {:revert, ABI.encode("(string)", [{"unknown function call"}])}
+        end
+      end
+    end
+  end
+
   @tests [
     %{
       name: "Simple Add",
@@ -1290,6 +1341,18 @@ defmodule Signet.VmTest do
       ]
     },
     %{
+      name: "Gas left",
+      code: [
+        :gas,
+        :gas,
+        :stop
+      ],
+      exp_stack: [
+        word(4_000_000),
+        word(4_000_000)
+      ]
+    },
+    %{
       name: "TStore -> TLoad",
       code: [
         {:push, 32, word("0x112233445566778899aabbccddeeff112233445566778899aabbccddeeff1122")},
@@ -1457,6 +1520,189 @@ defmodule Signet.VmTest do
       exp_revert: ~h[0xbbccddeeff1122334455]
     },
     %{
+      name: "Static Call",
+      ffis: %{
+        <<1::160>> => &FFI.simple_ffi/1
+      },
+      code: [
+        {:push, 32, word("0x1122334400000000000000000000000000000000000000000000000000000000")},
+        {:push, 32, word(100)},
+        :mstore,
+        # ret_size
+        {:push, 32, word(32)},
+        # ret_offset
+        {:push, 32, word(0)},
+        # args_size
+        {:push, 32, word(4)},
+        # args_offset
+        {:push, 32, word(100)},
+        # ffi address
+        {:push, 32, <<1::256>>},
+        :gas,
+        :staticcall,
+        {:push, 32, word(0)},
+        :mload,
+        :stop
+      ],
+      exp_stack: [
+        word(0x1)
+      ]
+    },
+    %{
+      name: "Static Call - Reverts",
+      ffis: %{
+        <<1::160>> => &FFI.simple_ffi/1
+      },
+      code: [
+        {:push, 32, word("0xdeadbeef00000000000000000000000000000000000000000000000000000000")},
+        {:push, 32, word(100)},
+        :mstore,
+        # ret_size
+        {:push, 32, word(32)},
+        # ret_offset
+        {:push, 32, word(0)},
+        # args_size
+        {:push, 32, word(4)},
+        # args_offset
+        {:push, 32, word(100)},
+        # ffi address
+        {:push, 32, <<1::256>>},
+        :gas,
+        :staticcall,
+        {:push, 32, word(0)},
+        :mload,
+        :stop
+      ],
+      exp_revert: ~h[0xdeadbeef]
+    },
+    %{
+      name: "Static Call - No FFI",
+      ffis: %{},
+      code: [
+        # ret_size
+        {:push, 32, word(0)},
+        # ret_offset
+        {:push, 32, word(0)},
+        # args_size
+        {:push, 32, word(0)},
+        # args_offset
+        {:push, 32, word(0)},
+        # ffi address
+        {:push, 32, <<1::256>>},
+        :gas,
+        :staticcall,
+        {:push, 32, word(0)},
+        :mload,
+        :stop
+      ],
+      exp_error: {:unknown_ffi, <<1::160>>}
+    },
+    %{
+      name: "Static Call - Add",
+      ffis: %{
+        <<2::160>> => &FFI.add_ffi/1
+      },
+      code: [
+        {:push, 32, word("0x771602f700000000000000000000000000000000000000000000000000000000")},
+        {:push, 32, word(0x100)},
+        :mstore,
+        {:push, 32, word("0x0000000000000000000000000000000000000000000000000000000000000010")},
+        {:push, 32, word(0x104)},
+        :mstore,
+        {:push, 32, word("0x000000000000000000000000000000000000000000000000000000000000002a")},
+        {:push, 32, word(0x124)},
+        :mstore,
+        # ret_size
+        {:push, 32, word(32)},
+        # ret_offset
+        {:push, 32, word(0)},
+        # args_size
+        {:push, 32, word(0x44)},
+        # args_offset
+        {:push, 32, word(0x100)},
+        # ffi address
+        {:push, 32, <<2::256>>},
+        :gas,
+        :staticcall,
+        {:push, 32, word(0)},
+        :mload,
+        :stop
+      ],
+      exp_stack: [
+        word(0x3A)
+      ]
+    },
+    %{
+      name: "Return Data Size",
+      ffis: %{
+        <<3::160>> => &FFI.long_ffi/1
+      },
+      code: [
+        {:push, 32, word("0x1122334400000000000000000000000000000000000000000000000000000000")},
+        {:push, 32, word(100)},
+        :mstore,
+        # ret_size
+        {:push, 32, word(32)},
+        # ret_offset
+        {:push, 32, word(0)},
+        # args_size
+        {:push, 32, word(4)},
+        # args_offset
+        {:push, 32, word(100)},
+        # ffi address
+        {:push, 32, <<3::256>>},
+        :gas,
+        :staticcall,
+        :returndatasize,
+        :stop
+      ],
+      exp_stack: [
+        word(90)
+      ]
+    },
+    %{
+      name: "Return Data Copy",
+      ffis: %{
+        <<3::160>> => &FFI.long_ffi/1
+      },
+      code: [
+        {:push, 32, word("0x1122334400000000000000000000000000000000000000000000000000000000")},
+        {:push, 32, word(100)},
+        :mstore,
+        # ret_size
+        {:push, 32, word(32)},
+        # ret_offset
+        {:push, 32, word(0)},
+        # args_size
+        {:push, 32, word(4)},
+        # args_offset
+        {:push, 32, word(100)},
+        # ffi address
+        {:push, 32, <<3::256>>},
+        :gas,
+        :staticcall,
+        # size
+        {:push, 1, word(90, 1)},
+        # offset
+        {:push, 1, word(1, 1)},
+        # dest_offset
+        {:push, 1, word(200, 1)},
+        :returndatacopy,
+        {:push, 32, word(200)},
+        :mload,
+        {:push, 32, word(232)},
+        :mload,
+        {:push, 32, word(264)},
+        :mload,
+        :stop
+      ],
+      exp_stack: [
+        ~h[0x66778899aabbccddeeff112233445566778899aabbccddeeff00000000000000],
+        ~h[0x445566778899aabbccddeeff112233445566778899aabbccddeeff1122334455],
+        ~h[0x2233445566778899aabbccddeeff112233445566778899aabbccddeeff112233]
+      ]
+    },
+    %{
       name: "Invalid",
       code: [
         {:invalid, word(<<0x11>>)},
@@ -1482,7 +1728,10 @@ defmodule Signet.VmTest do
         t = unquote(test_info_escaped)
 
         exec_res =
-          VM.exec(t[:code], t[:with_call_data] || <<>>, t[:with_call_value] || 0)
+          VM.exec(t[:code], t[:with_call_data] || <<>>,
+            callvalue: t[:with_call_value] || 0,
+            ffis: t[:ffis] || %{}
+          )
 
         if t[:exp_error] do
           case exec_res do

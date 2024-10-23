@@ -46,6 +46,7 @@ defmodule Signet.Contract.BlockNumber do
   end
 
   def decode_query_call(<<44, 70, 178, 5>> <> calldata) do
+    _signature = hex!("0x2c46b205")
     ABI.decode(query_selector(), calldata)
   end
 
@@ -96,24 +97,31 @@ defmodule Signet.Contract.BlockNumber do
   end
 
   def decode_query_cool_call(<<107, 188, 156, 20>> <> calldata) do
+    _signature = hex!("0x6bbc9c14")
     ABI.decode(query_cool_selector(), calldata)
   end
 
-  def exec_vm_query_cool(callvalue \\ 0) do
-    case Signet.VM.exec_call(deployed_bytecode(), encode_query_cool(), callvalue) do
+  def exec_vm_query_cool(exec_opts \\ []) do
+    case Signet.VM.exec_call(deployed_bytecode(), encode_query_cool(), exec_opts) do
       {:ok, return_data} ->
-        {:ok,
-         ABI.decode(%ABI.FunctionSelector{types: query_cool_selector().returns}, return_data)}
+        case ABI.decode(%ABI.FunctionSelector{types: query_cool_selector().returns}, return_data,
+               decode_structs: true
+             ) do
+          m when is_map(m) -> {:ok, m}
+          [decoded] -> {:ok, decoded}
+          els -> {:ok, els}
+        end
 
       {:revert, revert_data} ->
-        with :not_found <- decode_error(revert_data) do
-          {:revert, "Unknown", revert_data}
+        case decode_error(revert_data) do
+          {:ok, error, data} -> {:revert, error, data}
+          :not_found -> {:revert, "Unknown", revert_data}
         end
     end
   end
 
-  def exec_vm_query_cool_raw(callvalue \\ 0) do
-    Signet.VM.exec_call(deployed_bytecode(), encode_query_cool(), callvalue)
+  def exec_vm_query_cool_raw(exec_opts \\ []) do
+    Signet.VM.exec_call(deployed_bytecode(), encode_query_cool(), exec_opts)
   end
 
   def query_four_selector() do
@@ -152,24 +160,31 @@ defmodule Signet.Contract.BlockNumber do
   end
 
   def decode_query_four_call(<<160, 180, 62, 214>> <> calldata) do
+    _signature = hex!("0xa0b43ed6")
     ABI.decode(query_four_selector(), calldata)
   end
 
-  def exec_vm_query_four(callvalue \\ 0) do
-    case Signet.VM.exec_call(deployed_bytecode(), encode_query_four(), callvalue) do
+  def exec_vm_query_four(exec_opts \\ []) do
+    case Signet.VM.exec_call(deployed_bytecode(), encode_query_four(), exec_opts) do
       {:ok, return_data} ->
-        {:ok,
-         ABI.decode(%ABI.FunctionSelector{types: query_four_selector().returns}, return_data)}
+        case ABI.decode(%ABI.FunctionSelector{types: query_four_selector().returns}, return_data,
+               decode_structs: true
+             ) do
+          m when is_map(m) -> {:ok, m}
+          [decoded] -> {:ok, decoded}
+          els -> {:ok, els}
+        end
 
       {:revert, revert_data} ->
-        with :not_found <- decode_error(revert_data) do
-          {:revert, "Unknown", revert_data}
+        case decode_error(revert_data) do
+          {:ok, error, data} -> {:revert, error, data}
+          :not_found -> {:revert, "Unknown", revert_data}
         end
     end
   end
 
-  def exec_vm_query_four_raw(callvalue \\ 0) do
-    Signet.VM.exec_call(deployed_bytecode(), encode_query_four(), callvalue)
+  def exec_vm_query_four_raw(exec_opts \\ []) do
+    Signet.VM.exec_call(deployed_bytecode(), encode_query_four(), exec_opts)
   end
 
   def query_three_selector() do
@@ -208,6 +223,7 @@ defmodule Signet.Contract.BlockNumber do
   end
 
   def decode_query_three_call(<<219, 127, 37, 93>> <> calldata) do
+    _signature = hex!("0xdb7f255d")
     ABI.decode(query_three_selector(), calldata)
   end
 
@@ -247,26 +263,32 @@ defmodule Signet.Contract.BlockNumber do
   end
 
   def decode_query_two_call(<<53, 0, 122, 122>> <> calldata) do
+    _signature = hex!("0x35007a7a")
     ABI.decode(query_two_selector(), calldata)
   end
 
   def decode_call(calldata = <<44, 70, 178, 5>> <> _) do
+    _signature = hex!("0x2c46b205")
     {:ok, "query", decode_query_call(calldata)}
   end
 
   def decode_call(calldata = <<107, 188, 156, 20>> <> _) do
+    _signature = hex!("0x6bbc9c14")
     {:ok, "queryCool", decode_query_cool_call(calldata)}
   end
 
   def decode_call(calldata = <<160, 180, 62, 214>> <> _) do
+    _signature = hex!("0xa0b43ed6")
     {:ok, "queryFour", decode_query_four_call(calldata)}
   end
 
   def decode_call(calldata = <<219, 127, 37, 93>> <> _) do
+    _signature = hex!("0xdb7f255d")
     {:ok, "queryThree", decode_query_three_call(calldata)}
   end
 
   def decode_call(calldata = <<53, 0, 122, 122>> <> _) do
+    _signature = hex!("0x35007a7a")
     {:ok, "queryTwo", decode_query_two_call(calldata)}
   end
 
