@@ -529,12 +529,12 @@ defmodule Mix.Tasks.Signet.Gen do
         quote do
           def unquote(exec_vm_fun_name)(
                 unquote_splicing(execute_arguments),
-                callvalue \\ 0
+                exec_opts \\ []
               ) do
             case Signet.VM.exec_call(
                    deployed_bytecode(),
                    unquote(encode_fun_name)(unquote_splicing(execute_values)),
-                   callvalue
+                   exec_opts
                  ) do
               {:ok, return_data} ->
                 case ABI.decode(
@@ -547,6 +547,9 @@ defmodule Mix.Tasks.Signet.Gen do
 
                   [decoded] ->
                     {:ok, decoded}
+
+                  els ->
+                    {:ok, els}
                 end
 
               {:revert, revert_data} ->
@@ -565,12 +568,12 @@ defmodule Mix.Tasks.Signet.Gen do
         quote do
           def unquote(exec_vm_raw_fun_name)(
                 unquote_splicing(execute_arguments),
-                callvalue \\ 0
+                exec_opts \\ []
               ) do
             Signet.VM.exec_call(
               deployed_bytecode(),
               unquote(encode_fun_name)(unquote_splicing(execute_values)),
-              callvalue
+              exec_opts
             )
           end
         end

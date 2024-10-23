@@ -14,7 +14,13 @@ defmodule Signet.VM do
   @type opcode :: Signet.Assembly.opcode()
   @type code :: [opcode()]
   @type word :: <<_::256>>
+  @type address :: <<_::160>>
+  @type ffis :: %{address() => code()}
   @type context_result :: {:ok, Context.t()} | {:error, vm_error()}
+  @type exec_opts :: [
+          callvalue: integer(),
+          ffis: ffis()
+        ]
   @type vm_error ::
           :pc_out_of_bounds
           | :value_overflow
@@ -22,12 +28,14 @@ defmodule Signet.VM do
           | :signed_integer_out_of_bounds
           | :out_of_memory
           | :invalid_operation
+          | {:unknown_ffi, address()}
           | {:invalid_push, integer(), binary()}
           | {:impure, opcode()}
           | {:not_implemented, opcode()}
 
   @two_pow_256 2 ** 256
   @max_uint256 @two_pow_256 - 1
+  @gas_amount 4_000_000
 
   defmodule Input do
     defstruct [:calldata, :value]
@@ -49,7 +57,9 @@ defmodule Signet.VM do
       :memory,
       :tstorage,
       :reverted,
-      :return_data
+      # TODO: Should return data be a stack
+      :return_data,
+      :ffis
     ]
 
     @type op_map :: %{integer() => Signet.VM.opcode()}
@@ -63,11 +73,12 @@ defmodule Signet.VM do
             memory: binary(),
             tstorage: %{binary() => binary()},
             reverted: boolean(),
-            return_data: binary()
+            return_data: binary(),
+            ffis: Signet.VM.ffis()
           }
 
-    @spec init_from(Signet.VM.code()) :: t()
-    def init_from(code) do
+    @spec init_from(Signet.VM.code(), Signet.VM.ffis()) :: t()
+    def init_from(code, ffis) do
       code_encoded = Signet.Assembly.assemble(code)
 
       %__MODULE__{
@@ -80,8 +91,17 @@ defmodule Signet.VM do
         memory: <<>>,
         tstorage: %{},
         reverted: false,
-        return_data: <<>>
+        return_data: <<>>,
+        ffis: ffis
       }
+    end
+
+    @spec fetch_ffi(t(), Signet.VM.address()) ::
+            {:ok, Signet.VM.code()} | {:error, Signet.VM.vm_error()}
+    def fetch_ffi(context, address) do
+      with :error <- Map.fetch(context.ffis, address) do
+        {:error, {:unknown_ffi, address}}
+      end
     end
 
     @spec build_op_map(Signet.VM.code()) :: op_map()
@@ -454,12 +474,69 @@ defmodule Signet.VM do
     end
   end
 
+  # Calls
+  defp static_call(context) do
+    with {:ok, context, _gas, address, args_offset, args_size, ret_offset, ret_size} <-
+           pop_call_args(context),
+         {:ok, memory_expanded, args} <-
+           Memory.read_memory(context.memory, args_offset, args_size),
+         context <- %{context | memory: memory_expanded},
+         {:ok, ffi} <- Context.fetch_ffi(context, address) do
+      case ffi.(args) do
+        {:return, return_data} ->
+          return_data_to_copy =
+            if byte_size(return_data) >= ret_size do
+              # Take left N bytes
+              <<v::binary-size(ret_size), _::binary>> = return_data
+
+              v
+            else
+              # Pad right with zeros
+              return_data <> :binary.copy(<<0x0>>, ret_size - byte_size(return_data))
+            end
+
+          Memory.write_memory(
+            %{context | return_data: return_data},
+            ret_offset,
+            return_data_to_copy
+          )
+
+        {:revert, revert} ->
+          {:ok,
+           %{
+             context
+             | return_data: revert,
+               halted: true,
+               reverted: true
+           }}
+      end
+    end
+  end
+
+  defp pop_call_args(context) do
+    with {:ok, context, gas} <- pop_unsigned(context),
+         {:ok, context, address_word} <- pop(context),
+         {:ok, context, args_offset} <- pop_unsigned(context),
+         {:ok, context, args_size} <- pop_unsigned(context),
+         {:ok, context, ret_offset} <- pop_unsigned(context),
+         {:ok, context, ret_size} <- pop_unsigned(context) do
+      {:ok, context, gas, word_to_address(address_word), args_offset, args_size, ret_offset,
+       ret_size}
+    end
+  end
+
+  defp word_to_address(word) do
+    <<_preface::binary-size(12), address::binary-size(20)>> = word
+
+    address
+  end
+
   @spec run_single_op(Context.t(), Input.t()) :: context_result()
   def run_single_op(context, input) do
     with {:ok, operation} <- get_operation(context) do
       case operation do
         :stop ->
-          {:ok, %{context | halted: true}}
+          {:ok, %{context | return_data: <<>>, halted: true}}
 
         :add ->
           unsigned_op2(context, &rem(&1 + &2, @two_pow_256))
@@ -633,6 +710,11 @@ defmodule Signet.VM do
             push_word(context, memory_sz)
           end
 
+        :gas ->
+          with {:ok, gas_amount} <- uint_to_word(@gas_amount) do
+            push_word(context, gas_amount)
+          end
+
         :jumpdest ->
           {:ok, context}
 
@@ -649,7 +731,7 @@ defmodule Signet.VM do
         :mcopy ->
           with {:ok, context, dest_offset, offset, size} <- pop3_unsigned(context),
                {:ok, memory_expanded, value} <- Memory.read_memory(context.memory, offset, size) do
-              Memory.write_memory(%{context | memory: memory_expanded}, dest_offset, value)
+            Memory.write_memory(%{context | memory: memory_expanded}, dest_offset, value)
           end
 
         {:push, n, v} ->
@@ -697,6 +779,20 @@ defmodule Signet.VM do
         {:invalid, _} ->
           {:error, :invalid_operation}
 
+        :staticcall ->
+          static_call(context)
+
+        :returndatasize ->
+          with {:ok, return_data_size} <- uint_to_word(byte_size(context.return_data)) do
+            push_word(context, return_data_size)
+          end
+
+        :returndatacopy ->
+          with {:ok, context, dest_offset, offset, size} <- pop3_unsigned(context),
+               {:ok, _, calldata} <- Memory.read_memory(context.return_data, offset, size) do
+            Memory.write_memory(context, dest_offset, calldata)
+          end
+
         op
         when op in [
                :address,
@@ -706,8 +802,6 @@ defmodule Signet.VM do
                :gasprice,
                :extcodesize,
                :extcodecopy,
-               :returndatasize,
-               :returndatacopy,
                :extcodehash,
                :blockhash,
                :coinbase,
@@ -722,20 +816,16 @@ defmodule Signet.VM do
                :blobbasefee,
                :sload,
                :sstore,
-               :gas,
                :log,
                :create,
                :call,
                :callcode,
                :delegatecall,
                :create2,
-               :staticcall,
                :selfdestruct
              ] ->
           {:error, {:impure, operation}}
 
-        # :tload, .tstore, .mcopy ->
-        #   throw VMError.notImplemented(operation)
         _ ->
           {:error, {:not_implemented, operation}}
       end
@@ -763,22 +853,26 @@ defmodule Signet.VM do
   **Parameters**
     - `code`: The bytecode to be executed, either as a `binary` or decoded.
     - `calldata`: The call data for the execution.
-    - `callvalue`: The value passed as callvalue for the execution.
+    - `opts`: Execution options (see below)
+
+  **Options**
+    - `:callvalue`: value passed as callvalue for the execution.
+    - `:ffis`: A mapping of address to functions to run as natively implemented ffis
 
   Returns the result of the execution.
   """
-  @spec exec(code() | binary(), binary(), unsigned()) ::
+  @spec exec(code() | binary(), binary(), exec_opts()) ::
           {:ok, ExecutionResult.t()} | {:error, vm_error()}
-  def exec(code, calldata, callvalue \\ 0)
+  def exec(code, calldata, opts \\ [])
 
-  def exec(code, calldata, callvalue) when is_binary(code) do
-    exec(Assembly.disassemble(code), calldata, callvalue)
+  def exec(code, calldata, opts) when is_binary(code) do
+    exec(Assembly.disassemble(code), calldata, opts)
   end
 
-  def exec(code, calldata, callvalue) when is_list(code) do
-    run_code(Context.init_from(code), %Input{
+  def exec(code, calldata, opts) when is_list(code) do
+    run_code(Context.init_from(code, Keyword.get(opts, :ffis, %{})), %Input{
       calldata: calldata,
-      value: callvalue
+      value: Keyword.get(opts, :callvalue, 0)
     })
   end
 
@@ -794,12 +888,16 @@ defmodule Signet.VM do
   **Parameters**
     - `code`: The bytecode to be executed, either as a `binary` or decoded.
     - `calldata`: The call data for the execution.
-    - `callvalue`: The value passed as callvalue for the execution.
+    - `opts`: Execution options (see below)
+
+  **Options**
+    - `:callvalue`: value passed as callvalue for the execution.
+    - `:ffis`: A mapping of address to functions to run as natively implemented ffis
   """
-  @spec exec_call(code() | binary(), binary(), unsigned()) ::
+  @spec exec_call(code() | binary(), binary(), exec_opts()) ::
           {:ok, binary()} | {:revert, binary()}
-  def exec_call(code, calldata, callvalue \\ 0) do
-    case exec(code, calldata, callvalue) do
+  def exec_call(code, calldata, opts \\ []) do
+    case exec(code, calldata, opts) do
       {:ok, %ExecutionResult{reverted: reverted, return_data: return_data}} ->
         if reverted do
           {:revert, return_data}

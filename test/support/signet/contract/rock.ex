@@ -75,14 +75,15 @@ defmodule Signet.Contract.Rock do
     ABI.decode(jam_selector(), calldata)
   end
 
-  def exec_vm_jam(beats, callvalue \\ 0) do
-    case Signet.VM.exec_call(deployed_bytecode(), encode_jam(beats), callvalue) do
+  def exec_vm_jam(beats, exec_opts \\ []) do
+    case Signet.VM.exec_call(deployed_bytecode(), encode_jam(beats), exec_opts) do
       {:ok, return_data} ->
         case ABI.decode(%ABI.FunctionSelector{types: jam_selector().returns}, return_data,
                decode_structs: true
              ) do
           m when is_map(m) -> {:ok, m}
           [decoded] -> {:ok, decoded}
+          els -> {:ok, els}
         end
 
       {:revert, revert_data} ->
@@ -93,8 +94,8 @@ defmodule Signet.Contract.Rock do
     end
   end
 
-  def exec_vm_jam_raw(beats, callvalue \\ 0) do
-    Signet.VM.exec_call(deployed_bytecode(), encode_jam(beats), callvalue)
+  def exec_vm_jam_raw(beats, exec_opts \\ []) do
+    Signet.VM.exec_call(deployed_bytecode(), encode_jam(beats), exec_opts)
   end
 
   def stumble_144e59d6_selector() do
@@ -137,8 +138,8 @@ defmodule Signet.Contract.Rock do
     ABI.decode(stumble_144e59d6_selector(), calldata)
   end
 
-  def exec_vm_stumble_144e59d6(callvalue \\ 0) do
-    case Signet.VM.exec_call(deployed_bytecode(), encode_stumble_144e59d6(), callvalue) do
+  def exec_vm_stumble_144e59d6(exec_opts \\ []) do
+    case Signet.VM.exec_call(deployed_bytecode(), encode_stumble_144e59d6(), exec_opts) do
       {:ok, return_data} ->
         case ABI.decode(
                %ABI.FunctionSelector{types: stumble_144e59d6_selector().returns},
@@ -147,6 +148,7 @@ defmodule Signet.Contract.Rock do
              ) do
           m when is_map(m) -> {:ok, m}
           [decoded] -> {:ok, decoded}
+          els -> {:ok, els}
         end
 
       {:revert, revert_data} ->
@@ -157,8 +159,8 @@ defmodule Signet.Contract.Rock do
     end
   end
 
-  def exec_vm_stumble_144e59d6_raw(callvalue \\ 0) do
-    Signet.VM.exec_call(deployed_bytecode(), encode_stumble_144e59d6(), callvalue)
+  def exec_vm_stumble_144e59d6_raw(exec_opts \\ []) do
+    Signet.VM.exec_call(deployed_bytecode(), encode_stumble_144e59d6(), exec_opts)
   end
 
   def decode_call(calldata = <<191, 104, 23, 16>> <> _) do

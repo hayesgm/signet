@@ -46,6 +46,7 @@ defmodule Signet.Contract.IERC20 do
   end
 
   def decode_allowance_call(<<221, 98, 237, 62>> <> calldata) do
+    _signature = hex!("0xdd62ed3e")
     ABI.decode(allowance_selector(), calldata)
   end
 
@@ -85,6 +86,7 @@ defmodule Signet.Contract.IERC20 do
   end
 
   def decode_approve_call(<<9, 94, 167, 179>> <> calldata) do
+    _signature = hex!("0x095ea7b3")
     ABI.decode(approve_selector(), calldata)
   end
 
@@ -124,6 +126,7 @@ defmodule Signet.Contract.IERC20 do
   end
 
   def decode_balance_of_call(<<112, 160, 130, 49>> <> calldata) do
+    _signature = hex!("0x70a08231")
     ABI.decode(balance_of_selector(), calldata)
   end
 
@@ -163,6 +166,7 @@ defmodule Signet.Contract.IERC20 do
   end
 
   def decode_decimals_call(<<49, 60, 229, 103>> <> calldata) do
+    _signature = hex!("0x313ce567")
     ABI.decode(decimals_selector(), calldata)
   end
 
@@ -202,6 +206,7 @@ defmodule Signet.Contract.IERC20 do
   end
 
   def decode_name_call(<<6, 253, 222, 3>> <> calldata) do
+    _signature = hex!("0x06fdde03")
     ABI.decode(name_selector(), calldata)
   end
 
@@ -241,6 +246,7 @@ defmodule Signet.Contract.IERC20 do
   end
 
   def decode_symbol_call(<<149, 216, 155, 65>> <> calldata) do
+    _signature = hex!("0x95d89b41")
     ABI.decode(symbol_selector(), calldata)
   end
 
@@ -280,6 +286,7 @@ defmodule Signet.Contract.IERC20 do
   end
 
   def decode_total_supply_call(<<24, 22, 13, 221>> <> calldata) do
+    _signature = hex!("0x18160ddd")
     ABI.decode(total_supply_selector(), calldata)
   end
 
@@ -319,6 +326,7 @@ defmodule Signet.Contract.IERC20 do
   end
 
   def decode_transfer_call(<<169, 5, 156, 187>> <> calldata) do
+    _signature = hex!("0xa9059cbb")
     ABI.decode(transfer_selector(), calldata)
   end
 
@@ -362,6 +370,7 @@ defmodule Signet.Contract.IERC20 do
   end
 
   def decode_transfer_from_call(<<35, 184, 114, 221>> <> calldata) do
+    _signature = hex!("0x23b872dd")
     ABI.decode(transfer_from_selector(), calldata)
   end
 
@@ -385,6 +394,7 @@ defmodule Signet.Contract.IERC20 do
   end
 
   def decode_approval_event(topics, data) when is_list(topics) do
+    _signature = hex!("0x8c5be1e5")
     ABI.Event.decode_event(data, topics, approval_event_selector())
   end
 
@@ -408,42 +418,52 @@ defmodule Signet.Contract.IERC20 do
   end
 
   def decode_transfer_ddf252ad_event(topics, data) when is_list(topics) do
+    _signature = hex!("0xddf252ad")
     ABI.Event.decode_event(data, topics, transfer_ddf252ad_event_selector())
   end
 
   def decode_call(calldata = <<221, 98, 237, 62>> <> _) do
+    _signature = hex!("0xdd62ed3e")
     {:ok, "allowance", decode_allowance_call(calldata)}
   end
 
   def decode_call(calldata = <<9, 94, 167, 179>> <> _) do
+    _signature = hex!("0x095ea7b3")
     {:ok, "approve", decode_approve_call(calldata)}
   end
 
   def decode_call(calldata = <<112, 160, 130, 49>> <> _) do
+    _signature = hex!("0x70a08231")
     {:ok, "balanceOf", decode_balance_of_call(calldata)}
   end
 
   def decode_call(calldata = <<49, 60, 229, 103>> <> _) do
+    _signature = hex!("0x313ce567")
     {:ok, "decimals", decode_decimals_call(calldata)}
   end
 
   def decode_call(calldata = <<6, 253, 222, 3>> <> _) do
+    _signature = hex!("0x06fdde03")
     {:ok, "name", decode_name_call(calldata)}
   end
 
   def decode_call(calldata = <<149, 216, 155, 65>> <> _) do
+    _signature = hex!("0x95d89b41")
     {:ok, "symbol", decode_symbol_call(calldata)}
   end
 
   def decode_call(calldata = <<24, 22, 13, 221>> <> _) do
+    _signature = hex!("0x18160ddd")
     {:ok, "totalSupply", decode_total_supply_call(calldata)}
   end
 
   def decode_call(calldata = <<169, 5, 156, 187>> <> _) do
+    _signature = hex!("0xa9059cbb")
     {:ok, "transfer", decode_transfer_call(calldata)}
   end
 
   def decode_call(calldata = <<35, 184, 114, 221>> <> _) do
+    _signature = hex!("0x23b872dd")
     {:ok, "transferFrom", decode_transfer_from_call(calldata)}
   end
 
