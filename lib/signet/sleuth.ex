@@ -103,6 +103,9 @@ defmodule Signet.Sleuth do
             {:bytes, false} ->
               to_hex(res)
 
+            {{:bytes, _size}, false} ->
+              to_hex(res)
+
             _ ->
               res
           end
