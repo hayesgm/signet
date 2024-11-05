@@ -52,7 +52,7 @@ defmodule Signet.MixProject do
       {:curvy, "~> 0.3.1"},
       {:goth, "~> 1.4.3", optional: true},
       {:ex_rlp, "~> 0.6.0"},
-      {:abi, "~> 1.0.0-bravo6"},
+      {:abi, "~> 1.1.0"},
       {:junit_formatter, "~> 3.3.1", only: [:test]}
     ]
   end
