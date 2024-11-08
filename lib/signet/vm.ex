@@ -39,9 +39,9 @@ defmodule Signet.VM do
 
   defmodule FFIs do
     def logger_ffi(args) do
-      case Legend.Contract.LoggerFuncs.decode_call(args) do
+      case Signet.Contract.ILogger.decode_call(args) do
         {:ok, f, values} ->
-          IO.puts("Logger.#{f}: #{enspect(values)}")
+          IO.puts("Logger.#{f}: #{inspect(values, limit: :infinity, printable_limit: :infinity)}")
         _ ->
           nil
       end
@@ -49,7 +49,7 @@ defmodule Signet.VM do
     end
   end
 
-  @default_ffis %{
+  @builtin_ffis %{
     ~h[0x0000000000000000000000000000000000FFCCCC] => &FFIs.logger_ffi/1
   }
 
@@ -886,7 +886,7 @@ defmodule Signet.VM do
   end
 
   def exec(code, calldata, opts) when is_list(code) do
-    run_code(Context.init_from(code, Keyword.get(opts, :ffis, @default_ffis)), %Input{
+    run_code(Context.init_from(code, Keyword.get(opts, :ffis, @builtin_ffis)), %Input{
       calldata: calldata,
       value: Keyword.get(opts, :callvalue, 0)
     })
