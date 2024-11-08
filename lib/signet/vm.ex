@@ -37,6 +37,22 @@ defmodule Signet.VM do
   @max_uint256 @two_pow_256 - 1
   @gas_amount 4_000_000
 
+  defmodule FFIs do
+    def logger_ffi(args) do
+      case Legend.Contract.LoggerFuncs.decode_call(args) do
+        {:ok, f, values} ->
+          IO.puts("Logger.#{f}: #{enspect(values)}")
+        _ ->
+          nil
+      end
+      {:return, <<>>}
+    end
+  end
+
+  @default_ffis %{
+    ~h[0x0000000000000000000000000000000000FFCCCC] => &FFIs.logger_ffi/1
+  }
+
   defmodule Input do
     defstruct [:calldata, :value]
 
@@ -870,7 +886,7 @@ defmodule Signet.VM do
   end
 
   def exec(code, calldata, opts) when is_list(code) do
-    run_code(Context.init_from(code, Keyword.get(opts, :ffis, %{})), %Input{
+    run_code(Context.init_from(code, Keyword.get(opts, :ffis, @default_ffis)), %Input{
       calldata: calldata,
       value: Keyword.get(opts, :callvalue, 0)
     })
