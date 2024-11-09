@@ -33,6 +33,8 @@ defmodule Signet.VM do
           | {:impure, opcode()}
           | {:not_implemented, opcode()}
 
+  @word_one <<1::256>>
+  @word_zero <<0::256>>
   @two_pow_256 2 ** 256
   @max_uint256 @two_pow_256 - 1
   @gas_amount 4_000_000
@@ -42,9 +44,11 @@ defmodule Signet.VM do
       case Signet.Contract.ILogger.decode_call(args) do
         {:ok, f, values} ->
           IO.puts("Logger.#{f}: #{inspect(values, limit: :infinity, printable_limit: :infinity)}")
+
         _ ->
           nil
       end
+
       {:return, <<>>}
     end
   end
@@ -511,20 +515,20 @@ defmodule Signet.VM do
               return_data <> :binary.copy(<<0x0>>, ret_size - byte_size(return_data))
             end
 
-          Memory.write_memory(
-            %{context | return_data: return_data},
-            ret_offset,
-            return_data_to_copy
-          )
+          with {:ok, context} <-
+                 context
+                 |> Map.put(:return_data, return_data)
+                 |> Memory.write_memory(
+                   ret_offset,
+                   return_data_to_copy
+                 ) do
+            push_word(context, @word_one)
+          end
 
         {:revert, revert} ->
-          {:ok,
-           %{
-             context
-             | return_data: revert,
-               halted: true,
-               reverted: true
-           }}
+          context
+          |> Map.merge(%{return_data: revert, halted: true, reverted: true})
+          |> push_word(@word_zero)
       end
     end
   end
