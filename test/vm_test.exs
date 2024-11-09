@@ -1545,6 +1545,37 @@ defmodule Signet.VmTest do
         :stop
       ],
       exp_stack: [
+        word(0x1),
+        word(0x1)
+      ]
+    },
+    %{
+      name: "Static Call - Console Log",
+      ffis: %{
+        <<1::160>> => &FFI.simple_ffi/1
+      },
+      code: [
+        {:push, 32, word("0x0x9905b744")},
+        {:push, 32, word(100-28)},
+        :mstore,
+        {:push, 32, word("0x0000000000000000000000000000000000000000000000000000000000000037")},
+        {:push, 32, word(104)},
+        :mstore,
+        # ret_size
+        {:push, 32, word(0)},
+        # ret_offset
+        {:push, 32, word(0)},
+        # args_size
+        {:push, 32, word(0x24)},
+        # args_offset
+        {:push, 32, word(100)},
+        # ffi address
+        {:push, 32, ~h[0x000000000000000000000000000000000000000000636F6e736F6c652e6c6f67]},
+        :gas,
+        :staticcall,
+        :stop
+      ],
+      exp_stack: [
         word(0x1)
       ]
     },
@@ -1629,7 +1660,8 @@ defmodule Signet.VmTest do
         :stop
       ],
       exp_stack: [
-        word(0x3A)
+        word(0x3A),
+        word(0x1)
       ]
     },
     %{
@@ -1657,7 +1689,8 @@ defmodule Signet.VmTest do
         :stop
       ],
       exp_stack: [
-        word(90)
+        word(90),
+        word(0x1)
       ]
     },
     %{
@@ -1699,7 +1732,8 @@ defmodule Signet.VmTest do
       exp_stack: [
         ~h[0x66778899aabbccddeeff112233445566778899aabbccddeeff00000000000000],
         ~h[0x445566778899aabbccddeeff112233445566778899aabbccddeeff1122334455],
-        ~h[0x2233445566778899aabbccddeeff112233445566778899aabbccddeeff112233]
+        ~h[0x2233445566778899aabbccddeeff112233445566778899aabbccddeeff112233],
+        word(0x1)
       ]
     },
     %{
