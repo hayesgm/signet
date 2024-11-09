@@ -40,10 +40,10 @@ defmodule Signet.VM do
   @gas_amount 4_000_000
 
   defmodule FFIs do
-    def logger_ffi(args) do
-      case Signet.Contract.ILogger.decode_call(args) do
+    def log_ffi(args) do
+      case Signet.Contract.IConsole.decode_call(args) do
         {:ok, f, values} ->
-          IO.puts("Logger.#{f}: #{inspect(values, limit: :infinity, printable_limit: :infinity)}")
+          IO.puts("console.#{f}: #{inspect(values, limit: :infinity, printable_limit: :infinity)}")
 
         _ ->
           nil
@@ -54,7 +54,7 @@ defmodule Signet.VM do
   end
 
   @builtin_ffis %{
-    ~h[0x0000000000000000000000000000000000FFCCCC] => &FFIs.logger_ffi/1
+    ~h[0x000000000000000000636F6e736F6c652e6c6f67] => &FFIs.log_ffi/1
   }
 
   defmodule Input do
@@ -890,7 +890,7 @@ defmodule Signet.VM do
   end
 
   def exec(code, calldata, opts) when is_list(code) do
-    run_code(Context.init_from(code, Keyword.get(opts, :ffis, @builtin_ffis)), %Input{
+    run_code(Context.init_from(code, Map.merge(@builtin_ffis, Keyword.get(opts, :ffis, %{}))), %Input{
       calldata: calldata,
       value: Keyword.get(opts, :callvalue, 0)
     })

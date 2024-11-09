@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.4.22 <0.9.0;
 
-interface ILogger {
+interface IConsole {
     function log() external pure;
 
     function logInt(int256 p0) external pure;
