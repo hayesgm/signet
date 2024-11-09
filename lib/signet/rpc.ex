@@ -292,6 +292,7 @@ defmodule Signet.RPC do
     block_number = Keyword.get(opts, :block_number, "latest")
     errors = Keyword.get(opts, :errors, [])
     trace_reverts = Keyword.get(opts, :trace_reverts, false)
+    debug_trace = Keyword.get(opts, :debug_trace, false)
 
     trx_res =
       send_rpc(
@@ -304,12 +305,24 @@ defmodule Signet.RPC do
 
     if trace_reverts do
       with {:error, error = %{code: 3, message: "execution reverted"}} <- trx_res do
-        case trace_call(trx, opts) do
-          {:ok, trace} ->
-            {:error, Map.put(error, :trace, trace)}
+        if debug_trace do
+          case debug_trace_call(trx, opts) do
+            {:ok, trace} ->
+              {:error, Map.put(error, :trace, trace)}
 
-          _ ->
-            trx_res
+            err ->
+              Logger.error("Failed to trace revert by `debug_traceCall`: #{inspect(err)}")
+              trx_res
+          end
+        else
+          case trace_call(trx, opts) do
+            {:ok, trace} ->
+              {:error, Map.put(error, :trace, trace)}
+
+            err ->
+              Logger.error("Failed to trace revert by `trace_call`: #{inspect(err)}")
+              trx_res
+          end
         end
       end
     else
@@ -1024,6 +1037,57 @@ defmodule Signet.RPC do
         block_number
       ],
       Keyword.merge(opts, decode: &Signet.TraceCall.deserialize_many/1)
+    )
+  end
+
+  @doc """
+  RPC to trace a transaction call speculatively via debug API.
+
+  ## Examples
+
+      iex> Signet.Transaction.V1.new(1, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>)
+      ...> |> Signet.RPC.debug_trace_call()
+      {:ok,
+        %Signet.DebugTrace{
+        failed: false,
+        gas: 24034,
+        return_value: ~h[0x0000000000000000000000000000000000000000000000000858898f93629000],
+        struct_logs: [
+          %Signet.DebugTrace.StructLog{
+            depth: 1,
+            gas: 599978568,
+            gas_cost: 3,
+            op: :PUSH1,
+            pc: 0,
+            stack: []
+          },
+          %Signet.DebugTrace.StructLog{
+            depth: 1,
+            gas: 599978565,
+            gas_cost: 3,
+            op: :PUSH1,
+            pc: 2,
+            stack: [~h[0x80]]
+          },
+          %Signet.DebugTrace.StructLog{
+            depth: 1,
+            gas: 599978562,
+            gas_cost: 12,
+            op: :MSTORE,
+            pc: 4,
+            stack: [~h[0x80], ~h[0x40]]
+          }
+        ]
+      }}
+  """
+  def debug_trace_call(trx, opts \\ []) do
+    from = Keyword.get(opts, :from)
+    block_number = Keyword.get(opts, :block_number, "latest")
+
+    send_rpc(
+      "debug_traceCall",
+      [to_call_params(trx, from), block_number],
+      Keyword.merge(opts, decode: &Signet.DebugTrace.deserialize/1)
     )
   end
 
