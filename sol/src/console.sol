@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.4.22 <0.9.0;
 
-library Logger {
-    address constant LOGGER_FFI_ADDRESS = address(0xFFCCCC);
+library console {
+    address constant CONSOLE_ADDRESS = address(0x000000000000000000636F6e736F6c652e6c6f67);
 
     function _sendLogPayloadImplementation(bytes memory payload) internal view {
-        address consoleAddress = LOGGER_FFI_ADDRESS;
+        address consoleAddress = CONSOLE_ADDRESS;
         /// @solidity memory-safe-assembly
         assembly {
             pop(staticcall(gas(), consoleAddress, add(payload, 32), mload(payload), 0, 0))
