@@ -681,6 +681,40 @@ defmodule Signet.Test.Client do
     ]
   end
 
+  def debug_traceCall(_trx = %{"to" => _}, _block) do
+    %{
+      "failed" => false,
+      "gas" => 24034,
+      "returnValue" => "0000000000000000000000000000000000000000000000000858898f93629000",
+      "structLogs" => [
+        %{
+          "depth" => 1,
+          "gas" => 599978568,
+          "gasCost" => 3,
+          "op" => "PUSH1",
+          "pc" => 0,
+          "stack" => []
+        },
+        %{
+          "depth" => 1,
+          "gas" => 599978565,
+          "gasCost" => 3,
+          "op" => "PUSH1",
+          "pc" => 2,
+          "stack" => ["0x80"]
+        },
+        %{
+          "depth" => 1,
+          "gas" => 599978562,
+          "gasCost" => 12,
+          "op" => "MSTORE",
+          "pc" => 4,
+          "stack" => ["0x80", "0x40"]
+        }
+      ]
+    }
+  end
+
   def eth_gasPrice() do
     # 1 gwei
     "0x3b9aca00"
