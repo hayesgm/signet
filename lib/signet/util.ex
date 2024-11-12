@@ -268,7 +268,7 @@ defmodule Signet.Util do
     base: 8453,
     base_sepolia: 84532,
     arbitrum: 42161,
-    arbitrum_sepolia: 421614,
+    arbitrum_sepolia: 421_614,
     mumbai: 80001,
     sepolia: 11_155_111
   }

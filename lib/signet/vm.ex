@@ -33,9 +33,29 @@ defmodule Signet.VM do
           | {:impure, opcode()}
           | {:not_implemented, opcode()}
 
+  @word_one <<1::256>>
+  @word_zero <<0::256>>
   @two_pow_256 2 ** 256
   @max_uint256 @two_pow_256 - 1
   @gas_amount 4_000_000
+
+  defmodule FFIs do
+    def log_ffi(args) do
+      case Signet.Contract.IConsole.decode_call(args) do
+        {:ok, f, values} ->
+          IO.puts("console.#{f}: #{inspect(values, limit: :infinity, printable_limit: :infinity)}")
+
+        _ ->
+          nil
+      end
+
+      {:return, <<>>}
+    end
+  end
+
+  @builtin_ffis %{
+    ~h[0x000000000000000000636F6e736F6c652e6c6f67] => &FFIs.log_ffi/1
+  }
 
   defmodule Input do
     defstruct [:calldata, :value]
@@ -495,20 +515,20 @@ defmodule Signet.VM do
               return_data <> :binary.copy(<<0x0>>, ret_size - byte_size(return_data))
             end
 
-          Memory.write_memory(
-            %{context | return_data: return_data},
-            ret_offset,
-            return_data_to_copy
-          )
+          with {:ok, context} <-
+                 context
+                 |> Map.put(:return_data, return_data)
+                 |> Memory.write_memory(
+                   ret_offset,
+                   return_data_to_copy
+                 ) do
+            push_word(context, @word_one)
+          end
 
         {:revert, revert} ->
-          {:ok,
-           %{
-             context
-             | return_data: revert,
-               halted: true,
-               reverted: true
-           }}
+          context
+          |> Map.merge(%{return_data: revert, halted: true, reverted: true})
+          |> push_word(@word_zero)
       end
     end
   end
@@ -870,7 +890,7 @@ defmodule Signet.VM do
   end
 
   def exec(code, calldata, opts) when is_list(code) do
-    run_code(Context.init_from(code, Keyword.get(opts, :ffis, %{})), %Input{
+    run_code(Context.init_from(code, Map.merge(@builtin_ffis, Keyword.get(opts, :ffis, %{}))), %Input{
       calldata: calldata,
       value: Keyword.get(opts, :callvalue, 0)
     })
