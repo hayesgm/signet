@@ -29,6 +29,22 @@ defmodule SleuthTest do
                )
     end
 
+    test "query() failure with debug trace" do
+      assert {:error,
+              %{
+                code: 3,
+                message: "execution reverted",
+                trace: _
+              }} =
+               Signet.Sleuth.query(
+                 ~h[],
+                 ~h[0xDEADBEEFDEADBEEFDEADBEEFDEADBEEF00000001],
+                 Signet.Contract.BlockNumber.query_selector(),
+                 trace_reverts: true,
+                 debug_trace: true
+               )
+    end
+
     test "query_by() via mod/fun" do
       assert {:ok, %{"blockNumber" => 2}} ==
                Signet.Sleuth.query_by(
