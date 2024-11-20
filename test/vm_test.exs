@@ -1555,7 +1555,7 @@ defmodule Signet.VmTest do
         <<1::160>> => &FFI.simple_ffi/1
       },
       code: [
-        {:push, 32, word("0x0x9905b744")},
+        {:push, 32, word("0x9905b744")},
         {:push, 32, word(100-28)},
         :mstore,
         {:push, 32, word("0x0000000000000000000000000000000000000000000000000000000000000037")},
