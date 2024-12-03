@@ -315,15 +315,15 @@ defmodule Signet.Typed do
             salt: nil | <<_::256>>
           }
 
-    @domain_key_map %{
+    @domain_key_keyword [
       name: {"name", :string},
       version: {"version", :string},
       chain_id: {"chainId", {:uint, 256}},
       verifying_contract: {"verifyingContract", :address},
       salt: {"salt", {:bytes, 32}}
-    }
+    ]
 
-    @inverted_key_map for {k, {v, _type}} <- @domain_key_map, into: %{}, do: {v, k}
+    @inverted_key_map for {k, {v, _type}} <- @domain_key_keyword, into: %{}, do: {v, k}
 
     @doc ~S"""
     Builds the EIP-712 domain type based on a given domain.
@@ -350,8 +350,7 @@ defmodule Signet.Typed do
       do: %{
         "EIP712Domain" => %Type{
           fields:
-            @domain_key_map
-            |> Map.to_list()
+            @domain_key_keyword
             |> Enum.filter(fn {key, _} -> not is_nil(Map.get(domain, key)) end)
             |> Enum.map(fn {_, v} -> v end)
         }
