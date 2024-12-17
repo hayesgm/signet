@@ -132,6 +132,18 @@ defmodule Signet.VmTest do
       ]
     },
     %{
+      name: "Large Div",
+      code: [
+        {:push, 32, word(0x989680)},
+        {:push, 32, word(0x84595161401484A000000)},
+        :div,
+        :stop
+      ],
+      exp_stack: [
+        word(0xDE0B6B3A7640000)
+      ]
+    },
+    %{
       name: "Simple Div Zero",
       code: [
         {:push, 32, word(0x00)},
@@ -153,6 +165,18 @@ defmodule Signet.VmTest do
       ],
       exp_stack: [
         word(0x03)
+      ]
+    },
+    %{
+      name: "Large SDiv",
+      code: [
+        {:push, 32, word(0x989680)},
+        {:push, 32, word(0x84595161401484A000000)},
+        :sdiv,
+        :stop
+      ],
+      exp_stack: [
+        word(0xDE0B6B3A7640000)
       ]
     },
     %{
@@ -1556,7 +1580,7 @@ defmodule Signet.VmTest do
       },
       code: [
         {:push, 32, word("0x9905b744")},
-        {:push, 32, word(100-28)},
+        {:push, 32, word(100 - 28)},
         :mstore,
         {:push, 32, word("0x0000000000000000000000000000000000000000000000000000000000000037")},
         {:push, 32, word(104)},
