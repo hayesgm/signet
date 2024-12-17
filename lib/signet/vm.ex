@@ -43,7 +43,9 @@ defmodule Signet.VM do
     def log_ffi(args) do
       case Signet.Contract.IConsole.decode_call(args) do
         {:ok, f, values} ->
-          IO.puts("console.#{f}: #{inspect(values, limit: :infinity, printable_limit: :infinity)}")
+          IO.puts(
+            "console.#{f}: #{inspect(values, limit: :infinity, printable_limit: :infinity)}"
+          )
 
         _ ->
           nil
@@ -568,10 +570,10 @@ defmodule Signet.VM do
           unsigned_op2(context, &rem(&1 * &2, @two_pow_256))
 
         :div ->
-          unsigned_op2(context, &if(&2 == 0, do: 0, else: floor(&1 / &2)))
+          unsigned_op2(context, &if(&2 == 0, do: 0, else: Integer.floor_div(&1, &2)))
 
         :sdiv ->
-          signed_op2(context, &if(&2 == 0, do: 0, else: floor(&1 / &2)))
+          signed_op2(context, &if(&2 == 0, do: 0, else: Integer.floor_div(&1, &2)))
 
         :mod ->
           unsigned_op2(context, &if(&2 == 0, do: 0, else: rem(&1, &2)))
@@ -890,10 +892,13 @@ defmodule Signet.VM do
   end
 
   def exec(code, calldata, opts) when is_list(code) do
-    run_code(Context.init_from(code, Map.merge(@builtin_ffis, Keyword.get(opts, :ffis, %{}))), %Input{
-      calldata: calldata,
-      value: Keyword.get(opts, :callvalue, 0)
-    })
+    run_code(
+      Context.init_from(code, Map.merge(@builtin_ffis, Keyword.get(opts, :ffis, %{}))),
+      %Input{
+        calldata: calldata,
+        value: Keyword.get(opts, :callvalue, 0)
+      }
+    )
   end
 
   defmodule VmError do
