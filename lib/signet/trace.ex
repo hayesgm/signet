@@ -18,6 +18,8 @@ defmodule Signet.Trace do
     @type t() :: %__MODULE__{
             call_type: String.t() | nil,
             init: binary() | nil,
+            refund_address: binary() | nil,
+            balance: integer() | nil,
             from: <<_::160>>,
             gas: integer(),
             input: binary(),
@@ -32,7 +34,9 @@ defmodule Signet.Trace do
       :gas,
       :input,
       :to,
-      :value
+      :value,
+      :refund_address,
+      :balance
     ]
 
     @doc ~S"""
@@ -78,6 +82,18 @@ defmodule Signet.Trace do
           to: ~h[0x13172ee393713fba9925a9a752341ebd31e8d9a7],
           value: 0x0,
         }
+
+        iex> use Signet.Hex
+        iex> %{
+        ...>   "address" => "0x1a6b1b60d09944d56d39ef53a6b81097615f5ee4",
+        ...>   "balance" => "0x0",
+        ...>   "refundAddress" => "0x0000000000b3f879cb30fe243b4dfee438691c04"
+        ...> }
+        ...> |> Signet.Trace.Action.deserialize()
+        %Signet.Trace.Action{
+          refund_address: ~h[0x0000000000b3f879cb30fe243b4dfee438691c04],
+          balance: 0x0,
+        }
     """
     @spec deserialize(map()) :: t() | no_return()
     def deserialize(params = %{"callType" => call_type}) when is_binary(call_type) do
@@ -97,6 +113,14 @@ defmodule Signet.Trace do
         from: Hex.decode_address!(params["from"]),
         gas: Hex.decode_hex_number!(params["gas"]),
         value: Hex.decode_hex_number!(params["value"])
+      }
+    end
+
+    def deserialize(params = %{"refundAddress" => refund_address})
+        when is_binary(refund_address) do
+      %__MODULE__{
+        refund_address: Hex.decode_hex!(refund_address),
+        balance: Hex.decode_hex_number!(params["balance"])
       }
     end
   end
