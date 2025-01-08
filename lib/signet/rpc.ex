@@ -122,7 +122,9 @@ defmodule Signet.RPC do
          "id" => ^id
        }} ->
         if code == -32602 do
-          Logger.warning("[Signet][RPC][#{method}] Invalid JSON-PRC request \"#{code} #{message}\" from request `#{Jason.encode!(body)}`")
+          Logger.warning(
+            "[Signet][RPC][#{method}] Invalid JSON-PRC request \"#{code} #{message}\" from request `#{Jason.encode!(body)}`"
+          )
         end
 
         {:error, %{code: code, message: message}}

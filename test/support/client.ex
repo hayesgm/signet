@@ -15,6 +15,7 @@ defmodule Signet.Test.Client do
 
     {method, params, id}
   end
+
   def request(%Finch.Request{body: body}, _finch_name, _opts) do
     {method, params, id} = parse_request(Jason.decode!(body))
 
