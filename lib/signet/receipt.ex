@@ -102,7 +102,7 @@ defmodule Signet.Receipt do
           # DATA, 20 Bytes - address of the sender.
           from: <<_::160>>,
           # DATA, 20 Bytes - address of the receiver. null when its a contract creation transaction.
-          to: <<_::160>>,
+          to: <<_::160>> | nil,
           # QUANTITY - The total amount of gas used when this transaction was executed in the block.
           cumulative_gas_used: integer(),
           # QUANTITY - The sum of the base fee and tip paid per unit of gas.
@@ -339,7 +339,11 @@ defmodule Signet.Receipt do
       block_hash: Hex.decode_word!(params["blockHash"]),
       block_number: Hex.decode_hex_number!(params["blockNumber"]),
       from: Hex.decode_address!(params["from"]),
-      to: Hex.decode_address!(params["to"]),
+      to:
+        if(is_nil(params["to"]),
+          do: nil,
+          else: Hex.decode_address!(params["to"])
+        ),
       cumulative_gas_used: Hex.decode_hex_number!(params["cumulativeGasUsed"]),
       effective_gas_price: Hex.decode_hex_number!(params["effectiveGasPrice"]),
       gas_used: Hex.decode_hex_number!(params["gasUsed"]),
