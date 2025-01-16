@@ -270,7 +270,9 @@ defmodule Signet.Util do
     arbitrum: 42161,
     arbitrum_sepolia: 421_614,
     mumbai: 80001,
-    sepolia: 11_155_111
+    sepolia: 11_155_111,
+    optimism: 10,
+    optimism_sepolia: 11_155_420
   }
 
   @doc ~S"""
