@@ -196,7 +196,13 @@ defmodule Mix.Tasks.Signet.Gen do
 
     errors = [
       quote do
-        def decode_error(_), do: :not_found
+        def decode_error(_) do
+          if true do
+            :not_found
+          else
+            {:ok, "Impossible", <<>>}
+          end
+        end
       end
       | errors
     ]
