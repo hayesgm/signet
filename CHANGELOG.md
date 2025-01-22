@@ -1,3 +1,9 @@
+## 1.2.4
+
+- [ Fix Code Warnings in Codegen #95](https://github.com/hayesgm/signet/pull/95)
+- [Bump ABI to 1.2.0 #94](https://github.com/hayesgm/signet/pull/94)
+- [add Optimism and Optimism Sepolia chain ids #93 ](https://github.com/hayesgm/signet/pull/93)
+
 ## v1.0.0-delta8
 
 - [Fix Decode Event Codegen](https://github.com/hayesgm/signet/pull/68)

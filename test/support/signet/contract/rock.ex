@@ -187,7 +187,11 @@ defmodule Signet.Contract.Rock do
   end
 
   def decode_error(_) do
-    :not_found
+    if true do
+      :not_found
+    else
+      {:ok, "Impossible", <<>>}
+    end
   end
 
   def bytecode() do
