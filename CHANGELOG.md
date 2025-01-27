@@ -1,3 +1,7 @@
+## 1.2.5
+
+- [Bump ABI Version](tbd)
+
 ## 1.2.4
 
 - [ Fix Code Warnings in Codegen #95](https://github.com/hayesgm/signet/pull/95)
