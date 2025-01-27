@@ -1,6 +1,6 @@
 ## 1.2.5
 
-- [Bump ABI Version](tbd)
+- [Bump ABI Version to 1.3.0](https://github.com/hayesgm/signet/pull/96)
 
 ## 1.2.4
 
