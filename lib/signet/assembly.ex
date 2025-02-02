@@ -492,4 +492,268 @@ defmodule Signet.Assembly do
         {:codecopy, 0x00, :self_code_sz, byte_size(code)},
         {:return, 0x00, byte_size(code)}
       ]) <> code
+
+  @doc """
+  Returns a textual representation of the given operation.
+
+  ## Examples
+
+      iex> Signet.Assembly.show_opcode(:add)
+      "ADD"
+
+      iex> Signet.Assembly.show_opcode({:push, 5, <<1,2,3,4,5>>})
+      "PUSH5 0x0102030405"
+  """
+  def show_opcode(op) do
+    case op do
+      :stop ->
+        "STOP"
+
+      :add ->
+        "ADD"
+
+      :sub ->
+        "SUB"
+
+      :mul ->
+        "MUL"
+
+      :div ->
+        "DIV"
+
+      :sdiv ->
+        "SDIV"
+
+      :mod ->
+        "MOD"
+
+      :smod ->
+        "SMOD"
+
+      :addmod ->
+        "ADDMOD"
+
+      :mulmod ->
+        "MULMOD"
+
+      :exp ->
+        "EXP"
+
+      :signextend ->
+        "SIGNEXTEND"
+
+      :lt ->
+        "LT"
+
+      :gt ->
+        "GT"
+
+      :slt ->
+        "SLT"
+
+      :sgt ->
+        "SGT"
+
+      :eq ->
+        "EQ"
+
+      :iszero ->
+        "ISZERO"
+
+      :and ->
+        "AND"
+
+      :or ->
+        "OR"
+
+      :xor ->
+        "XOR"
+
+      :not ->
+        "NOT"
+
+      :byte ->
+        "BYTE"
+
+      :shl ->
+        "SHL"
+
+      :shr ->
+        "SHR"
+
+      :sar ->
+        "SAR"
+
+      :sha3 ->
+        "SHA3"
+
+      :callvalue ->
+        "CALLVALUE"
+
+      :calldataload ->
+        "CALLDATALOAD"
+
+      :calldatasize ->
+        "CALLDATASIZE"
+
+      :calldatacopy ->
+        "CALLDATACOPY"
+
+      :codesize ->
+        "CODESIZE"
+
+      :codecopy ->
+        "CODECOPY"
+
+      :pop ->
+        "POP"
+
+      :mload ->
+        "MLOAD"
+
+      :mstore ->
+        "MSTORE"
+
+      :mstore8 ->
+        "MSTORE8"
+
+      :jump ->
+        "JUMP"
+
+      :jumpi ->
+        "JUMPI"
+
+      :pc ->
+        "PC"
+
+      :msize ->
+        "MSIZE"
+
+      :gas ->
+        "GAS"
+
+      :jumpdest ->
+        "JUMPDEST"
+
+      :tload ->
+        "TLOAD"
+
+      :tstore ->
+        "TSTORE"
+
+      :mcopy ->
+        "MCOPY"
+
+      {:push, n, v} ->
+        "PUSH#{n} #{to_hex(v)}"
+
+      {:dup, n} ->
+        "DUP#{n}"
+
+      {:swap, n} ->
+        "SWAP#{n}"
+
+      :return ->
+        "RETURN"
+
+      :revert ->
+        "REVERT"
+
+      {:invalid, _} ->
+        "INVALID"
+
+      :staticcall ->
+        "STATICCALL"
+
+      :returndatasize ->
+        "RETURNDATASIZE"
+
+      :returndatacopy ->
+        "RETURNDATACOPY"
+
+      :address ->
+        "ADDRESS"
+
+      :balance ->
+        "BALANCE"
+
+      :origin ->
+        "ORIGIN"
+
+      :caller ->
+        "CALLER"
+
+      :gasprice ->
+        "GASPRICE"
+
+      :extcodesize ->
+        "EXTCODESIZE"
+
+      :extcodecopy ->
+        "EXTCODECOPY"
+
+      :extcodehash ->
+        "EXTCODEHASH"
+
+      :blockhash ->
+        "BLOCKHASH"
+
+      :coinbase ->
+        "COINBASE"
+
+      :timestamp ->
+        "TIMESTAMP"
+
+      :number ->
+        "NUMBER"
+
+      :prevrandao ->
+        "PREVRANDAO"
+
+      :gaslimit ->
+        "GASLIMIT"
+
+      :chainid ->
+        "CHAINID"
+
+      :selfbalance ->
+        "SELFBALANCE"
+
+      :basefee ->
+        "BASEFEE"
+
+      :blobhash ->
+        "BLOBHASH"
+
+      :blobbasefee ->
+        "BLOBBASEFEE"
+
+      :sload ->
+        "SLOAD"
+
+      :sstore ->
+        "SSTORE"
+
+      :log ->
+        "LOG"
+
+      :create ->
+        "CREATE"
+
+      :call ->
+        "CALL"
+
+      :callcode ->
+        "CALLCODE"
+
+      :delegatecall ->
+        "DELEGATECALL"
+
+      :create2 ->
+        "CREATE2"
+
+      :selfdestruct ->
+        "SELFDESTRUCT"
+    end
+  end
 end

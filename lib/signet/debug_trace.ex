@@ -15,13 +15,13 @@ defmodule Signet.DebugTrace do
 
   defmodule StructLog do
     @type t() :: %__MODULE__{
-      depth: integer(),
-      gas: integer(),
-      gas_cost: integer(),
-      op: atom(),
-      pc: integer(),
-      stack: [binary()]
-    }
+            depth: integer(),
+            gas: integer(),
+            gas_cost: integer(),
+            op: atom(),
+            pc: integer(),
+            stack: [binary()]
+          }
 
     defstruct [
       :depth,
@@ -69,11 +69,11 @@ defmodule Signet.DebugTrace do
   end
 
   @type t() :: %__MODULE__{
-    failed: boolean(),
-    gas: integer(),
-    return_value: binary(),
-    struct_logs: [StructLog.t()]
-  }
+          failed: boolean(),
+          gas: integer(),
+          return_value: binary(),
+          struct_logs: [StructLog.t()]
+        }
 
   defstruct [
     :failed,

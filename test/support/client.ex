@@ -689,7 +689,7 @@ defmodule Signet.Test.Client do
       "structLogs" => [
         %{
           "depth" => 1,
-          "gas" => 599978568,
+          "gas" => 599_978_568,
           "gasCost" => 3,
           "op" => "PUSH1",
           "pc" => 0,
@@ -697,7 +697,7 @@ defmodule Signet.Test.Client do
         },
         %{
           "depth" => 1,
-          "gas" => 599978565,
+          "gas" => 599_978_565,
           "gasCost" => 3,
           "op" => "PUSH1",
           "pc" => 2,
@@ -705,7 +705,7 @@ defmodule Signet.Test.Client do
         },
         %{
           "depth" => 1,
-          "gas" => 599978562,
+          "gas" => 599_978_562,
           "gasCost" => 12,
           "op" => "MSTORE",
           "pc" => 4,
