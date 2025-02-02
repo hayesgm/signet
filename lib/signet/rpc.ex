@@ -304,27 +304,7 @@ defmodule Signet.RPC do
       )
 
     if trace_reverts do
-      with {:error, error = %{code: 3, message: "execution reverted"}} <- trx_res do
-        if debug_trace do
-          case debug_trace_call(trx, opts) do
-            {:ok, trace} ->
-              {:error, Map.put(error, :trace, trace)}
-
-            err ->
-              Logger.error("Failed to trace revert by `debug_traceCall`: #{inspect(err)}")
-              trx_res
-          end
-        else
-          case trace_call(trx, opts) do
-            {:ok, trace} ->
-              {:error, Map.put(error, :trace, trace)}
-
-            err ->
-              Logger.error("Failed to trace revert by `trace_call`: #{inspect(err)}")
-              trx_res
-          end
-        end
-      end
+      show_trace_revert(trx, trx_res, debug_trace, opts)
     else
       trx_res
     end
@@ -1335,6 +1315,8 @@ defmodule Signet.RPC do
     {verify, opts} = Keyword.pop(opts, :verify, true)
     {access_list, opts} = Keyword.pop(opts, :access_list, [])
     {signer, opts} = Keyword.pop(opts, :signer, Signet.Signer.Default)
+    {trace_reverts, opts} = Keyword.pop(opts, :trace_reverts, false)
+    {debug_trace, opts} = Keyword.pop(opts, :debug_trace, false)
 
     signer_address = Signet.Signer.address(signer)
     chain_id = Keyword.get_lazy(opts, :chain_id, fn -> Signet.Signer.chain_id(signer) end)
@@ -1376,6 +1358,13 @@ defmodule Signet.RPC do
                   {:ok, els}
               end) do
         {:ok, %{trx | gas_limit: gas_limit}}
+      else
+        trx_res ->
+          if trace_reverts do
+            show_trace_revert(trx, trx_res, debug_trace, opts)
+          else
+            trx_res
+          end
       end
     end
 
@@ -1539,4 +1528,28 @@ defmodule Signet.RPC do
 
   defp nil_map(nil, _), do: nil
   defp nil_map(x, fun), do: fun.(x)
+
+  defp show_trace_revert(trx, trx_res, debug_trace, opts) do
+    with {:error, error = %{code: 3, message: "execution reverted" <> _}} <- trx_res do
+      if debug_trace do
+        case debug_trace_call(trx, opts) do
+          {:ok, trace} ->
+            {:error, Map.put(error, :trace, trace)}
+
+          err ->
+            Logger.error("Failed to trace revert by `debug_traceCall`: #{inspect(err)}")
+            trx_res
+        end
+      else
+        case trace_call(trx, opts) do
+          {:ok, trace} ->
+            {:error, Map.put(error, :trace, trace)}
+
+          err ->
+            Logger.error("Failed to trace revert by `trace_call`: #{inspect(err)}")
+            trx_res
+        end
+      end
+    end
+  end
 end

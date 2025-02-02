@@ -6,6 +6,8 @@ defmodule Signet.VM do
 
   import Bitwise
 
+  require Logger
+
   alias Signet.Assembly
 
   @type signed :: integer()
@@ -133,6 +135,34 @@ defmodule Signet.VM do
         {new_pc, Map.put(op_map, pc, operation)}
       end)
       |> elem(1)
+    end
+
+    defp show_hex(i, padding \\ nil) do
+      hex = Integer.to_string(i, 16)
+
+      if padding == nil do
+        hex
+      else
+        String.pad_leading(hex, padding, "0")
+      end
+    end
+
+    def show_stack(stack) do
+      hex_length = String.length(show_hex(Enum.count(stack) * 32))
+
+      Enum.with_index(Enum.reverse(stack), fn el, i ->
+        "\t#{show_hex(i * 32, hex_length)} #{to_hex(el)}"
+      end)
+      |> Enum.join("\n")
+    end
+
+    def show(context) do
+      [
+        "pc=#{context.pc}",
+        "stack:",
+        show_stack(context.stack)
+      ]
+      |> Enum.join("\n")
     end
   end
 
@@ -553,9 +583,17 @@ defmodule Signet.VM do
     address
   end
 
-  @spec run_single_op(Context.t(), Input.t()) :: context_result()
-  def run_single_op(context, input) do
+  @spec run_single_op(Context.t(), Input.t(), Keyword.t()) :: context_result()
+  def run_single_op(context, input, opts) do
+    if opts[:verbose] do
+      Logger.debug(Context.show(context))
+    end
+
     with {:ok, operation} <- get_operation(context) do
+      if opts[:verbose] do
+        Logger.debug("Operation: #{Signet.Assembly.show_opcode(operation)}")
+      end
+
       case operation do
         :stop ->
           {:ok, %{context | return_data: <<>>, halted: true}}
@@ -855,9 +893,10 @@ defmodule Signet.VM do
     end
   end
 
-  @spec run_code(Context.t(), Input.t()) :: {:ok, ExecutionResult.t()} | {:error, vm_error()}
-  defp run_code(context, input) do
-    case run_single_op(context, input) do
+  @spec run_code(Context.t(), Input.t(), Keyword.t()) ::
+          {:ok, ExecutionResult.t()} | {:error, vm_error()}
+  defp run_code(context, input, opts \\ []) do
+    case run_single_op(context, input, opts) do
       {:ok, context = %Context{halted: true}} ->
         {:ok, ExecutionResult.from_context(context)}
 
@@ -897,7 +936,8 @@ defmodule Signet.VM do
       %Input{
         calldata: calldata,
         value: Keyword.get(opts, :callvalue, 0)
-      }
+      },
+      opts
     )
   end
 
