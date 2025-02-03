@@ -734,90 +734,118 @@ defmodule Signet.RPC do
       iex> Signet.Transaction.V1.new(1, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>)
       ...> |> Signet.RPC.trace_call()
       {:ok,
-        [
-        %Signet.Trace{
-          action: %Signet.Trace.Action{
-            call_type: "call",
-            from: ~h[0x83806d539d4ea1c140489a06660319c9a303f874],
-            gas: 0x01a1f8,
-            input: <<>>,
-            to: ~h[0x1c39ba39e4735cb65978d4db400ddd70a72dc750],
-            value: 0x7a16c911b4d00000,
-          },
-          block_hash: ~h[0x7eb25504e4c202cf3d62fd585d3e238f592c780cca82dacb2ed3cb5b38883add],
-          block_number: 3068185,
-          gas_used: 0x2982,
-          output: <<>>,
-          subtraces: 2,
-          trace_address: [~h[0x1c39ba39e4735cb65978d4db400ddd70a72dc750]],
-          transaction_hash: ~h[0x17104ac9d3312d8c136b7f44d4b8b47852618065ebfa534bd2d3b5ef218ca1f3],
-          transaction_position: 2,
-          type: "call"
-        },
-        %Signet.Trace{
-          action: %Signet.Trace.Action{
-            call_type: "call",
-            from: ~h[0x83806d539d4ea1c140489a06660319c9a303f874],
-            gas: 0x01a1f8,
-            input: <<>>,
-            to: ~h[0x1c39ba39e4735cb65978d4db400ddd70a72dc750],
-            value: 0x7a16c911b4d00000,
-          },
-          block_hash: ~h[0x7eb25504e4c202cf3d62fd585d3e238f592c780cca82dacb2ed3cb5b38883add],
-          block_number: 3068186,
-          gas_used: 0x2982,
-          output: <<>>,
-          subtraces: 2,
-          trace_address: [~h[0x1c39ba39e4735cb65978d4db400ddd70a72dc750]],
-          transaction_hash: ~h[0x17104ac9d3312d8c136b7f44d4b8b47852618065ebfa534bd2d3b5ef218ca1f3],
-          transaction_position: 2,
-          type: "call"
+        %Signet.TraceCall{
+          output: "",
+          state_diff: nil,
+          trace: [
+            %Signet.Trace{
+              action: %Signet.Trace.Action{
+                call_type: "call",
+                init: nil,
+                from: <<0::160>>,
+                gas: 499_978_072,
+                input: ~h[0xd1692f56000000000000000000000000142da9114e5a98e015aa95afca0585e84832a612000000000000000000000000142da9114e5a98e015aa95afca0585e84832a6120000000000000000000000000000000000000000000000000000000000000000],
+                to: ~h[0x13172EE393713FBA9925A9A752341EBD31E8D9A7],
+                value: 0
+              },
+              block_hash: nil,
+              block_number: nil,
+              gas_used: 492_166_471,
+              error: "Reverted",
+              output: "",
+              result_code: nil,
+              result_address: nil,
+              subtraces: 1,
+              trace_address: [],
+              transaction_hash: nil,
+              transaction_position: nil,
+              type: "call"
+            },
+            %Signet.Trace{
+              action: %Signet.Trace.Action{
+                call_type: nil,
+                init: ~h[0x60e03461009157601f6101ec38819003918201601f19168301916001600160401b038311848410176100965780849260609460405283398101031261009157610047816100ac565b906100606040610059602084016100ac565b92016100ac565b9060805260a05260c05260405161012b90816100c18239608051816088015260a051816045015260c0518160c60152f35b600080fd5b634e487b7160e01b600052604160045260246000fd5b51906001600160a01b03821682036100915756fe608060405260043610156013575b3660ba57005b6000803560e01c8063238ac9331460775763c34c08e51460325750600d565b34607457806003193601126074576040517f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03168152602090f35b80fd5b5034607457806003193601126074577f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03166080908152602090f35b600036818037808036817f00000000000000000000000000000000000000000000000000000000000000005af4903d918282803e60f357fd5bf3fea264697066735822122032b5603d6937ceb7a252e16379744d8545670ff4978c8d76c985d051dfcfe46c64736f6c6343000817003300000000000000000000000049e5d261e95f6a02505078bb339fecb210a0b634000000000000000000000000142da9114e5a98e015aa95afca0585e84832a612000000000000000000000000142da9114e5a98e015aa95afca0585e84832a612],
+                from: ~h[0x13172EE393713FBA9925A9A752341EBD31E8D9A7],
+                gas: 492_133_529,
+                input: nil,
+                to: nil,
+                value: 0
+              },
+              block_hash: nil,
+              block_number: nil,
+              gas_used: nil,
+              error: "contract address collision",
+              output: nil,
+              result_code: nil,
+              result_address: nil,
+              subtraces: 0,
+              trace_address: [0],
+              transaction_hash: nil,
+              transaction_position: nil,
+              type: "create"
+            }
+          ],
+          vm_trace: nil
         }
-      ]}
+      }
 
       iex> Signet.Transaction.V2.new(1, {1, :gwei}, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>, [<<2::160>>, <<3::160>>], :goerli)
       ...> |> Signet.RPC.trace_call()
       {:ok,
-        [
-        %Signet.Trace{
-          action: %Signet.Trace.Action{
-            call_type: "call",
-            from: ~h[0x83806d539d4ea1c140489a06660319c9a303f874],
-            gas: 0x01a1f8,
-            input: <<>>,
-            to: ~h[0x1c39ba39e4735cb65978d4db400ddd70a72dc750],
-            value: 0x7a16c911b4d00000,
-          },
-          block_hash: ~h[0x7eb25504e4c202cf3d62fd585d3e238f592c780cca82dacb2ed3cb5b38883add],
-          block_number: 3068185,
-          gas_used: 0x2982,
-          output: <<>>,
-          subtraces: 2,
-          trace_address: [~h[0x1c39ba39e4735cb65978d4db400ddd70a72dc750]],
-          transaction_hash: ~h[0x17104ac9d3312d8c136b7f44d4b8b47852618065ebfa534bd2d3b5ef218ca1f3],
-          transaction_position: 2,
-          type: "call"
-        },
-        %Signet.Trace{
-          action: %Signet.Trace.Action{
-            call_type: "call",
-            from: ~h[0x83806d539d4ea1c140489a06660319c9a303f874],
-            gas: 0x01a1f8,
-            input: <<>>,
-            to: ~h[0x1c39ba39e4735cb65978d4db400ddd70a72dc750],
-            value: 0x7a16c911b4d00000,
-          },
-          block_hash: ~h[0x7eb25504e4c202cf3d62fd585d3e238f592c780cca82dacb2ed3cb5b38883add],
-          block_number: 3068186,
-          gas_used: 0x2982,
-          output: <<>>,
-          subtraces: 2,
-          trace_address: [~h[0x1c39ba39e4735cb65978d4db400ddd70a72dc750]],
-          transaction_hash: ~h[0x17104ac9d3312d8c136b7f44d4b8b47852618065ebfa534bd2d3b5ef218ca1f3],
-          transaction_position: 2,
-          type: "call"
+        %Signet.TraceCall{
+          output: "",
+          state_diff: nil,
+          trace: [
+            %Signet.Trace{
+              action: %Signet.Trace.Action{
+                call_type: "call",
+                init: nil,
+                from: <<0::160>>,
+                gas: 499_978_072,
+                input: ~h[0xd1692f56000000000000000000000000142da9114e5a98e015aa95afca0585e84832a612000000000000000000000000142da9114e5a98e015aa95afca0585e84832a6120000000000000000000000000000000000000000000000000000000000000000],
+                to: ~h[0x13172EE393713FBA9925A9A752341EBD31E8D9A7],
+                value: 0
+              },
+              block_hash: nil,
+              block_number: nil,
+              gas_used: 492_166_471,
+              error: "Reverted",
+              output: "",
+              result_code: nil,
+              result_address: nil,
+              subtraces: 1,
+              trace_address: [],
+              transaction_hash: nil,
+              transaction_position: nil,
+              type: "call"
+            },
+            %Signet.Trace{
+              action: %Signet.Trace.Action{
+                call_type: nil,
+                init: ~h[0x60e03461009157601f6101ec38819003918201601f19168301916001600160401b038311848410176100965780849260609460405283398101031261009157610047816100ac565b906100606040610059602084016100ac565b92016100ac565b9060805260a05260c05260405161012b90816100c18239608051816088015260a051816045015260c0518160c60152f35b600080fd5b634e487b7160e01b600052604160045260246000fd5b51906001600160a01b03821682036100915756fe608060405260043610156013575b3660ba57005b6000803560e01c8063238ac9331460775763c34c08e51460325750600d565b34607457806003193601126074576040517f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03168152602090f35b80fd5b5034607457806003193601126074577f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03166080908152602090f35b600036818037808036817f00000000000000000000000000000000000000000000000000000000000000005af4903d918282803e60f357fd5bf3fea264697066735822122032b5603d6937ceb7a252e16379744d8545670ff4978c8d76c985d051dfcfe46c64736f6c6343000817003300000000000000000000000049e5d261e95f6a02505078bb339fecb210a0b634000000000000000000000000142da9114e5a98e015aa95afca0585e84832a612000000000000000000000000142da9114e5a98e015aa95afca0585e84832a612],
+                from: ~h[0x13172EE393713FBA9925A9A752341EBD31E8D9A7],
+                gas: 492_133_529,
+                input: nil,
+                to: nil,
+                value: 0
+              },
+              block_hash: nil,
+              block_number: nil,
+              gas_used: nil,
+              error: "contract address collision",
+              output: nil,
+              result_code: nil,
+              result_address: nil,
+              subtraces: 0,
+              trace_address: [0],
+              transaction_hash: nil,
+              transaction_position: nil,
+              type: "create"
+            }
+          ],
+          vm_trace: nil
         }
-      ]}
+      }
   """
   def trace_call(trx, opts \\ []) do
     from = Keyword.get(opts, :from)
@@ -826,7 +854,7 @@ defmodule Signet.RPC do
     send_rpc(
       "trace_call",
       [to_call_params(trx, from), ["trace"], block_number],
-      Keyword.merge(opts, decode: &Signet.Trace.deserialize_many/1)
+      Keyword.merge(opts, decode: &Signet.TraceCall.deserialize/1)
     )
   end
 

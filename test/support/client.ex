@@ -510,52 +510,44 @@ defmodule Signet.Test.Client do
     ]
   end
 
-  # TODO: Add other outputs
   def trace_call(_trx = %{"to" => _}, ["trace"], _block) do
-    [
-      %{
-        "action" => %{
-          "callType" => "call",
-          "from" => "0x83806d539d4ea1c140489a06660319c9a303f874",
-          "gas" => "0x1a1f8",
-          "input" => "0x",
-          "to" => "0x1c39ba39e4735cb65978d4db400ddd70a72dc750",
-          "value" => "0x7a16c911b4d00000"
+    %{
+      "output" => "0x",
+      "stateDiff" => nil,
+      "trace" => [
+        %{
+          "action" => %{
+            "callType" => "call",
+            "from" => "0x0000000000000000000000000000000000000000",
+            "gas" => "0x1dcd0f58",
+            "input" =>
+              "0xd1692f56000000000000000000000000142da9114e5a98e015aa95afca0585e84832a612000000000000000000000000142da9114e5a98e015aa95afca0585e84832a6120000000000000000000000000000000000000000000000000000000000000000",
+            "to" => "0x13172ee393713fba9925a9a752341ebd31e8d9a7",
+            "value" => "0x0"
+          },
+          "error" => "Reverted",
+          "result" => %{"gasUsed" => "0x1d55dd47", "output" => "0x"},
+          "subtraces" => 1,
+          "traceAddress" => [],
+          "type" => "call"
         },
-        "blockHash" => "0x7eb25504e4c202cf3d62fd585d3e238f592c780cca82dacb2ed3cb5b38883add",
-        "blockNumber" => 3_068_185,
-        "result" => %{
-          "gasUsed" => "0x2982",
-          "output" => "0x"
-        },
-        "subtraces" => 2,
-        "traceAddress" => ["0x1c39ba39e4735cb65978d4db400ddd70a72dc750"],
-        "transactionHash" => "0x17104ac9d3312d8c136b7f44d4b8b47852618065ebfa534bd2d3b5ef218ca1f3",
-        "transactionPosition" => 2,
-        "type" => "call"
-      },
-      %{
-        "action" => %{
-          "callType" => "call",
-          "from" => "0x83806d539d4ea1c140489a06660319c9a303f874",
-          "gas" => "0x1a1f8",
-          "input" => "0x",
-          "to" => "0x1c39ba39e4735cb65978d4db400ddd70a72dc750",
-          "value" => "0x7a16c911b4d00000"
-        },
-        "blockHash" => "0x7eb25504e4c202cf3d62fd585d3e238f592c780cca82dacb2ed3cb5b38883add",
-        "blockNumber" => 3_068_186,
-        "result" => %{
-          "gasUsed" => "0x2982",
-          "output" => "0x"
-        },
-        "subtraces" => 2,
-        "traceAddress" => ["0x1c39ba39e4735cb65978d4db400ddd70a72dc750"],
-        "transactionHash" => "0x17104ac9d3312d8c136b7f44d4b8b47852618065ebfa534bd2d3b5ef218ca1f3",
-        "transactionPosition" => 2,
-        "type" => "call"
-      }
-    ]
+        %{
+          "action" => %{
+            "from" => "0x13172ee393713fba9925a9a752341ebd31e8d9a7",
+            "gas" => "0x1d555c99",
+            "init" =>
+              "0x60e03461009157601f6101ec38819003918201601f19168301916001600160401b038311848410176100965780849260609460405283398101031261009157610047816100ac565b906100606040610059602084016100ac565b92016100ac565b9060805260a05260c05260405161012b90816100c18239608051816088015260a051816045015260c0518160c60152f35b600080fd5b634e487b7160e01b600052604160045260246000fd5b51906001600160a01b03821682036100915756fe608060405260043610156013575b3660ba57005b6000803560e01c8063238ac9331460775763c34c08e51460325750600d565b34607457806003193601126074576040517f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03168152602090f35b80fd5b5034607457806003193601126074577f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03166080908152602090f35b600036818037808036817f00000000000000000000000000000000000000000000000000000000000000005af4903d918282803e60f357fd5bf3fea264697066735822122032b5603d6937ceb7a252e16379744d8545670ff4978c8d76c985d051dfcfe46c64736f6c6343000817003300000000000000000000000049e5d261e95f6a02505078bb339fecb210a0b634000000000000000000000000142da9114e5a98e015aa95afca0585e84832a612000000000000000000000000142da9114e5a98e015aa95afca0585e84832a612",
+            "value" => "0x0"
+          },
+          "error" => "contract address collision",
+          "result" => nil,
+          "subtraces" => 0,
+          "traceAddress" => [0],
+          "type" => "create"
+        }
+      ],
+      "vmTrace" => nil
+    }
   end
 
   def trace_callMany(_trxs, _block) do
