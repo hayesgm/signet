@@ -121,11 +121,131 @@ defmodule Signet.TraceCall do
         vm_trace: nil
       }
   """
-  @spec deserialize(map()) :: [Signet.TraceCall.t()] | no_return()
+  @spec deserialize(map()) :: t() | no_return()
   def deserialize(%{"output" => output, "trace" => trace}) do
     %__MODULE__{
       output: from_hex!(output),
       trace: Signet.Trace.deserialize_many(trace)
+    }
+  end
+
+  @doc ~S"""
+  Deserializes a single of trace result from `trace_callMany`.
+
+  ## Examples
+
+      iex> use Signet.Hex
+      iex> %Signet.TraceCall{
+      ...>   output: "",
+      ...>   state_diff: nil,
+      ...>   trace: [
+      ...>     %Signet.Trace{
+      ...>       action: %Signet.Trace.Action{
+      ...>         call_type: "call",
+      ...>         init: nil,
+      ...>         from: ~h[0x0000000000000000000000000000000000000000],
+      ...>         gas: 499_978_072,
+      ...>         input: ~h[0xd1692f56000000000000000000000000142da9114e5a98e015aa95afca0585e84832a612000000000000000000000000142da9114e5a98e015aa95afca0585e84832a6120000000000000000000000000000000000000000000000000000000000000000],
+      ...>         to: ~h[0x13172ee393713fba9925a9a752341ebd31e8d9a7],
+      ...>         value: 0
+      ...>       },
+      ...>       block_hash: nil,
+      ...>       block_number: nil,
+      ...>       gas_used: 492_166_471,
+      ...>       error: "Reverted",
+      ...>       output: "",
+      ...>       result_code: nil,
+      ...>       result_address: nil,
+      ...>       subtraces: 1,
+      ...>       trace_address: [],
+      ...>       transaction_hash: nil,
+      ...>       transaction_position: nil,
+      ...>       type: "call"
+      ...>     },
+      ...>     %Signet.Trace{
+      ...>       action: %Signet.Trace.Action{
+      ...>         call_type: nil,
+      ...>         init: ~h[0x60e03461009157601f6101ec38819003918201601f19168301916001600160401b038311848410176100965780849260609460405283398101031261009157610047816100ac565b906100606040610059602084016100ac565b92016100ac565b9060805260a05260c05260405161012b90816100c18239608051816088015260a051816045015260c0518160c60152f35b600080fd5b634e487b7160e01b600052604160045260246000fd5b51906001600160a01b03821682036100915756fe608060405260043610156013575b3660ba57005b6000803560e01c8063238ac9331460775763c34c08e51460325750600d565b34607457806003193601126074576040517f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03168152602090f35b80fd5b5034607457806003193601126074577f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03166080908152602090f35b600036818037808036817f00000000000000000000000000000000000000000000000000000000000000005af4903d918282803e60f357fd5bf3fea264697066735822122032b5603d6937ceb7a252e16379744d8545670ff4978c8d76c985d051dfcfe46c64736f6c6343000817003300000000000000000000000049e5d261e95f6a02505078bb339fecb210a0b634000000000000000000000000142da9114e5a98e015aa95afca0585e84832a612000000000000000000000000142da9114e5a98e015aa95afca0585e84832a612],
+      ...>         from: ~h[0x13172ee393713fba9925a9a752341ebd31e8d9a7],
+      ...>         gas: 492_133_529,
+      ...>         input: nil,
+      ...>         to: nil,
+      ...>         value: 0
+      ...>       },
+      ...>       block_hash: nil,
+      ...>       block_number: nil,
+      ...>       gas_used: nil,
+      ...>       error: "contract address collision",
+      ...>       output: nil,
+      ...>       result_code: nil,
+      ...>       result_address: nil,
+      ...>       subtraces: 0,
+      ...>       trace_address: [0],
+      ...>       transaction_hash: nil,
+      ...>       transaction_position: nil,
+      ...>       type: "create"
+      ...>     }
+      ...>   ],
+      ...>   vm_trace: nil
+      ...> }
+      ...> |> Signet.TraceCall.serialize()
+      %{
+        output: "0x",
+        stateDiff: nil,
+        trace: [
+          %{
+            action: %{
+              callType: "call",
+              from: "0x0000000000000000000000000000000000000000",
+              gas: "0x1DCD0F58",
+              input:
+                "0xd1692f56000000000000000000000000142da9114e5a98e015aa95afca0585e84832a612000000000000000000000000142da9114e5a98e015aa95afca0585e84832a6120000000000000000000000000000000000000000000000000000000000000000",
+              to: "0x13172EE393713fbA9925A9A752341Ebd31e8D9a7",
+              value: "0x0",
+              init: nil
+            },
+            error: "Reverted",
+            result: %{gasUsed: "0x1D55DD47", output: "0x", address: nil, code: nil},
+            subtraces: 1,
+            traceAddress: [],
+            type: "call",
+            blockHash: nil,
+            blockNumber: nil,
+            transactionHash: nil,
+            transactionPosition: nil
+          },
+          %{
+            action: %{
+              from: "0x13172EE393713fbA9925A9A752341Ebd31e8D9a7",
+              gas: "0x1D555C99",
+              init:
+                "0x60e03461009157601f6101ec38819003918201601f19168301916001600160401b038311848410176100965780849260609460405283398101031261009157610047816100ac565b906100606040610059602084016100ac565b92016100ac565b9060805260a05260c05260405161012b90816100c18239608051816088015260a051816045015260c0518160c60152f35b600080fd5b634e487b7160e01b600052604160045260246000fd5b51906001600160a01b03821682036100915756fe608060405260043610156013575b3660ba57005b6000803560e01c8063238ac9331460775763c34c08e51460325750600d565b34607457806003193601126074576040517f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03168152602090f35b80fd5b5034607457806003193601126074577f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03166080908152602090f35b600036818037808036817f00000000000000000000000000000000000000000000000000000000000000005af4903d918282803e60f357fd5bf3fea264697066735822122032b5603d6937ceb7a252e16379744d8545670ff4978c8d76c985d051dfcfe46c64736f6c6343000817003300000000000000000000000049e5d261e95f6a02505078bb339fecb210a0b634000000000000000000000000142da9114e5a98e015aa95afca0585e84832a612000000000000000000000000142da9114e5a98e015aa95afca0585e84832a612",
+              value: "0x0",
+              callType: nil,
+              input: nil,
+              to: nil
+            },
+            error: "contract address collision",
+            result: %{code: nil, output: nil, address: nil, gasUsed: nil},
+            subtraces: 0,
+            traceAddress: [0],
+            type: "create",
+            blockHash: nil,
+            blockNumber: nil,
+            transactionHash: nil,
+            transactionPosition: nil
+          }
+        ],
+        vmTrace: nil
+      }
+  """
+  @spec serialize(t()) :: map()
+  def serialize(trace_call) do
+    %{
+      output: to_hex(trace_call.output),
+      stateDiff: trace_call.state_diff,
+      vmTrace: trace_call.vm_trace,
+      trace: Enum.map(trace_call.trace, &Signet.Trace.serialize/1)
     }
   end
 
