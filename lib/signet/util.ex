@@ -458,4 +458,8 @@ defmodule Signet.Util do
       end
     end
   end
+
+  @doc false
+  def nil_map(nil, _), do: nil
+  def nil_map(x, fun), do: fun.(x)
 end

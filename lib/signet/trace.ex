@@ -14,6 +14,8 @@ defmodule Signet.Trace do
 
   use Signet.Hex
 
+  import Signet.Util, only: [nil_map: 2]
+
   defmodule Action do
     @type t() :: %__MODULE__{
             call_type: String.t() | nil,
@@ -34,6 +36,8 @@ defmodule Signet.Trace do
       :to,
       :value
     ]
+
+    import Signet.Util, only: [nil_map: 2]
 
     @doc ~S"""
     Deserializes a trace sub-action into a struct.
@@ -97,6 +101,44 @@ defmodule Signet.Trace do
         from: Hex.decode_address!(params["from"]),
         gas: Hex.decode_hex_number!(params["gas"]),
         value: Hex.decode_hex_number!(params["value"])
+      }
+    end
+
+    @doc ~S"""
+    Serializes a struct into a json map.
+
+    ## Examples
+
+        iex> use Signet.Hex
+        iex> %Signet.Trace.Action{
+        ...>   call_type: "call",
+        ...>   from: ~h[0x83806d539d4ea1c140489a06660319c9a303f874],
+        ...>   gas: 0x01a1f8,
+        ...>   input: <<>>,
+        ...>   to: ~h[0x1c39ba39e4735cb65978d4db400ddd70a72dc750],
+        ...>   value: 0x7a16c911b4d00000,
+        ...> }
+        ...> |> Signet.Trace.Action.serialize()
+        %{
+          from: "0x83806d539D4Ea1c140489A06660319C9A303f874",
+          gas: "0x1A1F8",
+          input: "0x",
+          to: "0x1C39BA39e4735CB65978d4Db400dDD70a72DC750",
+          value: "0x7A16C911B4D00000",
+          callType: "call",
+          init: nil
+        }
+    """
+    @spec serialize(t()) :: map()
+    def serialize(action) do
+      %{
+        callType: action.call_type,
+        init: nil_map(action.init, &Hex.to_hex(&1)),
+        from: nil_map(action.from, &Hex.encode_address(&1)),
+        gas: Hex.encode_short_hex(action.gas),
+        input: nil_map(action.input, &Hex.to_hex(&1)),
+        to: nil_map(action.to, &Hex.encode_address(&1)),
+        value: Hex.encode_short_hex(action.value)
       }
     end
   end
@@ -361,6 +403,86 @@ defmodule Signet.Trace do
       result_code: map(get_in(params, ["result", "code"]), &Hex.decode_hex!/1),
       result_address: map(get_in(params, ["result", "address"]), &Hex.decode_address!/1),
       type: type
+    }
+  end
+
+  @doc ~S"""
+  Serializes a single trace to a corresponding json map.
+
+  ## Examples
+
+      iex> use Signet.Hex
+      iex> %Signet.Trace{
+      ...>   action: %Signet.Trace.Action{
+      ...>     call_type: "call",
+      ...>     from: ~h[0x83806d539d4ea1c140489a06660319c9a303f874],
+      ...>     gas: 0x01a1f8,
+      ...>     input: <<>>,
+      ...>     to: ~h[0x1c39ba39e4735cb65978d4db400ddd70a72dc750],
+      ...>     value: 0x7a16c911b4d00000,
+      ...>   },
+      ...>   block_hash: ~h[0x7eb25504e4c202cf3d62fd585d3e238f592c780cca82dacb2ed3cb5b38883add],
+      ...>   block_number: 3068185,
+      ...>   gas_used: 0x2982,
+      ...>   output: <<>>,
+      ...>   subtraces: 2,
+      ...>   trace_address: [~h[0x1c39ba39e4735cb65978d4db400ddd70a72dc750]],
+      ...>   transaction_hash: ~h[0x17104ac9d3312d8c136b7f44d4b8b47852618065ebfa534bd2d3b5ef218ca1f3],
+      ...>   transaction_position: 2,
+      ...>   type: "call"
+      ...> }
+      ...> |> Signet.Trace.serialize()
+      %{
+        action: %{
+          callType: "call",
+          from: "0x83806d539D4Ea1c140489A06660319C9A303f874",
+          gas: "0x1A1F8",
+          input: "0x",
+          to: "0x1C39BA39e4735CB65978d4Db400dDD70a72DC750",
+          value: "0x7A16C911B4D00000",
+          init: nil
+        },
+        blockHash: "0x7eb25504e4c202cf3d62fd585d3e238f592c780cca82dacb2ed3cb5b38883add",
+        blockNumber: "0x2ED119",
+        error: nil,
+        result: %{
+          gasUsed: "0x2982",
+          code: nil,
+          address: nil,
+          output: "0x"
+        },
+        subtraces: 2,
+        traceAddress: ["0x1C39BA39e4735CB65978d4Db400dDD70a72DC750"],
+        transactionHash: "0x17104ac9d3312d8c136b7f44d4b8b47852618065ebfa534bd2d3b5ef218ca1f3",
+        transactionPosition: 2,
+        type: "call"
+      }
+  """
+  @spec serialize(t()) :: map()
+  def serialize(trace=%__MODULE__{}) do
+    %{
+      action: Action.serialize(trace.action),
+      blockHash: nil_map(trace.block_hash, &Hex.to_hex(&1)),
+      blockNumber: nil_map(trace.block_number, &Hex.encode_short_hex/1),
+      result: %{
+        gasUsed: nil_map(trace.gas_used, &Hex.encode_short_hex/1),
+        code: nil_map(trace.result_code, &Hex.to_hex(&1)),
+        address: nil_map(trace.result_address, &Hex.encode_address(&1)),
+        output: nil_map(trace.output, &Hex.to_hex(&1)),
+      },
+      error: trace.error,
+      subtraces: trace.subtraces,
+      traceAddress:
+        Enum.map(trace.trace_address, fn
+          trace_address when is_integer(trace_address) ->
+            trace_address
+
+          trace_address when is_binary(trace_address) ->
+            Hex.encode_address(trace_address)
+        end),
+      transactionHash: nil_map(trace.transaction_hash, &Hex.to_hex(&1)),
+      transactionPosition: trace.transaction_position,
+      type: trace.type
     }
   end
 
