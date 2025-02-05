@@ -792,6 +792,15 @@ defmodule Signet.Test.Client do
      }}
   end
 
+  # Call that fails with invalid params
+  def eth_call(_trx = %{"to" => "0x000000000000000000000000000000000000000D"}, _block) do
+    {:error,
+     %{
+       "code" => -32602,
+       "message" => "Failed to decode transaction"
+     }}
+  end
+
   # Sleuth call
   # Sleuth call - Facts Query
   def eth_call(
