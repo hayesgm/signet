@@ -79,7 +79,7 @@ defmodule Signet.RPC do
 
   defp decode_error(_, _errors), do: :not_found
 
-  defp decode_response(response, id, errors) do
+  defp decode_response(response, id, errors, method, body) do
     with {:ok, %{"jsonrpc" => "2.0", "result" => result, "id" => ^id}} <- Jason.decode(response) do
       {:ok, result}
     else
@@ -120,6 +120,10 @@ defmodule Signet.RPC do
          },
          "id" => ^id
        }} ->
+        if code == -32602 do
+          Logger.warning("[Signet][RPC][#{method}] Invalid JSON-PRC request \"#{code} #{message}\" from request `#{Jason.encode!(body)}`")
+        end
+
         {:error, %{code: code, message: message}}
 
       _ ->
@@ -153,7 +157,7 @@ defmodule Signet.RPC do
 
     case http_client().post(url, Jason.encode!(body), headers(headers), recv_timeout: timeout) do
       {:ok, %HTTPoison.Response{status_code: code, body: resp_body}} when code in 200..299 ->
-        with {:ok, result} <- decode_response(resp_body, body["id"], errors) do
+        with {:ok, result} <- decode_response(resp_body, body["id"], errors, method, body) do
           case decode do
             nil ->
               {:ok, result}
@@ -286,6 +290,10 @@ defmodule Signet.RPC do
       iex> Signet.Transaction.V1.new(1, {100, :gwei}, 100_000, <<12::160>>, {2, :wei}, <<1, 2, 3>>)
       iex> |> Signet.RPC.call_trx(errors: errors)
       {:error, %{code: 3, message: "execution reverted", revert: <<>>}}
+
+      iex> Signet.Transaction.V1.new(1, {100, :gwei}, 100_000, <<13::160>>, {2, :wei}, <<1, 2, 3>>)
+      iex> |> Signet.RPC.call_trx()
+      {:error, %{code: -32602, message: "Failed to decode transaction"}}
   """
   def call_trx(trx, opts \\ []) do
     from = Keyword.get(opts, :from)
