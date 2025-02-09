@@ -464,9 +464,11 @@ defmodule Signet.RPC do
       }}
   """
   def get_block_by_number(block_number, opts \\ []) do
+    {include_transaction_details, opts} = Keyword.pop(opts, :include_transaction_details, false)
+
     send_rpc(
       "eth_getBlockByNumber",
-      [block_number],
+      [block_number, include_transaction_details],
       Keyword.merge(opts, decode: &Signet.Block.deserialize/1)
     )
   end
