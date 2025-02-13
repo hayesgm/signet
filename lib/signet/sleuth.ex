@@ -107,19 +107,10 @@ defmodule Signet.Sleuth do
 
   defp postprocess(item, {:tuple, named_types}, opts)
        when is_tuple(item) and is_list(named_types) do
-    atomize = Keyword.get(opts, :atomize, false)
-
     item
     |> Tuple.to_list()
     |> Enum.zip(named_types)
     |> Enum.map(fn {item, %{type: type, name: name}} ->
-      name =
-        if not is_atom(name) and atomize do
-          String.to_atom(Macro.underscore(name))
-        else
-          name
-        end
-
       {name, postprocess(item, type, opts)}
     end)
     |> Enum.into(%{})
