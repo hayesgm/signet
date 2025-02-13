@@ -12,6 +12,14 @@ defmodule SleuthTest do
                  Signet.Contract.BlockNumber.encode_query(),
                  Signet.Contract.BlockNumber.query_selector()
                )
+
+      assert {:ok, [2]} ==
+               Signet.Sleuth.query(
+                 Signet.Contract.BlockNumber.bytecode(),
+                 Signet.Contract.BlockNumber.encode_query(),
+                 Signet.Contract.BlockNumber.query_selector(),
+                 be_obvious: true
+               )
     end
 
     test "query() failure with trace" do
@@ -51,11 +59,21 @@ defmodule SleuthTest do
                  Signet.Contract.BlockNumber,
                  :query
                )
+
+      assert {:ok, [2]} ==
+               Signet.Sleuth.query_by(
+                 Signet.Contract.BlockNumber,
+                 :query,
+                 be_obvious: true
+               )
     end
 
     test "query_by() via mod" do
       assert {:ok, %{"blockNumber" => 2}} ==
                Signet.Sleuth.query_by(Signet.Contract.BlockNumber)
+
+      assert {:ok, [2]} ==
+               Signet.Sleuth.query_by(Signet.Contract.BlockNumber, be_obvious: true)
     end
 
     test "queryTwo()" do
@@ -64,6 +82,14 @@ defmodule SleuthTest do
                  Signet.Contract.BlockNumber.bytecode(),
                  Signet.Contract.BlockNumber.encode_query_two(),
                  Signet.Contract.BlockNumber.query_two_selector()
+               )
+
+      assert {:ok, [2, 3]} ==
+               Signet.Sleuth.query(
+                 Signet.Contract.BlockNumber.bytecode(),
+                 Signet.Contract.BlockNumber.encode_query_two(),
+                 Signet.Contract.BlockNumber.query_two_selector(),
+                 be_obvious: true
                )
     end
 
@@ -74,6 +100,14 @@ defmodule SleuthTest do
                  Signet.Contract.BlockNumber.encode_query_two(),
                  Signet.Contract.BlockNumber.query_two_selector()
                )
+
+      assert {:ok, [{{:uint, 256}, 2}, {{:uint, 256}, 3}]} ==
+               Signet.Sleuth.query_annotated(
+                 Signet.Contract.BlockNumber.bytecode(),
+                 Signet.Contract.BlockNumber.encode_query_two(),
+                 Signet.Contract.BlockNumber.query_two_selector(),
+                 be_obvious: true
+               )
     end
 
     test "queryThree()" do
@@ -82,6 +116,14 @@ defmodule SleuthTest do
                  Signet.Contract.BlockNumber.bytecode(),
                  Signet.Contract.BlockNumber.encode_query_three(),
                  Signet.Contract.BlockNumber.query_three_selector()
+               )
+
+      assert {:ok, [2]} ==
+               Signet.Sleuth.query(
+                 Signet.Contract.BlockNumber.bytecode(),
+                 Signet.Contract.BlockNumber.encode_query_three(),
+                 Signet.Contract.BlockNumber.query_three_selector(),
+                 be_obvious: true
                )
     end
 
@@ -92,6 +134,14 @@ defmodule SleuthTest do
                  Signet.Contract.BlockNumber.encode_query_three(),
                  Signet.Contract.BlockNumber.query_three_selector()
                )
+
+      assert {:ok, [{{:uint, 256}, 2}]} ==
+               Signet.Sleuth.query_annotated(
+                 Signet.Contract.BlockNumber.bytecode(),
+                 Signet.Contract.BlockNumber.encode_query_three(),
+                 Signet.Contract.BlockNumber.query_three_selector(),
+                 be_obvious: true
+               )
     end
 
     test "queryFour()" do
@@ -100,6 +150,14 @@ defmodule SleuthTest do
                  Signet.Contract.BlockNumber.bytecode(),
                  Signet.Contract.BlockNumber.encode_query_four(),
                  Signet.Contract.BlockNumber.query_four_selector()
+               )
+
+      assert {:ok, [~h[0x010203], <<1::160>>]} ==
+               Signet.Sleuth.query(
+                 Signet.Contract.BlockNumber.bytecode(),
+                 Signet.Contract.BlockNumber.encode_query_four(),
+                 Signet.Contract.BlockNumber.query_four_selector(),
+                 be_obvious: true
                )
     end
 
@@ -111,6 +169,15 @@ defmodule SleuthTest do
                  Signet.Contract.BlockNumber.encode_query_four(),
                  Signet.Contract.BlockNumber.query_four_selector(),
                  decode_binaries: false
+               )
+
+      assert {:ok, ["0x010203", "0x0000000000000000000000000000000000000001"]} ==
+               Signet.Sleuth.query(
+                 Signet.Contract.BlockNumber.bytecode(),
+                 Signet.Contract.BlockNumber.encode_query_four(),
+                 Signet.Contract.BlockNumber.query_four_selector(),
+                 decode_binaries: false,
+                 be_obvious: true
                )
     end
 
@@ -128,6 +195,21 @@ defmodule SleuthTest do
                  Signet.Contract.BlockNumber.encode_query_cool(),
                  Signet.Contract.BlockNumber.query_cool_selector()
                )
+
+      assert {:ok,
+              [
+                %{
+                  "fun" => %{"cat" => "meow"},
+                  "x" => "hi",
+                  "ys" => [1, 2, 3]
+                }
+              ]} ==
+               Signet.Sleuth.query(
+                 Signet.Contract.BlockNumber.bytecode(),
+                 Signet.Contract.BlockNumber.encode_query_cool(),
+                 Signet.Contract.BlockNumber.query_cool_selector(),
+                 be_obvious: true
+               )
     end
 
     test "queryCool() - annotated" do
@@ -143,6 +225,21 @@ defmodule SleuthTest do
                  Signet.Contract.BlockNumber.bytecode(),
                  Signet.Contract.BlockNumber.encode_query_cool(),
                  Signet.Contract.BlockNumber.query_cool_selector()
+               )
+
+      assert {:ok,
+              [
+                %{
+                  "fun" => %{"cat" => {:string, "meow"}},
+                  "x" => {:string, "hi"},
+                  "ys" => [{{:uint, 256}, 1}, {{:uint, 256}, 2}, {{:uint, 256}, 3}]
+                }
+              ]} ==
+               Signet.Sleuth.query_annotated(
+                 Signet.Contract.BlockNumber.bytecode(),
+                 Signet.Contract.BlockNumber.encode_query_cool(),
+                 Signet.Contract.BlockNumber.query_cool_selector(),
+                 be_obvious: true
                )
     end
   end
