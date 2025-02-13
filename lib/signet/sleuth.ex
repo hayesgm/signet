@@ -80,6 +80,7 @@ defmodule Signet.Sleuth do
     |> then(fn
       processed_results when not be_obvious ->
         case processed_results do
+          [] -> []
           [{nil, result}] -> result
           [{"", result}] -> result
 
