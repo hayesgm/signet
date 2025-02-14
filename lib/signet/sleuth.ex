@@ -30,9 +30,41 @@ defmodule Signet.Sleuth do
   defp query_internal(bytecode, query, selector, annotated, opts)
        when is_binary(bytecode) and is_list(opts) do
     {sleuth_address, opts} = Keyword.pop(opts, :sleuth_address, @sleuth_address)
+    {decode_binaries, rpc_opts} = Keyword.pop(opts, :decode_binaries, true)
+
+    with {:ok, query_res_bytes} <-
+           Signet.Contract.Sleuth.call_query(sleuth_address, bytecode, query, rpc_opts),
+         {:ok, query_res} <- try_decode_bytes(query_res_bytes),
+         {:ok, res} <- try_decode(query_res, selector, false) do
+      {:ok,
+       postprocess(res, selector.returns,
+         annotated: annotated,
+         decode_binaries: decode_binaries,
+         be_obvious: false
+       )}
+    end
+  end
+
+  def query_v2(bytecode, query, selector, opts \\ []) do
+    opts =
+      Keyword.validate!(opts, [:sleuth_address, :decode_structs, :decode_binaries, :named_returns])
+
+    query_v2_internal(bytecode, query, selector, Keyword.put(opts, :annotated, false))
+  end
+
+  def query_v2_annotated(bytecode, query, selector, opts \\ []) do
+    opts =
+      Keyword.validate!(opts, [:sleuth_address, :decode_structs, :decode_binaries, :named_returns])
+
+    query_v2_internal(bytecode, query, selector, Keyword.put(opts, :annotated, true))
+  end
+
+  defp query_v2_internal(bytecode, query, selector, opts) do
+    {annotated, opts} = Keyword.pop(opts, :annotated, false)
+    {sleuth_address, opts} = Keyword.pop(opts, :sleuth_address, @sleuth_address)
     {decode_binaries, opts} = Keyword.pop(opts, :decode_binaries, true)
-    {decode_structs, opts} = Keyword.pop(opts, :decode_structs, false)
-    {be_obvious, rpc_opts} = Keyword.pop(opts, :be_obvious, decode_structs)
+    {decode_structs, opts} = Keyword.pop(opts, :decode_structs, true)
+    {named_returns, rpc_opts} = Keyword.pop(opts, :named_returns, false)
 
     with {:ok, query_res_bytes} <-
            Signet.Contract.Sleuth.call_query(sleuth_address, bytecode, query, rpc_opts),
@@ -42,7 +74,8 @@ defmodule Signet.Sleuth do
        postprocess(res, selector.returns,
          annotated: annotated,
          decode_binaries: decode_binaries,
-         be_obvious: be_obvious
+         named_returns: named_returns,
+         be_obvious: true
        )}
     end
   end
@@ -71,8 +104,26 @@ defmodule Signet.Sleuth do
     end
   end
 
+  # NOTE: decode_structs weirdly also does dynamic return types with named
+  # returns, which interacts poorly with our named_returns opt.
+  #
+  # so we have to take the unordered map, and re-order the values by
+  # referencing the ordering of the named_types.
+  #
+  defp postprocess(results, named_types, opts) when is_map(results) and is_list(named_types) do
+    results_values =
+      named_types
+      |> Enum.map(fn %{name: name} ->
+        {_, v} = Enum.find(results, fn {k, _} -> to_string(k) == Macro.underscore(name) end)
+        v
+      end)
+
+    postprocess(results_values, named_types, opts)
+  end
+
   defp postprocess(results, named_types, opts) when is_list(results) and is_list(named_types) do
     be_obvious = Keyword.get(opts, :be_obvious, false)
+    named_returns = Keyword.get(opts, :named_returns, false)
 
     results
     |> Enum.zip(named_types)
@@ -80,9 +131,14 @@ defmodule Signet.Sleuth do
     |> then(fn
       processed_results when not be_obvious ->
         case processed_results do
-          [] -> []
-          [{nil, result}] -> result
-          [{"", result}] -> result
+          [] ->
+            []
+
+          [{nil, result}] ->
+            result
+
+          [{"", result}] ->
+            result
 
           [_more | _than_one] = processed_results ->
             processed_results
@@ -101,7 +157,20 @@ defmodule Signet.Sleuth do
         end
 
       processed_results when be_obvious ->
-        Enum.map(processed_results, fn {_, v} -> v end)
+        if not named_returns do
+          Enum.map(processed_results, fn {_, v} -> v end)
+        else
+          Enum.map(processed_results, fn {name, v} ->
+            keyword =
+              if is_nil(name) or name == "" do
+                :__unnamed__
+              else
+                String.to_atom(Macro.underscore(name))
+              end
+
+            {keyword, v}
+          end)
+        end
     end)
   end
 
