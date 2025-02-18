@@ -1,3 +1,13 @@
+## 1.3.0
+
+- [`Signet.Sleuth.query_v2` with support for `:decode_structs` from
+    `abi.ex`](https://github.com/hayesgm/signet/pull/102)
+- [Fixes `eth_getBlockByNumber` being implemented incorrectly](https://github.com/hayesgm/signet/pull/101)
+
+## 1.2.9
+
+- Warn on invalid RPC requests
+
 ## 1.2.8
 
 - Add trace serializers
