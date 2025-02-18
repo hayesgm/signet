@@ -1,7 +1,9 @@
 defmodule SleuthTest do
   use ExUnit.Case
   use Signet.Hex
+
   alias Signet.Sleuth
+
   doctest Sleuth
 
   describe "BlockNumber" do
@@ -99,8 +101,8 @@ defmodule SleuthTest do
                  Signet.Contract.BlockNumber.query_two_selector()
                )
 
-      v2_annotated_case = fn opts ->
-        Signet.Sleuth.query_v2_annotated(
+      v2_case = fn opts ->
+        Signet.Sleuth.query_v2(
           Signet.Contract.BlockNumber.bytecode(),
           Signet.Contract.BlockNumber.encode_query_two(),
           Signet.Contract.BlockNumber.query_two_selector(),
@@ -108,10 +110,10 @@ defmodule SleuthTest do
         )
       end
 
-      assert {:ok, [{{:uint, 256}, 2}, {{:uint, 256}, 3}]} == v2_annotated_case.([])
+      assert {:ok, [{{:uint, 256}, 2}, {{:uint, 256}, 3}]} == v2_case.(annotated: true)
 
       assert {:ok, [x: {{:uint, 256}, 2}, y: {{:uint, 256}, 3}]} ==
-               v2_annotated_case.(named_returns: true)
+               v2_case.(annotated: true, named_returns: true)
     end
 
     test "queryThree()" do
@@ -144,10 +146,11 @@ defmodule SleuthTest do
                )
 
       assert {:ok, [{{:uint, 256}, 2}]} ==
-               Signet.Sleuth.query_v2_annotated(
+               Signet.Sleuth.query_v2(
                  Signet.Contract.BlockNumber.bytecode(),
                  Signet.Contract.BlockNumber.encode_query_three(),
-                 Signet.Contract.BlockNumber.query_three_selector()
+                 Signet.Contract.BlockNumber.query_three_selector(),
+                 annotated: true
                )
     end
 
@@ -277,8 +280,8 @@ defmodule SleuthTest do
                  Signet.Contract.BlockNumber.query_cool_selector()
                )
 
-      v2_annotated_case = fn opts ->
-        Signet.Sleuth.query_v2_annotated(
+      v2_case = fn opts ->
+        Signet.Sleuth.query_v2(
           Signet.Contract.BlockNumber.bytecode(),
           Signet.Contract.BlockNumber.encode_query_cool(),
           Signet.Contract.BlockNumber.query_cool_selector(),
@@ -293,7 +296,7 @@ defmodule SleuthTest do
                   x: {:string, "hi"},
                   ys: [{{:uint, 256}, 1}, {{:uint, 256}, 2}, {{:uint, 256}, 3}]
                 }
-              ]} == v2_annotated_case.([])
+              ]} == v2_case.(annotated: true)
 
       assert {:ok,
               [
@@ -302,7 +305,7 @@ defmodule SleuthTest do
                   "x" => {:string, "hi"},
                   "ys" => [{{:uint, 256}, 1}, {{:uint, 256}, 2}, {{:uint, 256}, 3}]
                 }
-              ]} == v2_annotated_case.(decode_structs: false)
+              ]} == v2_case.(annotated: true, decode_structs: false)
 
       assert {:ok,
               [
@@ -311,7 +314,7 @@ defmodule SleuthTest do
                   "x" => {:string, "hi"},
                   "ys" => [{{:uint, 256}, 1}, {{:uint, 256}, 2}, {{:uint, 256}, 3}]
                 }
-              ]} == v2_annotated_case.(decode_structs: false, named_returns: true)
+              ]} == v2_case.(annotated: true, decode_structs: false, named_returns: true)
     end
   end
 end
