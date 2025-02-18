@@ -46,20 +46,6 @@ defmodule Signet.Sleuth do
   end
 
   def query_v2(bytecode, query, selector, opts \\ []) do
-    opts =
-      Keyword.validate!(opts, [:sleuth_address, :decode_structs, :decode_binaries, :named_returns])
-
-    query_v2_internal(bytecode, query, selector, Keyword.put(opts, :annotated, false))
-  end
-
-  def query_v2_annotated(bytecode, query, selector, opts \\ []) do
-    opts =
-      Keyword.validate!(opts, [:sleuth_address, :decode_structs, :decode_binaries, :named_returns])
-
-    query_v2_internal(bytecode, query, selector, Keyword.put(opts, :annotated, true))
-  end
-
-  defp query_v2_internal(bytecode, query, selector, opts) do
     {annotated, opts} = Keyword.pop(opts, :annotated, false)
     {sleuth_address, opts} = Keyword.pop(opts, :sleuth_address, @sleuth_address)
     {decode_binaries, opts} = Keyword.pop(opts, :decode_binaries, true)
