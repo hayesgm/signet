@@ -905,7 +905,7 @@ defmodule Signet.Test.Client do
 
   def eth_getBlockByHash(_block_hash), do: eth_getBlockByNumber("0x55")
 
-  def eth_getBlockByNumber(_block_number) do
+  def eth_getBlockByNumber(_block_number, _ \\ false) do
     %{
       "difficulty" => "0x4ea3f27bc",
       "extraData" => "0x476574682f4c5649562f76312e302e302f6c696e75782f676f312e342e32",
