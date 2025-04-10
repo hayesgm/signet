@@ -155,8 +155,10 @@ defmodule Signet.RPC do
     id = Keyword.get_lazy(opts, :id, fn -> System.unique_integer([:positive]) end)
     body = get_body(method, params, id)
 
-    case http_client().post(url, Jason.encode!(body), headers(headers), recv_timeout: timeout) do
-      {:ok, %HTTPoison.Response{status_code: code, body: resp_body}} when code in 200..299 ->
+    request = Finch.build(:post, url, headers(headers), Jason.encode!(body))
+
+    case http_client().request(request, receive_timeout: timeout) do
+      {:ok, %Finch.Response{status: code, body: resp_body}} when code in 200..299 ->
         with {:ok, result} <- decode_response(resp_body, body["id"], errors, method, body) do
           case decode do
             nil ->
@@ -190,7 +192,7 @@ defmodule Signet.RPC do
           end
         end
 
-      {:error, %HTTPoison.Error{reason: reason}} ->
+      {:error, %Finch.Error{reason: reason}} ->
         {:error, "error: #{inspect(reason)}"}
     end
   end
