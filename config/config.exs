@@ -1,5 +1,5 @@
 import Config
 
-config :signet, :client, HTTPoison
+config :signet, :client, SignetFinch
 
 import_config "#{Mix.env()}.exs"

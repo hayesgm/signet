@@ -15,22 +15,21 @@ defmodule Signet.Test.Client do
 
     {method, params, id}
   end
-
-  def post(_url, body, _headers, _opts) do
+  def request(%Finch.Request{body: body}, _opts) do
     {method, params, id} = parse_request(Jason.decode!(body))
 
     case apply(__MODULE__, String.to_atom(method), params) do
       {:error, error} ->
         return_body = Jason.encode!(%{"jsonrpc" => "2.0", "error" => error, "id" => id})
-        {:ok, %HTTPoison.Response{status_code: 200, body: return_body}}
+        {:ok, %Finch.Response{status: 200, body: return_body}}
 
       {:ok, result} ->
         return_body = Jason.encode!(%{"jsonrpc" => "2.0", "result" => result, "id" => id})
-        {:ok, %HTTPoison.Response{status_code: 200, body: return_body}}
+        {:ok, %Finch.Response{status: 200, body: return_body}}
 
       result ->
         return_body = Jason.encode!(%{"jsonrpc" => "2.0", "result" => result, "id" => id})
-        {:ok, %HTTPoison.Response{status_code: 200, body: return_body}}
+        {:ok, %Finch.Response{status: 200, body: return_body}}
     end
   end
 

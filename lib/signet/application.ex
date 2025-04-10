@@ -10,13 +10,13 @@ defmodule Signet.Application do
   def ethereum_node(),
     do: Application.get_env(:signet, :ethereum_node, "https://mainnet.infura.io")
 
-  def http_client(), do: Application.get_env(:signet, :client, HTTPoison)
+  def http_client(), do: Application.get_env(:signet, :client, Finch)
 
   @impl true
   def start(_type, _args) do
     signers = Application.get_env(:signet, :signer, [])
 
-    children = Enum.map(signers, &get_signer_spec/1)
+    children = Enum.map(signers, &get_signer_spec/1) ++ [{Finch, name: SignetFinch}]
 
     opts = [strategy: :one_for_one, name: Signet.Supervisor]
     Supervisor.start_link(children, opts)

@@ -60,7 +60,7 @@ defmodule Signet.OpenChain do
   end
 
   defmodule API do
-    def http_client(), do: Application.get_env(:signet, :open_chain_client, HTTPoison)
+    def http_client(), do: Application.get_env(:signet, :open_chain_client, SignetFinch)
 
     @base_url Application.compile_env(:signet, :open_chain_base_url, "https://api.openchain.xyz")
 
@@ -69,8 +69,10 @@ defmodule Signet.OpenChain do
       headers = Keyword.get(opts, :headers, [])
       timeout = Keyword.get(opts, :timeout, 30_000)
 
-      case http_client().get(url, headers, recv_timeout: timeout) do
-        {:ok, %HTTPoison.Response{status_code: code, body: resp_body}} when code in 200..299 ->
+      request = Finch.build(:get, url, headers)
+
+      case http_client().request(request,receive_timeout: timeout) do
+        {:ok, %Finch.Response{status: code, body: resp_body}} when code in 200..299 ->
           case Jason.decode(resp_body) do
             {:ok, resp} ->
               case resp do
@@ -85,7 +87,7 @@ defmodule Signet.OpenChain do
               {:error, Jason.DecodeError.message(json_error)}
           end
 
-        {:error, %HTTPoison.Error{reason: reason}} ->
+        {:error, %Finch.Error{reason: reason}} ->
           {:error, "error: #{inspect(reason)}"}
       end
     end
