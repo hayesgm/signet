@@ -16,7 +16,15 @@ defmodule Signet.Application do
   def start(_type, _args) do
     signers = Application.get_env(:signet, :signer, [])
 
-    children = Enum.map(signers, &get_signer_spec/1) ++ [{Finch, name: SignetFinch}]
+    finch_name = Application.get_env(:signet, :finch_name, SignetFinch)
+    # start a finch process by default
+    finch_child = if Application.get_env(:signet, :start_finch, true) do
+      [{Finch, name: finch_name}]
+    else
+      []
+    end
+
+    children = Enum.map(signers, &get_signer_spec/1) ++ finch_child
 
     opts = [strategy: :one_for_one, name: Signet.Supervisor]
     Supervisor.start_link(children, opts)
