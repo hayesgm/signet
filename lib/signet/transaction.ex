@@ -226,7 +226,7 @@ defmodule Signet.Transaction do
             destination: <<_::160>>,
             amount: integer(),
             data: binary(),
-            access_list: [<<_::160>>],
+            access_list: [{<<_::160>>, [<<_::256>>]}],
             signature_y_parity: boolean(),
             signature_r: <<_::256>>,
             signature_s: <<_::256>>
@@ -252,7 +252,7 @@ defmodule Signet.Transaction do
 
     ## Examples
 
-        iex> Signet.Transaction.V2.new(1, {1, :gwei}, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>, [<<2::160>>, <<3::160>>], :goerli)
+        iex> Signet.Transaction.V2.new(1, {1, :gwei}, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>, [{<<2::160>>, [<<22::256>>]}, {<<3::160>>, []}], :goerli)
         %Signet.Transaction.V2{
           chain_id: 5,
           nonce: 1,
@@ -262,13 +262,13 @@ defmodule Signet.Transaction do
           destination: <<1::160>>,
           amount: 2,
           data: <<1, 2, 3>>,
-          access_list: [<<2::160>>, <<3::160>>],
+          access_list: [{<<2::160>>, [<<22::256>>]}, {<<3::160>>, []}],
           signature_y_parity: nil,
           signature_r: nil,
           signature_s: nil
         }
 
-        iex> Signet.Transaction.V2.new(1, {1, :gwei}, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>, [<<2::160>>, <<3::160>>], true, <<0x01::256>>, <<0x02::256>>, :goerli)
+        iex> Signet.Transaction.V2.new(1, {1, :gwei}, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>, [{<<2::160>>, [<<22::256>>]}, {<<3::160>>, []}], true, <<0x01::256>>, <<0x02::256>>, :goerli)
         %Signet.Transaction.V2{
           chain_id: 5,
           nonce: 1,
@@ -278,7 +278,7 @@ defmodule Signet.Transaction do
           destination: <<1::160>>,
           amount: 2,
           data: <<1, 2, 3>>,
-          access_list: [<<2::160>>, <<3::160>>],
+          access_list: [{<<2::160>>, [<<22::256>>]}, {<<3::160>>, []}],
           signature_y_parity: true,
           signature_r: <<0x01::256>>,
           signature_s: <<0x02::256>>
@@ -357,15 +357,20 @@ defmodule Signet.Transaction do
 
     ## Examples
 
-        iex> Signet.Transaction.V2.new(1, {1, :gwei}, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>, [<<2::160>>, <<3::160>>], :goerli)
+        iex> Signet.Transaction.V2.new(1, {1, :gwei}, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>, [], :goerli)
         ...> |> Signet.Transaction.V2.encode()
-        ...> |> Signet.Hex.to_hex()
-        "0x02f8560501843b9aca0085174876e800830186a09400000000000000000000000000000000000000010283010203ea940000000000000000000000000000000000000002940000000000000000000000000000000000000003"
+        ...> |> Signet.Hex.encode_big_hex()
+        "0x02EC0501843B9ACA0085174876E800830186A09400000000000000000000000000000000000000010283010203C0"
 
-        iex> Signet.Transaction.V2.new(1, {1, :gwei}, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>, [<<2::160>>, <<3::160>>], true, <<0x01::256>>, <<0x02::256>>, :goerli)
+        iex> Signet.Transaction.V2.new(1, {1, :gwei}, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>, [], true, <<0x01::256>>, <<0x02::256>>, :goerli)
         ...> |> Signet.Transaction.V2.encode()
-        ...> |> Signet.Hex.to_hex()
-        "0x02f8990501843b9aca0085174876e800830186a09400000000000000000000000000000000000000010283010203ea94000000000000000000000000000000000000000294000000000000000000000000000000000000000301a00000000000000000000000000000000000000000000000000000000000000001a00000000000000000000000000000000000000000000000000000000000000002"
+        ...> |> Signet.Hex.encode_big_hex()
+        "0x02EF0501843B9ACA0085174876E800830186A09400000000000000000000000000000000000000010283010203C0010102"
+
+        iex> Signet.Transaction.V2.new(1, {1, :gwei}, {100, :gwei}, 100_000, <<1::160>>, {2, :wei}, <<1, 2, 3>>, [{<<2::160>>, [<<22::256>>]}, {<<3::160>>, []}], true, <<0x01::256>>, <<0x00, 0x02::248>>, :goerli)
+        ...> |> Signet.Transaction.V2.encode()
+        ...> |> Signet.Hex.encode_big_hex()
+        "0x02F87F0501843B9ACA0085174876E800830186A09400000000000000000000000000000000000000010283010203F84FF7940000000000000000000000000000000000000002E1A00000000000000000000000000000000000000000000000000000000000000016D6940000000000000000000000000000000000000003C0010102"
     """
     def encode(%__MODULE__{
           chain_id: chain_id,
@@ -417,13 +422,15 @@ defmodule Signet.Transaction do
           max_priority_fee_per_gas,
           max_fee_per_gas,
           gas_limit,
-          destination,
+          String.trim_leading(destination),
           amount,
           data,
-          access_list,
+          Enum.map(access_list, fn {address, storage} ->
+            [address, storage]
+          end),
           if(signature_y_parity, do: 1, else: 0),
-          signature_r,
-          signature_s
+          String.trim_leading(signature_r, <<0>>),
+          String.trim_leading(signature_s, <<0>>)
         ])
     end
 
@@ -434,7 +441,7 @@ defmodule Signet.Transaction do
     ## Examples
 
         iex> use Signet.Hex
-        iex> Signet.Transaction.V2.decode(~h[0x02F8990501843B9ACA0085174876E800830186A09400000000000000000000000000000000000000010283010203EA94000000000000000000000000000000000000000294000000000000000000000000000000000000000301A00000000000000000000000000000000000000000000000000000000000000001A00000000000000000000000000000000000000000000000000000000000000002])
+        iex> Signet.Transaction.V2.decode(~h[0x02EF0501843B9ACA0085174876E800830186A09400000000000000000000000000000000000000010283010203C0010102])
         {:ok, %Signet.Transaction.V2{
           chain_id: 5,
           nonce: 1,
@@ -444,10 +451,27 @@ defmodule Signet.Transaction do
           destination: <<1::160>>,
           amount: 2,
           data: <<1, 2, 3>>,
-          access_list: [<<2::160>>, <<3::160>>],
+          access_list: [],
           signature_y_parity: true,
-          signature_r: 0x01,
-          signature_s: 0x02
+          signature_r: <<0x01::256>>,
+          signature_s: <<0x02::256>>
+        }}
+
+        iex> use Signet.Hex
+        iex> Signet.Transaction.V2.decode(~h[0x02F87F0501843B9ACA0085174876E800830186A09400000000000000000000000000000000000000010283010203F84FF7940000000000000000000000000000000000000002E1A00000000000000000000000000000000000000000000000000000000000000016D6940000000000000000000000000000000000000003C0010102])
+        {:ok, %Signet.Transaction.V2{
+          chain_id: 5,
+          nonce: 1,
+          max_priority_fee_per_gas: 1000000000,
+          max_fee_per_gas: 100000000000,
+          gas_limit: 100000,
+          destination: <<1::160>>,
+          amount: 2,
+          data: <<1, 2, 3>>,
+          access_list: [{<<2::160>>, [<<22::256>>]}, {<<3::160>>, []}],
+          signature_y_parity: true,
+          signature_r: <<0x01::256>>,
+          signature_s: <<0x02::256>>
         }}
     """
     def decode(<<0x02, trx_enc::binary>>) do
@@ -476,10 +500,12 @@ defmodule Signet.Transaction do
              destination: destination,
              amount: :binary.decode_unsigned(amount),
              data: data,
-             access_list: access_list,
+             access_list: Enum.map(access_list, fn [address, storage] ->
+              {address, storage}
+             end),
              signature_y_parity: :binary.decode_unsigned(signature_y_parity) == 1,
-             signature_r: :binary.decode_unsigned(signature_r),
-             signature_s: :binary.decode_unsigned(signature_s)
+             signature_r: Signet.Util.pad(signature_r, 32),
+             signature_s: Signet.Util.pad(signature_s, 32)
            }}
 
         _ ->
