@@ -25,7 +25,15 @@ defmodule Signet.OpenChainTest do
     }
     """
 
-    def request(%Finch.Request{method: "GET", host: "example.com", path: "/open-chain/signature-database/v1/lookup"}, _finch_name, _opts) do
+    def request(
+          %Finch.Request{
+            method: "GET",
+            host: "example.com",
+            path: "/open-chain/signature-database/v1/lookup"
+          },
+          _finch_name,
+          _opts
+        ) do
       {:ok, %Finch.Response{status: 200, body: @lookup_success}}
     end
   end

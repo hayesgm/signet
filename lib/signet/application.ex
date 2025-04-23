@@ -18,11 +18,12 @@ defmodule Signet.Application do
 
     finch_name = Application.get_env(:signet, :finch_name, SignetFinch)
     # start a finch process by default
-    finch_child = if Application.get_env(:signet, :start_finch, true) do
-      [{Finch, name: finch_name}]
-    else
-      []
-    end
+    finch_child =
+      if Application.get_env(:signet, :start_finch, true) do
+        [{Finch, name: finch_name}]
+      else
+        []
+      end
 
     children = Enum.map(signers, &get_signer_spec/1) ++ finch_child
 
