@@ -536,9 +536,10 @@ defmodule Signet.Transaction do
              destination: Signet.Util.pad(destination, 20),
              amount: :binary.decode_unsigned(amount),
              data: data,
-             access_list: Enum.map(access_list, fn [address, storage] ->
-              {Signet.Util.pad(address, 20), Enum.map(storage, & Signet.Util.pad(&1, 32))}
-             end),
+             access_list:
+               Enum.map(access_list, fn [address, storage] ->
+                 {Signet.Util.pad(address, 20), Enum.map(storage, &Signet.Util.pad(&1, 32))}
+               end),
              signature_y_parity: :binary.decode_unsigned(signature_y_parity) == 1,
              signature_r: Signet.Util.pad(signature_r, 32),
              signature_s: Signet.Util.pad(signature_s, 32)

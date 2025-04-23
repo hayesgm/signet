@@ -272,7 +272,10 @@ defmodule Signet.Util do
     mumbai: 80001,
     sepolia: 11_155_111,
     optimism: 10,
-    optimism_sepolia: 11_155_420
+    optimism_sepolia: 11_155_420,
+    world_chain: 480,
+    world_chain_sepolia: 4801,
+    unichain: 130
   }
 
   @doc ~S"""
@@ -283,11 +286,8 @@ defmodule Signet.Util do
       iex> Signet.Util.parse_chain_id(5)
       5
 
-      iex> Signet.Util.parse_chain_id(:goerli)
-      5
-
-      iex> Signet.Util.parse_chain_id(:sepolia)
-      11155111
+      iex> Signet.Util.parse_chain_id(:unichain)
+      130
   """
   def parse_chain_id(chain_id) when is_atom(chain_id), do: Map.fetch!(@chains, chain_id)
   def parse_chain_id(chain_id) when is_integer(chain_id), do: chain_id
