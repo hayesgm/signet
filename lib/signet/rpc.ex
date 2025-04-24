@@ -159,44 +159,40 @@ defmodule Signet.RPC do
     body = get_body(method, params, id)
 
     request = Finch.build(:post, url, headers(headers), Jason.encode!(body))
+    response = http_client().request(request, @finch_name, receive_timeout: timeout)
 
-    case http_client().request(request, @finch_name, receive_timeout: timeout) do
-      {:ok, %Finch.Response{status: code, body: resp_body}} when code in 200..299 ->
-        with {:ok, result} <- decode_response(resp_body, body["id"], errors, method, body) do
-          case decode do
-            nil ->
-              {:ok, result}
+    with {:ok, %Finch.Response{status: code, body: resp_body}} when code in 200..299 <- response,
+         {:ok, result} <- decode_response(resp_body, body["id"], errors, method, body) do
+      case decode do
+        nil ->
+          {:ok, result}
 
-            :hex ->
-              Hex.decode_hex(result)
+        :hex ->
+          Hex.decode_hex(result)
 
-            :hex_unsigned ->
-              with {:ok, bin} <- Hex.decode_hex(result) do
-                {:ok, :binary.decode_unsigned(bin)}
-              end
+        :hex_unsigned ->
+          with {:ok, bin} <- Hex.decode_hex(result) do
+            {:ok, :binary.decode_unsigned(bin)}
+          end
 
-            f when is_function(f) ->
-              try do
-                {:ok, f.(result)}
-              rescue
-                e ->
-                  if verbose do
-                    Logger.error(
-                      "[Signet][RPC][#{method}] Error decoding response. error=#{inspect(e)}, response=#{inspect(result)}"
-                    )
+        f when is_function(f) ->
+          try do
+            {:ok, f.(result)}
+          rescue
+            e ->
+              if verbose do
+                Logger.error(
+                  "[Signet][RPC][#{method}] Error decoding response. error=#{inspect(e)}, response=#{inspect(result)}"
+                )
 
-                    {:error, "failed to decode `#{method}` response: #{inspect(e)}"}
-                  else
-                    Logger.info("[Signet][RPC][#{method}] Error decoding response: #{inspect(e)}")
+                {:error, "failed to decode `#{method}` response: #{inspect(e)}"}
+              else
+                Logger.info("[Signet][RPC][#{method}] Error decoding response: #{inspect(e)}")
 
-                    {:error, "failed to decode `#{method}` response: #{inspect(e)}"}
-                  end
+                {:error, "failed to decode `#{method}` response: #{inspect(e)}"}
               end
           end
-        end
-
-      {:error, %Finch.Error{reason: reason}} ->
-        {:error, "error: #{inspect(reason)}"}
+      end
     end
   end
 
