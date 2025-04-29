@@ -23,7 +23,8 @@ defmodule Signet.Filter do
       :removed,
       :topics,
       :transaction_hash,
-      :transaction_index
+      :transaction_index,
+      :extra_data
     ]
 
     def deserialize(%{
@@ -57,6 +58,7 @@ defmodule Signet.Filter do
     topics = Keyword.get(opts, :topics, [])
     events = Keyword.get(opts, :events, [])
     rpc_opts = Keyword.get(opts, :rpc_opts, [])
+    extra_data = Keyword.get(opts, :extra_data, nil)
     check_delay = Keyword.get(opts, :check_delay, @check_delay)
 
     decoders =
@@ -92,7 +94,8 @@ defmodule Signet.Filter do
         listeners: [],
         decoders: decoders,
         check_delay: check_delay,
-        rpc_opts: rpc_opts
+        rpc_opts: rpc_opts,
+        extra_data: extra_data
       },
       name: name
     )
@@ -153,7 +156,8 @@ defmodule Signet.Filter do
           decoders: decoders,
           name: name,
           check_delay: check_delay,
-          rpc_opts: rpc_opts
+          rpc_opts: rpc_opts,
+          extra_data: extra_data
         }
       ) do
     Process.send_after(self(), :check_filter, check_delay)
@@ -164,6 +168,7 @@ defmodule Signet.Filter do
           {logs, events} =
             raw_logs
             |> Enum.map(&Log.deserialize/1)
+            |> Enum.map(fn log -> %{ log | extra_data: extra_data} end)
             |> parse_events(decoders)
 
           for listener <- listeners, {event, log} <- events do
