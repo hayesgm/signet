@@ -5,12 +5,15 @@ defmodule Signet.FilterTest do
   use Signet.Hex
 
   test "add a filter and get events" do
+    extra_data = %{some_key: "some value"}
+
     {:ok, _filter_pid} =
       Signet.Filter.start_link(
         name: MyFilter,
         address: <<1::160>>,
         events: ["Transfer(address indexed from, address indexed to, uint amount)"],
-        check_delay: 300
+        check_delay: 300,
+        extra_data: extra_data
       )
 
     Signet.Filter.listen(MyFilter)
@@ -33,6 +36,7 @@ defmodule Signet.FilterTest do
         "transactionHash" => "0xa74c2432c9cf7dbb875a385a2411fd8f13ca9ec12216864b1a1ead3c99de99cd",
         "transactionIndex" => "0x3"
       })
+      |> Map.put(:extra_data, extra_data)
 
     assert_received {:event,
                      {"Transfer",
