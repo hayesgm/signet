@@ -168,7 +168,7 @@ defmodule Signet.Filter do
           {logs, events} =
             raw_logs
             |> Enum.map(&Log.deserialize/1)
-            |> Enum.map(fn log -> %{ log | extra_data: extra_data} end)
+            |> Enum.map(fn log -> %{log | extra_data: extra_data} end)
             |> parse_events(decoders)
 
           for listener <- listeners, {event, log} <- events do
