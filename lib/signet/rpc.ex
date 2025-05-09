@@ -302,6 +302,7 @@ defmodule Signet.RPC do
     errors = Keyword.get(opts, :errors, [])
     trace_reverts = Keyword.get(opts, :trace_reverts, false)
     debug_trace = Keyword.get(opts, :debug_trace, false)
+    trace_opts = Keyword.get(opts, :trace_opts, [])
 
     trx_res =
       send_rpc(
@@ -313,7 +314,7 @@ defmodule Signet.RPC do
       )
 
     if trace_reverts do
-      show_trace_revert(trx, trx_res, debug_trace, opts)
+      show_trace_revert(trx, trx_res, debug_trace, Keyword.merge(opts, trace_opts))
     else
       trx_res
     end
@@ -1356,6 +1357,7 @@ defmodule Signet.RPC do
     {signer, opts} = Keyword.pop(opts, :signer, Signet.Signer.Default)
     {trace_reverts, opts} = Keyword.pop(opts, :trace_reverts, false)
     {debug_trace, opts} = Keyword.pop(opts, :debug_trace, false)
+    {trace_opts, opts} = Keyword.pop(opts, :trace_opts, [])
 
     signer_address = Signet.Signer.address(signer)
     chain_id = Keyword.get_lazy(opts, :chain_id, fn -> Signet.Signer.chain_id(signer) end)
@@ -1400,7 +1402,7 @@ defmodule Signet.RPC do
       else
         trx_res ->
           if trace_reverts do
-            show_trace_revert(trx, trx_res, debug_trace, opts)
+            show_trace_revert(trx, trx_res, debug_trace, Keyword.merge(opts, trace_opts))
           else
             trx_res
           end
