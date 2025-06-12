@@ -275,7 +275,15 @@ defmodule Signet.Util do
     optimism_sepolia: 11_155_420,
     world_chain: 480,
     world_chain_sepolia: 4801,
-    unichain: 130
+    unichain: 130,
+    avalanche: 43_114,
+    bnb_smart_chain: 56,
+    hyperevm: 999,
+    lens: 232,
+    polygon: 137,
+    sonic: 146,
+    ink: 57073,
+    plume: 98866
   }
 
   @doc ~S"""
