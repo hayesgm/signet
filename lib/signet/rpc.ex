@@ -89,24 +89,33 @@ defmodule Signet.RPC do
          "jsonrpc" => "2.0",
          "error" => %{
            "code" => code = 3,
-           "data" => data_hex,
+           "data" => error_data,
            "message" => message
          },
          "id" => ^id
        }} ->
         extra_revert_data =
-          case Hex.decode_hex(data_hex) do
-            {:ok, data} ->
-              case decode_error(data, errors) do
-                {:ok, error_abi, error_params} when not is_nil(error_params) ->
-                  %{error_abi: error_abi, error_params: error_params}
+          cond do
+            is_binary(error_data) ->
+              case Hex.decode_hex(error_data) do
+                {:ok, data} ->
+                  case decode_error(data, errors) do
+                    {:ok, error_abi, error_params} when not is_nil(error_params) ->
+                      %{error_abi: error_abi, error_params: error_params}
+
+                    _ ->
+                      %{}
+                  end
+                  |> Enum.into(%{revert: data})
 
                 _ ->
                   %{}
               end
-              |> Enum.into(%{revert: data})
 
-            _ ->
+            is_map(error_data) ->
+              error_data
+
+            true ->
               %{}
           end
 
