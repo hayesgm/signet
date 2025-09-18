@@ -801,6 +801,39 @@ defmodule Signet.Test.Client do
      }}
   end
 
+  # Call that fails with map error_data (new functionality)
+  def eth_call(_trx = %{"to" => "0x000000000000000000000000000000000000000E"}, _block) do
+    {:error,
+     %{
+       "code" => 3,
+       "data" => %{
+         "custom_field" => "custom_value",
+         "nested" => %{"key" => "value"}
+       },
+       "message" => "execution reverted"
+     }}
+  end
+
+  # Call that fails with invalid hex error_data
+  def eth_call(_trx = %{"to" => "0x000000000000000000000000000000000000000F"}, _block) do
+    {:error,
+     %{
+       "code" => 3,
+       "data" => "invalid_hex_data",
+       "message" => "execution reverted"
+     }}
+  end
+
+  # Call that fails with numeric error_data
+  def eth_call(_trx = %{"to" => "0x0000000000000000000000000000000000000010"}, _block) do
+    {:error,
+     %{
+       "code" => 3,
+       "data" => 12345,
+       "message" => "execution reverted"
+     }}
+  end
+
   # Sleuth call
   # Sleuth call - Facts Query
   def eth_call(
