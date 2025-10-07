@@ -189,7 +189,7 @@ defmodule Signet.Filter do
           set_filter(state)
 
         {:error, error} ->
-          Logger.error("[Filter #{name}] Error getting filter changes: #{error}")
+          Logger.error("[Filter #{name}] Error getting filter changes: #{inspect(error)}")
 
           state
       end
