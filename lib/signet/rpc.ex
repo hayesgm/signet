@@ -11,6 +11,7 @@ defmodule Signet.RPC do
   defp ethereum_node(), do: Signet.Application.ethereum_node()
   defp http_client(), do: Signet.Application.http_client()
   @finch_name Application.compile_env(:signet, :finch_name, SignetFinch)
+  @default_timeout Application.compile_env(:signet, :timeout, 30_000)
 
   @default_gas_price nil
   @default_base_fee nil
@@ -152,7 +153,7 @@ defmodule Signet.RPC do
     headers = Keyword.get(opts, :headers, [])
     decode = Keyword.get(opts, :decode, nil)
     errors = Keyword.get(opts, :errors, nil)
-    timeout = Keyword.get(opts, :timeout, 30_000)
+    timeout = Keyword.get(opts, :timeout, @default_timeout)
     verbose = Keyword.get(opts, :verbose, false)
     url = Keyword.get(opts, :ethereum_node, ethereum_node())
     id = Keyword.get_lazy(opts, :id, fn -> System.unique_integer([:positive]) end)
