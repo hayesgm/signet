@@ -181,7 +181,7 @@ defmodule Signet.Filter do
 
           state
 
-        {:error, "error -32000: filter not found"} ->
+        {:error, %{code: -32000}} ->
           Logger.error(
             "[Filter #{name}] Filter expired, restarting... Note: some logs may have been lost."
           )
