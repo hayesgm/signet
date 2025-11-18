@@ -24,3 +24,6 @@ signet-*.tar
 
 # Temporary files, for example, from tests.
 /tmp/
+
+# official elixir lsp temporary directories
+.expert
