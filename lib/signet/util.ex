@@ -470,4 +470,26 @@ defmodule Signet.Util do
   @doc false
   def nil_map(nil, _), do: nil
   def nil_map(x, fun), do: fun.(x)
+
+  @doc """
+  Normalizes the result of a `Finch` request.
+
+  Any non-2xx status codes are wrapped in {:error, _}.
+  Other Finch errors abstract away the details of Finch.
+  """
+  def normalize_finch_result(finch_result) do
+    case finch_result do
+      {:ok, %Finch.Response{status: code} = resp} when code >= 200 and code < 300 ->
+        {:ok, resp}
+
+      {:ok, %Finch.Response{status: _}} = resp ->
+        {:error, resp}
+
+      {:error, %Finch.Error{reason: reason}} ->
+        {:error, "[Signet] HTTP client error: #{inspect(reason)}"}
+
+      {:error, _ = error} ->
+        {:error, "[Signet] Unknown error: #{inspect(error)}"}
+    end
+  end
 end
