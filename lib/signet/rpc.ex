@@ -6,11 +6,11 @@ defmodule Signet.RPC do
 
   require Logger
 
-  import Signet.Util, only: [to_wei: 1]
+  import Signet.Util, only: [to_wei: 1, normalize_finch_result: 1]
 
   defp ethereum_node(), do: Signet.Application.ethereum_node()
   defp http_client(), do: Signet.Application.http_client()
-  @finch_name Application.compile_env(:signet, :finch_name, SignetFinch)
+  defp finch_name(), do: Application.get_env(:signet, :finch_name, SignetFinch)
   @default_timeout Application.compile_env(:signet, :timeout, 30_000)
 
   @default_gas_price nil
@@ -160,9 +160,14 @@ defmodule Signet.RPC do
     body = get_body(method, params, id)
 
     request = Finch.build(:post, url, headers(headers), Jason.encode!(body))
-    response = http_client().request(request, @finch_name, receive_timeout: timeout)
 
-    with {:ok, %Finch.Response{status: code, body: resp_body}} when code in 200..299 <- response,
+    finch_result =
+      normalize_finch_result(
+        # NOTE: `receive_timeout` is a best-effort maybe-sort-of timeout.
+        http_client().request(request, finch_name(), receive_timeout: timeout)
+      )
+
+    with {:ok, %Finch.Response{body: resp_body}} <- finch_result,
          {:ok, result} <- decode_response(resp_body, body["id"], errors, method, body) do
       case decode do
         nil ->

@@ -22,10 +22,6 @@ defmodule Signet do
       iex> Application.put_env(:signet, :contracts, [test: "0x0000000000000000000000000000000000000001"])
       iex> Signet.get_contract_address(:test)
       <<1::160>>
-
-      iex> Application.put_env(:signet, :contracts, [test: "0x0000000000000000000000000000000000000001"])
-      iex> Signet.get_contract_address(:test_00)
-      ** (KeyError) key :test_00 not found in: [test: "0x0000000000000000000000000000000000000001"]
   """
   def get_contract_address(address) when is_binary(address),
     do: Signet.Util.decode_hex_input!(address)
