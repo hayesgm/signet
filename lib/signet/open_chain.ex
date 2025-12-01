@@ -61,7 +61,10 @@ defmodule Signet.OpenChain do
 
   defmodule API do
     def http_client(), do: Application.get_env(:signet, :open_chain_client, Finch)
-    defp base_url(), do: Application.get_env(:signet, :open_chain_base_url, "https://api.openchain.xyz")
+
+    defp base_url(),
+      do: Application.get_env(:signet, :open_chain_base_url, "https://api.4byte.sourcify.dev")
+
     defp finch_name(), do: Application.get_env(:signet, :finch_name, SignetFinch)
 
     import Signet.Util, only: [normalize_finch_result: 1]
@@ -73,9 +76,10 @@ defmodule Signet.OpenChain do
 
       request = Finch.build(:get, url, headers)
 
-      finch_result = normalize_finch_result(
-        http_client().request(request, finch_name(), receive_timeout: timeout)
-      )
+      finch_result =
+        normalize_finch_result(
+          http_client().request(request, finch_name(), receive_timeout: timeout)
+        )
 
       case finch_result do
         {:ok, %Finch.Response{status: _, body: resp_body}} ->
@@ -116,19 +120,46 @@ defmodule Signet.OpenChain do
     def lookup(event_signatures, function_signatures, opts \\ []) do
       {filter, opts} = Keyword.pop(opts, :filter, true)
 
-      events =
-        event_signatures
-        |> Enum.map(&Signet.Hex.to_hex/1)
-        |> Enum.join(",")
+      query =
+        if filter do
+          [filter: filter]
+        else
+          []
+        end
 
-      functions =
-        function_signatures
-        |> Enum.map(&Signet.Hex.to_hex/1)
-        |> Enum.join(",")
+      query =
+        case event_signatures do
+          [] ->
+            query
+
+          _ ->
+            Keyword.put(
+              query,
+              :event,
+              event_signatures
+              |> Enum.map(&Signet.Hex.to_hex/1)
+              |> Enum.join(",")
+            )
+        end
+
+      query =
+        case function_signatures do
+          [] ->
+            query
+
+          _ ->
+            Keyword.put(
+              query,
+              :function,
+              function_signatures
+              |> Enum.map(&Signet.Hex.to_hex/1)
+              |> Enum.join(",")
+            )
+        end
 
       with {:ok, resp} <-
              get(
-               "#{base_url()}/signature-database/v1/lookup?#{URI.encode_query(event: events, function: functions, filter: filter)}",
+               "#{base_url()}/signature-database/v1/lookup?#{URI.encode_query(query)}",
                opts
              ) do
         {:ok, Signatures.deserialize(resp)}
