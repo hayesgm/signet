@@ -482,7 +482,7 @@ defmodule Signet.Util do
       {:ok, %Finch.Response{status: code} = resp} when code >= 200 and code < 300 ->
         {:ok, resp}
 
-      {:ok, %Finch.Response{status: _}} = resp ->
+      {:ok, %Finch.Response{status: _} = resp} ->
         {:error, resp}
 
       {:error, %Finch.Error{reason: reason}} ->
