@@ -278,7 +278,7 @@ defmodule Signet.Util do
     unichain: 130,
     avalanche: 43_114,
     bnb_smart_chain: 56,
-    hyperevm: 999,
+    hyper_evm: 999,
     lens: 232,
     polygon: 137,
     sonic: 146,
