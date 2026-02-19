@@ -14,7 +14,8 @@ defmodule Signet.Application do
 
   @impl true
   def start(_type, _args) do
-    signers = Application.get_env(:signet, :signer, [])
+    eth_signers = Application.get_env(:signet, :signer, [])
+    sol_signers = Application.get_env(:signet, :solana_signer, [])
 
     finch_name = Application.get_env(:signet, :finch_name, SignetFinch)
     # start a finch process by default
@@ -25,20 +26,22 @@ defmodule Signet.Application do
         []
       end
 
-    children = Enum.map(signers, &get_signer_spec/1) ++ finch_child
+    children =
+      Enum.map(eth_signers, &get_signer_spec/1) ++
+        Enum.map(sol_signers, &get_solana_signer_spec/1) ++
+        finch_child
 
     opts = [strategy: :one_for_one, name: Signet.Supervisor]
     Supervisor.start_link(children, opts)
   end
 
+  # --- Ethereum signers ---
+
   def get_signer_spec({name, signer_type}) do
     name =
       case name do
-        :default ->
-          Signet.Signer.Default
-
-        els ->
-          els
+        :default -> Signet.Signer.Default
+        els -> els
       end
 
     Supervisor.child_spec(
@@ -59,5 +62,48 @@ defmodule Signet.Application do
 
     {Signet.Signer.CloudKMS, :sign,
      [kms_credentials, project, location, key_ring, key_id, version]}
+  end
+
+  # --- Solana signers ---
+
+  defp get_solana_signer_spec({name, signer_type}) do
+    name =
+      case name do
+        :default -> Signet.Solana.Signer.Default
+        els -> els
+      end
+
+    Supervisor.child_spec(
+      {Signet.Solana.Signer, mfa: solana_signer_mfa(signer_type), name: name},
+      id: name
+    )
+  end
+
+  defp solana_signer_mfa({:ed25519, seed}) do
+    {Signet.Solana.Signer.Ed25519, :sign, [decode_solana_key!(seed)]}
+  end
+
+  defp solana_signer_mfa({:cloud_kms, kms_credentials, key_path, version}) do
+    ["projects", project, "locations", location, "keyRings", key_ring, "cryptoKeys", key_id] =
+      String.split(key_path, "/")
+
+    {Signet.Solana.Signer.CloudKMS, :sign,
+     [kms_credentials, project, location, key_ring, key_id, version]}
+  end
+
+  # Solana keys can be raw 32-byte binaries, hex-encoded, or Base58-encoded
+  defp decode_solana_key!(key) when byte_size(key) == 32, do: key
+
+  defp decode_solana_key!(key) when is_binary(key) do
+    case Base.decode16(key, case: :mixed) do
+      {:ok, <<decoded::binary-32>>} ->
+        decoded
+
+      _ ->
+        case Signet.Base58.decode(key) do
+          {:ok, <<decoded::binary-32>>} -> decoded
+          _ -> Signet.Util.decode_hex_input!(key)
+        end
+    end
   end
 end

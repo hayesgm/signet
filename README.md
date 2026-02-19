@@ -5,7 +5,7 @@
 <img src="https://github.com/hayesgm/signet/raw/main/logo.png" width="100">
 
 ----
-Signet is a lightweight Ethereum RPC client for Elixir. The goal is to make it easy to interact with Ethereum in Elixir. As an example:
+Signet is a lightweight Ethereum and Solana RPC client for Elixir. The goal is to make it easy to interact with blockchains in Elixir. As an example:
 
 ```elixir
 {:ok, trx_id} =
@@ -21,11 +21,9 @@ The above code will use a signer you set-up (see below) to send a build, sign an
 
 Signet has a number of other features, including:
 
-  * Signing and verifying Ethereum signatures (including [EIP-191](https://eips.ethereum.org/EIPS/eip-191))
-  * Signing and verifying [EIP-712 typed data](https://eips.ethereum.org/EIPS/eip-712)
-  * Signing via [Curvy](https://github.com/libitx/curvy) or [Google KMS](https://cloud.google.com/kms/docs/apis).
-    * Note: Curvy signatures should be avoided in production.
-  * Filters through active processes
+  * **Ethereum**: Signing and verifying signatures ([EIP-191](https://eips.ethereum.org/EIPS/eip-191), [EIP-712](https://eips.ethereum.org/EIPS/eip-712)), transaction building (legacy and EIP-1559), RPC client, event filtering, contract codegen
+  * **Solana**: Ed25519 signing, transaction building, RPC client, SPL Token support, PDA/ATA derivation
+  * **Signing backends**: Local keys or [Google Cloud KMS](https://cloud.google.com/kms/docs/apis) (both secp256k1 for Ethereum and Ed25519 for Solana)
 
 ## Installation
 
@@ -34,7 +32,7 @@ Signet can be installed by adding `signet` to your list of dependencies in `mix.
 ```elixir
 def deps do
   [
-    {:signet, "~> 1.5.0"}
+    {:signet, "~> 1.6.0"}
   ]
 end
 ```
@@ -300,6 +298,88 @@ mix signet.gen my_abi.json
 ```
 
 See `mix help signet.gen` for more details.
+
+## Solana
+
+Signet includes support for Solana, with Ed25519 signing, transaction building, RPC, and SPL Token utilities.
+
+### Configuration
+
+```elixir
+# config.exs or runtime.exs
+config :signet,
+  solana_node: "https://api.mainnet-beta.solana.com"
+
+# Optional: configure a Solana signer (auto-started)
+config :signet, :solana_signer, [
+  {MySolSigner, {:ed25519, System.get_env("SOLANA_PRIVATE_KEY")}}
+]
+```
+
+### Keys and Signing
+
+```elixir
+# Generate a new Ed25519 keypair
+{pub, seed} = Signet.Solana.Keys.generate_keypair()
+Signet.Solana.Keys.to_address(pub)
+# => "4zvwRjXUKGfvwnParsHAS3HuSVzV5cA4McphgmoCtajS"
+
+# Import from a Solana CLI keypair file
+{:ok, {pub, seed}} = Signet.Solana.Keys.from_json(File.read!("~/.config/solana/id.json"))
+
+# Sign and verify
+{:ok, sig} = Signet.Solana.Signer.Ed25519.sign(message, seed)
+Signet.Solana.Signer.verify(message, sig, pub)
+```
+
+### RPC
+
+```elixir
+{:ok, balance} = Signet.Solana.RPC.get_balance(pub)
+{:ok, slot} = Signet.Solana.RPC.get_slot()
+{:ok, %{blockhash: bh}} = Signet.Solana.RPC.get_latest_blockhash()
+```
+
+### Transactions
+
+```elixir
+# Build and sign a SOL transfer
+ix = Signet.Solana.SystemProgram.transfer(from_pub, to_pub, 1_000_000_000)
+msg = Signet.Solana.Transaction.build_message(from_pub, [ix], blockhash)
+trx = Signet.Solana.Transaction.sign(msg, [seed])
+
+# Send and wait for confirmation
+{:ok, signature} = Signet.Solana.RPC.send_and_confirm(trx)
+```
+
+### SPL Tokens
+
+```elixir
+use Signet.Base58
+
+usdc_mint = ~B58[EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v]
+
+# Get token balance
+{:ok, balance} = Signet.Solana.Token.get_balance(wallet, usdc_mint)
+
+# Get all token balances (SPL Token + Token-2022)
+{:ok, balances} = Signet.Solana.Token.get_all_balances(wallet)
+
+# Build transfer instructions (includes ATA creation if needed)
+instructions = Signet.Solana.Token.transfer_instructions(
+  from_wallet, to_wallet, usdc_mint, 1_000_000, 6
+)
+```
+
+### PDAs and ATAs
+
+```elixir
+# Derive a Program Derived Address
+{pda, bump} = Signet.Solana.PDA.find_program_address(["seed"], program_id)
+
+# Derive an Associated Token Account address
+{ata, bump} = Signet.Solana.ATA.find_address(wallet, mint)
+```
 
 ## Tests
 

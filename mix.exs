@@ -4,13 +4,13 @@ defmodule Signet.MixProject do
   def project do
     [
       app: :signet,
-      version: "1.5.0",
-      elixir: "~> 1.13",
+      version: "1.6.0",
+      elixir: "~> 1.17",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       name: "Signet",
-      description: "Lightweight Ethereum RPC client for Elixir",
+      description: "Lightweight Ethereum and Solana RPC client for Elixir",
       source_url: "https://github.com/hayesgm/signet",
       docs: [
         main: "readme",
