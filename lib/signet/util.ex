@@ -318,7 +318,8 @@ defmodule Signet.Util do
       iex> Signet.Util.checksum_address("0xd1220a0cf47c7b9be7a2e6ba89f429762e7b9adb")
       "0xD1220A0cf47c7B9Be7A2E6BA89F429762e7b9aDb"
   """
-  def checksum_address(address = "0x" <> _), do: checksum_address(decode_hex!(address))
+  def checksum_address(address = "0x" <> _) when byte_size(address) == 42,
+    do: checksum_address(decode_hex!(address))
 
   def checksum_address(address) when is_binary(address) and byte_size(address) == 20 do
     # Weirdly instead of keccaking the address, we keccak the string representation...
