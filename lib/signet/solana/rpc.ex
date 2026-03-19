@@ -99,14 +99,28 @@ defmodule Signet.Solana.RPC do
 
   defp commitment_config(opts) do
     config = %{}
-    config = if c = Keyword.get(opts, :commitment), do: Map.put(config, "commitment", to_string(c)), else: config
-    config = if s = Keyword.get(opts, :min_context_slot), do: Map.put(config, "minContextSlot", s), else: config
+
+    config =
+      if c = Keyword.get(opts, :commitment),
+        do: Map.put(config, "commitment", to_string(c)),
+        else: config
+
+    config =
+      if s = Keyword.get(opts, :min_context_slot),
+        do: Map.put(config, "minContextSlot", s),
+        else: config
+
     config
   end
 
   defp account_config(opts) do
     config = commitment_config(opts)
-    config = if e = Keyword.get(opts, :encoding), do: Map.put(config, "encoding", encoding_string(e)), else: Map.put(config, "encoding", "base64")
+
+    config =
+      if e = Keyword.get(opts, :encoding),
+        do: Map.put(config, "encoding", encoding_string(e)),
+        else: Map.put(config, "encoding", "base64")
+
     config
   end
 
@@ -136,7 +150,8 @@ defmodule Signet.Solana.RPC do
   """
   @spec get_balance(<<_::256>>, keyword()) :: {:ok, non_neg_integer()} | {:error, term()}
   def get_balance(pubkey, opts \\ []) do
-    with {:ok, result} <- send_rpc("getBalance", params_with_config([encode_pubkey(pubkey)], opts), opts) do
+    with {:ok, result} <-
+           send_rpc("getBalance", params_with_config([encode_pubkey(pubkey)], opts), opts) do
       {:ok, unwrap_value(result)}
     end
   end
@@ -241,7 +256,11 @@ defmodule Signet.Solana.RPC do
   def get_transaction(signature, opts \\ []) do
     config = commitment_config(opts)
     config = Map.put(config, "maxSupportedTransactionVersion", 0)
-    config = if e = Keyword.get(opts, :encoding), do: Map.put(config, "encoding", encoding_string(e)), else: config
+
+    config =
+      if e = Keyword.get(opts, :encoding),
+        do: Map.put(config, "encoding", encoding_string(e)),
+        else: config
 
     send_rpc("getTransaction", [signature, config], opts)
   end
@@ -314,10 +333,16 @@ defmodule Signet.Solana.RPC do
   for 1500000 with 6 decimals).
   """
   @spec get_token_account_balance(<<_::256>>, keyword()) ::
-          {:ok, %{amount: non_neg_integer(), decimals: non_neg_integer(), ui_amount_string: String.t()}}
+          {:ok,
+           %{amount: non_neg_integer(), decimals: non_neg_integer(), ui_amount_string: String.t()}}
           | {:error, term()}
   def get_token_account_balance(pubkey, opts \\ []) do
-    with {:ok, result} <- send_rpc("getTokenAccountBalance", params_with_config([encode_pubkey(pubkey)], opts), opts) do
+    with {:ok, result} <-
+           send_rpc(
+             "getTokenAccountBalance",
+             params_with_config([encode_pubkey(pubkey)], opts),
+             opts
+           ) do
       value = unwrap_value(result)
 
       {:ok,
@@ -347,14 +372,20 @@ defmodule Signet.Solana.RPC do
   def get_token_accounts_by_owner(owner, filter, opts \\ []) do
     filter_obj =
       cond do
-        mint = Keyword.get(filter, :mint) -> %{"mint" => encode_pubkey(mint)}
-        program_id = Keyword.get(filter, :program_id) -> %{"programId" => encode_pubkey(program_id)}
-        true -> raise ArgumentError, "get_token_accounts_by_owner requires :mint or :program_id filter"
+        mint = Keyword.get(filter, :mint) ->
+          %{"mint" => encode_pubkey(mint)}
+
+        program_id = Keyword.get(filter, :program_id) ->
+          %{"programId" => encode_pubkey(program_id)}
+
+        true ->
+          raise ArgumentError, "get_token_accounts_by_owner requires :mint or :program_id filter"
       end
 
     config = account_config(Keyword.put_new(opts, :encoding, :json_parsed))
 
-    with {:ok, result} <- send_rpc("getTokenAccountsByOwner", [encode_pubkey(owner), filter_obj, config], opts) do
+    with {:ok, result} <-
+           send_rpc("getTokenAccountsByOwner", [encode_pubkey(owner), filter_obj, config], opts) do
       accounts =
         unwrap_value(result)
         |> Enum.map(fn item ->
@@ -456,9 +487,19 @@ defmodule Signet.Solana.RPC do
       end
 
     config = %{"encoding" => encoding_string(encoding)}
-    config = if Keyword.get(opts, :skip_preflight, false), do: Map.put(config, "skipPreflight", true), else: config
-    config = if c = Keyword.get(opts, :preflight_commitment), do: Map.put(config, "preflightCommitment", to_string(c)), else: config
-    config = if r = Keyword.get(opts, :max_retries), do: Map.put(config, "maxRetries", r), else: config
+
+    config =
+      if Keyword.get(opts, :skip_preflight, false),
+        do: Map.put(config, "skipPreflight", true),
+        else: config
+
+    config =
+      if c = Keyword.get(opts, :preflight_commitment),
+        do: Map.put(config, "preflightCommitment", to_string(c)),
+        else: config
+
+    config =
+      if r = Keyword.get(opts, :max_retries), do: Map.put(config, "maxRetries", r), else: config
 
     send_rpc("sendTransaction", [encoded, config], opts)
   end
@@ -478,9 +519,21 @@ defmodule Signet.Solana.RPC do
 
   def simulate_transaction(bytes, opts) when is_binary(bytes) do
     config = %{"encoding" => "base64"}
-    config = if c = Keyword.get(opts, :commitment), do: Map.put(config, "commitment", to_string(c)), else: config
-    config = if Keyword.get(opts, :sig_verify, false), do: Map.put(config, "sigVerify", true), else: config
-    config = if Keyword.get(opts, :replace_recent_blockhash, false), do: Map.put(config, "replaceRecentBlockhash", true), else: config
+
+    config =
+      if c = Keyword.get(opts, :commitment),
+        do: Map.put(config, "commitment", to_string(c)),
+        else: config
+
+    config =
+      if Keyword.get(opts, :sig_verify, false),
+        do: Map.put(config, "sigVerify", true),
+        else: config
+
+    config =
+      if Keyword.get(opts, :replace_recent_blockhash, false),
+        do: Map.put(config, "replaceRecentBlockhash", true),
+        else: config
 
     encoded = Base.encode64(bytes)
 

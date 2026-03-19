@@ -49,7 +49,10 @@ defmodule Signet.Solana.ATATest do
 
     test "token_program option changes the ATA" do
       {ata_default, _} = ATA.find_address(@wallet, @mint)
-      {ata_2022, _} = ATA.find_address(@wallet, @mint, token_program: Programs.token_2022_program())
+
+      {ata_2022, _} =
+        ATA.find_address(@wallet, @mint, token_program: Programs.token_2022_program())
+
       assert ata_default != ata_2022
     end
 
@@ -74,8 +77,16 @@ defmodule Signet.Solana.ATATest do
                %AccountMeta{pubkey: expected_ata, is_signer: false, is_writable: true},
                %AccountMeta{pubkey: @wallet, is_signer: false, is_writable: false},
                %AccountMeta{pubkey: @mint, is_signer: false, is_writable: false},
-               %AccountMeta{pubkey: Programs.system_program(), is_signer: false, is_writable: false},
-               %AccountMeta{pubkey: Programs.token_program(), is_signer: false, is_writable: false}
+               %AccountMeta{
+                 pubkey: Programs.system_program(),
+                 is_signer: false,
+                 is_writable: false
+               },
+               %AccountMeta{
+                 pubkey: Programs.token_program(),
+                 is_signer: false,
+                 is_writable: false
+               }
              ]
     end
   end
@@ -98,7 +109,9 @@ defmodule Signet.Solana.ATATest do
     test "token_2022 option changes the token program account" do
       payer = <<10::256>>
       ix_default = ATA.create_idempotent(payer, @wallet, @mint)
-      ix_2022 = ATA.create_idempotent(payer, @wallet, @mint, token_program: Programs.token_2022_program())
+
+      ix_2022 =
+        ATA.create_idempotent(payer, @wallet, @mint, token_program: Programs.token_2022_program())
 
       # Last account is the token program
       default_token_prog = List.last(ix_default.accounts).pubkey

@@ -5,19 +5,14 @@ if Code.ensure_loaded?(Signet.Solana.Signer.CloudKMS) do
     alias Signet.Solana.Signer.CloudKMS
 
     # Known Ed25519 keypair (RFC 8032 Test 1)
-    @seed Base.decode16!(
-            "9D61B19DEFFD5A60BA844AF492EC2CC44449C5697B326919703BAC031CAE7F60"
-          )
-    @pub Base.decode16!(
-           "D75A980182B10AB7D54BFED3C964073A0EE172F3DAA62325AF021A68F707511A"
-         )
+    @seed Base.decode16!("9D61B19DEFFD5A60BA844AF492EC2CC44449C5697B326919703BAC031CAE7F60")
+    @pub Base.decode16!("D75A980182B10AB7D54BFED3C964073A0EE172F3DAA62325AF021A68F707511A")
 
     # Ed25519 SubjectPublicKeyInfo PEM for the above public key.
     # DER = 12-byte prefix (30 2A 30 05 06 03 2B 65 70 03 21 00) + 32-byte pubkey
     @ed25519_pem (fn ->
                     der_prefix =
-                      <<0x30, 0x2A, 0x30, 0x05, 0x06, 0x03, 0x2B, 0x65, 0x70, 0x03, 0x21,
-                        0x00>>
+                      <<0x30, 0x2A, 0x30, 0x05, 0x06, 0x03, 0x2B, 0x65, 0x70, 0x03, 0x21, 0x00>>
 
                     der = der_prefix <> @pub
                     b64 = Base.encode64(der)
@@ -43,7 +38,8 @@ if Code.ensure_loaded?(Signet.Solana.Signer.CloudKMS) do
                 pem: @ed25519_pem,
                 algorithm: "EC_SIGN_ED25519",
                 pemCrc32c: "0",
-                name: "projects/project/locations/location/keyRings/keychain/cryptoKeys/key/cryptoKeyVersions/version",
+                name:
+                  "projects/project/locations/location/keyRings/keychain/cryptoKeys/key/cryptoKeyVersions/version",
                 protectionLevel: "HSM"
               })
           }
@@ -60,7 +56,8 @@ if Code.ensure_loaded?(Signet.Solana.Signer.CloudKMS) do
               Jason.encode!(%{
                 signature: Base.encode64(@test_signature),
                 signatureCrc32c: "0",
-                name: "projects/project/locations/location/keyRings/keychain/cryptoKeys/key/cryptoKeyVersions/version",
+                name:
+                  "projects/project/locations/location/keyRings/keychain/cryptoKeys/key/cryptoKeyVersions/version",
                 protectionLevel: "HSM"
               })
           }

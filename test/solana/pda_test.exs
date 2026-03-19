@@ -136,8 +136,9 @@ defmodule Signet.Solana.PDATest do
 
       if bump < 255 do
         result = PDA.create_program_address(["test", <<bump + 1>>], <<0::256>>)
+
         assert result == {:error, :on_curve} or
-                 (match?({:ok, addr} when addr != _expected, result))
+                 match?({:ok, addr} when addr != _expected, result)
       end
     end
   end

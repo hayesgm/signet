@@ -218,7 +218,7 @@ defmodule Signet.Solana.Transaction do
 
     {ws, rs, wn, rn} =
       Enum.reduce(rest, {[], [], [], []}, fn {pubkey, {is_signer, is_writable}},
-                                              {ws, rs, wn, rn} ->
+                                             {ws, rs, wn, rn} ->
         case {is_signer, is_writable} do
           {true, true} -> {[pubkey | ws], rs, wn, rn}
           {true, false} -> {ws, [pubkey | rs], wn, rn}

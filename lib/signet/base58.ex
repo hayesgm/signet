@@ -59,7 +59,7 @@ defmodule Signet.Base58 do
   @alphabet_tuple List.to_tuple(@alphabet)
 
   # O(1) char → index lookup
-  @decode_map (for {char, idx} <- Enum.with_index(@alphabet), into: %{}, do: {char, idx})
+  @decode_map for {char, idx} <- Enum.with_index(@alphabet), into: %{}, do: {char, idx}
 
   @doc """
   Encode a binary to a Base58 string.
