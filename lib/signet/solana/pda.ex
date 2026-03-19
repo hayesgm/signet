@@ -68,8 +68,11 @@ defmodule Signet.Solana.PDA do
   @spec find_program_address!([binary()], <<_::256>>) :: {<<_::256>>, non_neg_integer()}
   def find_program_address!(seeds, program_id) do
     case find_program_address(seeds, program_id) do
-      {:ok, result} -> result
-      {:error, :no_valid_pda} -> raise "could not find PDA (all 256 bumps produced on-curve addresses)"
+      {:ok, result} ->
+        result
+
+      {:error, :no_valid_pda} ->
+        raise "could not find PDA (all 256 bumps produced on-curve addresses)"
     end
   end
 
@@ -123,7 +126,7 @@ defmodule Signet.Solana.PDA do
   def on_curve?(<<bytes::binary-32>>) do
     # Decode y-coordinate: little-endian, clear the sign bit (bit 255)
     <<y_raw::little-unsigned-256>> = bytes
-    y = y_raw &&& ((1 <<< 255) - 1)
+    y = y_raw &&& (1 <<< 255) - 1
 
     cond do
       # y must be a valid field element

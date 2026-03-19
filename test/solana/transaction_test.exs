@@ -337,7 +337,9 @@ defmodule Signet.Solana.TransactionTest do
       owner = <<3::256>>
       blockhash = <<99::256>>
 
-      ix = Signet.Solana.SystemProgram.create_account(fee_payer, new_account, 1_000_000, 165, owner)
+      ix =
+        Signet.Solana.SystemProgram.create_account(fee_payer, new_account, 1_000_000, 165, owner)
+
       msg = Transaction.build_message(fee_payer, [ix], blockhash)
 
       # Only sign position 1 (new_account), leave position 0 (fee_payer) empty
@@ -356,14 +358,20 @@ defmodule Signet.Solana.TransactionTest do
       owner = <<3::256>>
       blockhash = <<99::256>>
 
-      ix = Signet.Solana.SystemProgram.create_account(fee_payer, new_account, 1_000_000, 165, owner)
+      ix =
+        Signet.Solana.SystemProgram.create_account(fee_payer, new_account, 1_000_000, 165, owner)
+
       msg = Transaction.build_message(fee_payer, [ix], blockhash)
 
       {pub2, seed2} = Signet.Solana.Keys.from_seed(<<2::256>>)
       partial = Transaction.sign_partial(msg, %{1 => seed2})
 
       msg_bytes = Transaction.serialize_message(msg)
-      assert :crypto.verify(:eddsa, :none, msg_bytes, Enum.at(partial.signatures, 1), [pub2, :ed25519])
+
+      assert :crypto.verify(:eddsa, :none, msg_bytes, Enum.at(partial.signatures, 1), [
+               pub2,
+               :ed25519
+             ])
     end
 
     test "signing all positions is equivalent to sign/2" do
@@ -372,7 +380,9 @@ defmodule Signet.Solana.TransactionTest do
       owner = <<3::256>>
       blockhash = <<99::256>>
 
-      ix = Signet.Solana.SystemProgram.create_account(fee_payer, new_account, 1_000_000, 165, owner)
+      ix =
+        Signet.Solana.SystemProgram.create_account(fee_payer, new_account, 1_000_000, 165, owner)
+
       msg = Transaction.build_message(fee_payer, [ix], blockhash)
 
       {_pub1, seed1} = Signet.Solana.Keys.from_seed(<<1::256>>)
@@ -392,7 +402,9 @@ defmodule Signet.Solana.TransactionTest do
       owner = <<3::256>>
       blockhash = <<99::256>>
 
-      ix = Signet.Solana.SystemProgram.create_account(fee_payer, new_account, 1_000_000, 165, owner)
+      ix =
+        Signet.Solana.SystemProgram.create_account(fee_payer, new_account, 1_000_000, 165, owner)
+
       msg = Transaction.build_message(fee_payer, [ix], blockhash)
 
       # User signs position 1
@@ -439,8 +451,15 @@ defmodule Signet.Solana.TransactionTest do
       full = Transaction.add_signature(received, 0, sponsor_sig)
 
       # Verify both signatures are valid
-      assert :crypto.verify(:eddsa, :none, msg_bytes, Enum.at(full.signatures, 0), [pub1, :ed25519])
-      assert :crypto.verify(:eddsa, :none, msg_bytes, Enum.at(full.signatures, 1), [pub2, :ed25519])
+      assert :crypto.verify(:eddsa, :none, msg_bytes, Enum.at(full.signatures, 0), [
+               pub1,
+               :ed25519
+             ])
+
+      assert :crypto.verify(:eddsa, :none, msg_bytes, Enum.at(full.signatures, 1), [
+               pub2,
+               :ed25519
+             ])
 
       # Verify the full transaction serializes cleanly
       final_bytes = Transaction.serialize(full)

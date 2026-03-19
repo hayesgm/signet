@@ -38,8 +38,11 @@ defmodule Signet.Solana.TokenProgramTest do
     end
 
     test "token_program option" do
-      ix = TokenProgram.transfer(@source, @destination, @authority, 100,
-             token_program: Programs.token_2022_program())
+      ix =
+        TokenProgram.transfer(@source, @destination, @authority, 100,
+          token_program: Programs.token_2022_program()
+        )
+
       assert ix.program_id == Programs.token_2022_program()
     end
 

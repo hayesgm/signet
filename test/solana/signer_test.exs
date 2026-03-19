@@ -60,6 +60,7 @@ defmodule Signet.Solana.SignerTest do
         expected_sig = Base.decode16!(v.signature)
 
         {:ok, sig} = Ed25519Backend.sign(message, seed)
+
         assert sig == expected_sig,
                "signature mismatch for vector with seed #{v.seed}"
       end
@@ -127,9 +128,7 @@ defmodule Signet.Solana.SignerTest do
 
       # Verify with known pubkey
       pub =
-        Base.decode16!(
-          "D75A980182B10AB7D54BFED3C964073A0EE172F3DAA62325AF021A68F707511A"
-        )
+        Base.decode16!("D75A980182B10AB7D54BFED3C964073A0EE172F3DAA62325AF021A68F707511A")
 
       assert Signer.verify("test message", sig, pub)
     end
@@ -139,9 +138,7 @@ defmodule Signet.Solana.SignerTest do
       address = Signer.address(signer)
 
       expected =
-        Base.decode16!(
-          "D75A980182B10AB7D54BFED3C964073A0EE172F3DAA62325AF021A68F707511A"
-        )
+        Base.decode16!("D75A980182B10AB7D54BFED3C964073A0EE172F3DAA62325AF021A68F707511A")
 
       assert address == expected
     end
