@@ -32,7 +32,7 @@ Signet can be installed by adding `signet` to your list of dependencies in `mix.
 ```elixir
 def deps do
   [
-    {:signet, "~> 1.6.0"}
+    {:signet, "~> 1.6.1"}
   ]
 end
 ```
