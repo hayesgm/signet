@@ -385,7 +385,7 @@ defmodule Signet.Util do
         iex> Signet.Util.RecoveryBit.normalize(45, :base)
         0
     """
-    @spec normalize(non_neg_integer(), rec_type()) :: non_neg_integer() | :no_return
+    @spec normalize(non_neg_integer(), rec_type()) :: non_neg_integer() | no_return()
     def normalize(recovery_bit, rec_type \\ :eip155) when rec_type in @rec_types do
       base = recover_base(recovery_bit)
 
@@ -416,7 +416,7 @@ defmodule Signet.Util do
         iex> Signet.Util.RecoveryBit.normalize_signature(<<1::256, 2::256, 45>>, :base)
         <<1::256, 2::256, 0>>
     """
-    @spec normalize_signature(Signet.signature(), rec_type()) :: Signet.signature() | :no_return
+    @spec normalize_signature(Signet.signature(), rec_type()) :: Signet.signature() | no_return()
     def normalize_signature(<<rs::binary-size(64), v>>, rec_type \\ :eip155)
         when rec_type in @rec_types do
       v_normalized = normalize(v, rec_type)
